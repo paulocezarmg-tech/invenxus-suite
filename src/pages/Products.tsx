@@ -12,10 +12,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Pencil } from "lucide-react";
+import { ProductDialog } from "@/components/products/ProductDialog";
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["products", searchTerm],
@@ -61,7 +64,13 @@ const Products = () => {
             Gerenciar catálogo de produtos
           </p>
         </div>
-        <Button className="gap-2">
+        <Button
+          className="gap-2"
+          onClick={() => {
+            setSelectedProduct(null);
+            setDialogOpen(true);
+          }}
+        >
           <Plus className="h-4 w-4" />
           Novo Produto
         </Button>
@@ -91,6 +100,7 @@ const Products = () => {
               <TableHead>Local</TableHead>
               <TableHead>Custo</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="w-[80px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -102,7 +112,7 @@ const Products = () => {
               </TableRow>
             ) : products && products.length > 0 ? (
               products.map((product: any) => (
-                <TableRow key={product.id} className="cursor-pointer hover:bg-accent/50">
+                <TableRow key={product.id}>
                   <TableCell className="font-mono">{product.sku}</TableCell>
                   <TableCell>
                     <div>
@@ -122,11 +132,23 @@ const Products = () => {
                   <TableCell>
                     {getStockBadge(Number(product.quantity), Number(product.min_quantity))}
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setSelectedProduct(product);
+                        setDialogOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                <TableCell colSpan={9} className="text-center text-muted-foreground">
                   Nenhum produto encontrado
                 </TableCell>
               </TableRow>
@@ -134,6 +156,12 @@ const Products = () => {
           </TableBody>
         </Table>
       </div>
+
+      <ProductDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        product={selectedProduct}
+      />
     </div>
   );
 };
