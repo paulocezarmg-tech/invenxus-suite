@@ -1,0 +1,141 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Search } from "lucide-react";
+
+const Products = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const { data: products, isLoading } = useQuery({
+    queryKey: ["products", searchTerm],
+    queryFn: async () => {
+      let query = supabase
+        .from("products")
+        .select(`
+          *,
+          categories (name),
+          locations (name),
+          suppliers (name)
+        `)
+        .order("name", { ascending: true });
+
+      if (searchTerm) {
+        query = query.or(
+          `name.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,barcode.ilike.%${searchTerm}%`
+        );
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const getStockBadge = (quantity: number, minQuantity: number) => {
+    if (quantity === 0) {
+      return <Badge variant="destructive">Sem Estoque</Badge>;
+    } else if (quantity <= minQuantity) {
+      return <Badge className="bg-yellow-600">Crítico</Badge>;
+    } else {
+      return <Badge className="bg-green-600">Normal</Badge>;
+    }
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Produtos</h1>
+          <p className="text-muted-foreground">
+            Gerenciar catálogo de produtos
+          </p>
+        </div>
+        <Button className="gap-2">
+          <Plus className="h-4 w-4" />
+          Novo Produto
+        </Button>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome, SKU ou código de barras..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
+      <div className="rounded-lg border shadow-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>SKU</TableHead>
+              <TableHead>Nome</TableHead>
+              <TableHead>Categoria</TableHead>
+              <TableHead>Quantidade</TableHead>
+              <TableHead>Estoque Mín.</TableHead>
+              <TableHead>Local</TableHead>
+              <TableHead>Custo</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center">
+                  Carregando...
+                </TableCell>
+              </TableRow>
+            ) : products && products.length > 0 ? (
+              products.map((product: any) => (
+                <TableRow key={product.id} className="cursor-pointer hover:bg-accent/50">
+                  <TableCell className="font-mono">{product.sku}</TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{product.name}</div>
+                      {product.barcode && (
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {product.barcode}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>{product.categories?.name || "N/A"}</TableCell>
+                  <TableCell className="font-medium">{product.quantity}</TableCell>
+                  <TableCell>{product.min_quantity}</TableCell>
+                  <TableCell>{product.locations?.name || "N/A"}</TableCell>
+                  <TableCell>R$ {Number(product.cost).toFixed(2)}</TableCell>
+                  <TableCell>
+                    {getStockBadge(Number(product.quantity), Number(product.min_quantity))}
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                  Nenhum produto encontrado
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+};
+
+export default Products;
