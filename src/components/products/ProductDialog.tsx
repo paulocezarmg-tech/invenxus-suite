@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -116,6 +116,38 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
           supplier_id: "",
         },
   });
+
+  useEffect(() => {
+    if (product) {
+      form.reset({
+        sku: product.sku,
+        barcode: product.barcode || "",
+        name: product.name,
+        description: product.description || "",
+        category_id: product.category_id || "",
+        unit: product.unit,
+        cost: String(product.cost),
+        quantity: String(product.quantity),
+        min_quantity: String(product.min_quantity),
+        location_id: product.location_id || "",
+        supplier_id: product.supplier_id || "",
+      });
+    } else {
+      form.reset({
+        sku: "",
+        barcode: "",
+        name: "",
+        description: "",
+        category_id: "",
+        unit: "UN",
+        cost: "0",
+        quantity: "0",
+        min_quantity: "0",
+        location_id: "",
+        supplier_id: "",
+      });
+    }
+  }, [product, form]);
 
   const onSubmit = async (data: ProductFormData) => {
     setIsSubmitting(true);
