@@ -41,7 +41,6 @@ const productSchema = z.object({
   category_id: z.string().optional(),
   unit: z.string().min(1, "Unidade é obrigatória"),
   cost: z.string().min(0, "Custo deve ser positivo"),
-  quantity: z.string().min(0, "Quantidade deve ser positiva"),
   min_quantity: z.string().min(0, "Quantidade mínima deve ser positiva"),
   location_id: z.string().optional(),
   supplier_id: z.string().optional(),
@@ -97,7 +96,6 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
           category_id: product.category_id || "",
           unit: product.unit,
           cost: String(product.cost),
-          quantity: String(product.quantity),
           min_quantity: String(product.min_quantity),
           location_id: product.location_id || "",
           supplier_id: product.supplier_id || "",
@@ -110,7 +108,6 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
           category_id: "",
           unit: "UN",
           cost: "0",
-          quantity: "0",
           min_quantity: "0",
           location_id: "",
           supplier_id: "",
@@ -127,7 +124,6 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
         category_id: product.category_id || "",
         unit: product.unit,
         cost: String(product.cost),
-        quantity: String(product.quantity),
         min_quantity: String(product.min_quantity),
         location_id: product.location_id || "",
         supplier_id: product.supplier_id || "",
@@ -141,7 +137,6 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
         category_id: "",
         unit: "UN",
         cost: "0",
-        quantity: "0",
         min_quantity: "0",
         location_id: "",
         supplier_id: "",
@@ -160,7 +155,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
         category_id: data.category_id || null,
         unit: data.unit,
         cost: parseFloat(data.cost),
-        quantity: parseFloat(data.quantity),
+        quantity: product ? parseFloat(String(product.quantity)) : 0,
         min_quantity: parseFloat(data.min_quantity),
         location_id: data.location_id || null,
         supplier_id: data.supplier_id || null,
@@ -311,7 +306,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="cost"
@@ -320,20 +315,6 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
                     <FormLabel>Custo (R$) *</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" min="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantidade *</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="1" min="0" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
