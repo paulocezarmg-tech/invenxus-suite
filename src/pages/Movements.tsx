@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft } from "lucide-react";
+import { Plus, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, Pencil, Trash2 } from "lucide-react";
 import { MovementDialog } from "@/components/movements/MovementDialog";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -18,6 +19,28 @@ import { ptBR } from "date-fns/locale";
 
 const Movements = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedMovement, setSelectedMovement] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  // Check user role
+  const { data: currentUser } = useQuery({
+    queryKey: ["current-user"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      
+      if (roles && roles.length > 0) {
+        setUserRole(roles[0].role);
+      }
+      return user;
+    },
+  });
 
   const { data: movements, isLoading } = useQuery({
     queryKey: ["movements"],
@@ -63,6 +86,21 @@ const Movements = () => {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta movimentação?")) return;
+
+    try {
+      const { error } = await supabase.from("movements").delete().eq("id", id);
+      if (error) throw error;
+
+      toast.success("Movimentação excluída");
+      queryClient.invalidateQueries({ queryKey: ["movements"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao excluir movimentação");
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -72,7 +110,13 @@ const Movements = () => {
             Registrar entradas, saídas e transferências
           </p>
         </div>
-        <Button className="gap-2" onClick={() => setDialogOpen(true)}>
+        <Button
+          className="gap-2"
+          onClick={() => {
+            setSelectedMovement(null);
+            setDialogOpen(true);
+          }}
+        >
           <Plus className="h-4 w-4" />
           Nova Movimentação
         </Button>
@@ -89,12 +133,13 @@ const Movements = () => {
               <TableHead>Origem</TableHead>
               <TableHead>Destino</TableHead>
               <TableHead>Referência</TableHead>
+              {userRole === "superadmin" && <TableHead className="w-[100px]">Ações</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center">
+                <TableCell colSpan={userRole === "superadmin" ? 8 : 7} className="text-center">
                   Carregando...
                 </TableCell>
               </TableRow>
@@ -126,11 +171,34 @@ const Movements = () => {
                   <TableCell className="font-mono text-sm">
                     {movement.reference || "-"}
                   </TableCell>
+                  {userRole === "superadmin" && (
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedMovement(movement);
+                            setDialogOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(movement.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={userRole === "superadmin" ? 8 : 7} className="text-center text-muted-foreground">
                   Nenhuma movimentação encontrada
                 </TableCell>
               </TableRow>
@@ -139,7 +207,11 @@ const Movements = () => {
         </Table>
       </div>
 
-      <MovementDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <MovementDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        movement={selectedMovement}
+      />
     </div>
   );
 };

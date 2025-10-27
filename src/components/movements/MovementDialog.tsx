@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -47,9 +47,10 @@ type MovementFormData = z.infer<typeof movementSchema>;
 interface MovementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  movement?: any;
 }
 
-export function MovementDialog({ open, onOpenChange }: MovementDialogProps) {
+export function MovementDialog({ open, onOpenChange, movement }: MovementDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
@@ -87,6 +88,30 @@ export function MovementDialog({ open, onOpenChange }: MovementDialogProps) {
     },
   });
 
+  useEffect(() => {
+    if (movement) {
+      form.reset({
+        type: movement.type,
+        product_id: movement.product_id,
+        quantity: String(movement.quantity),
+        from_location_id: movement.from_location_id || "",
+        to_location_id: movement.to_location_id || "",
+        reference: movement.reference || "",
+        note: movement.note || "",
+      });
+    } else {
+      form.reset({
+        type: "IN",
+        product_id: "",
+        quantity: "",
+        from_location_id: "",
+        to_location_id: "",
+        reference: "",
+        note: "",
+      });
+    }
+  }, [movement, form]);
+
   const movementType = form.watch("type");
 
   const onSubmit = async (data: MovementFormData) => {
@@ -106,10 +131,18 @@ export function MovementDialog({ open, onOpenChange }: MovementDialogProps) {
         created_by: user.id,
       };
 
-      const { error } = await supabase.from("movements").insert(movementData);
-      if (error) throw error;
-
-      toast.success("Movimentação registrada com sucesso");
+      if (movement) {
+        const { error } = await supabase
+          .from("movements")
+          .update(movementData)
+          .eq("id", movement.id);
+        if (error) throw error;
+        toast.success("Movimentação atualizada com sucesso");
+      } else {
+        const { error } = await supabase.from("movements").insert(movementData);
+        if (error) throw error;
+        toast.success("Movimentação registrada com sucesso");
+      }
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["movements"] });
       queryClient.invalidateQueries({ queryKey: ["critical-products"] });
@@ -126,8 +159,12 @@ export function MovementDialog({ open, onOpenChange }: MovementDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Nova Movimentação</DialogTitle>
-          <DialogDescription>Registre entrada, saída ou transferência de estoque</DialogDescription>
+          <DialogTitle>{movement ? "Editar Movimentação" : "Nova Movimentação"}</DialogTitle>
+          <DialogDescription>
+            {movement
+              ? "Atualize os detalhes da movimentação"
+              : "Registre entrada, saída ou transferência de estoque"}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -334,7 +371,7 @@ export function MovementDialog({ open, onOpenChange }: MovementDialogProps) {
                 Cancelar
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Registrando..." : "Registrar"}
+                {isSubmitting ? "Salvando..." : movement ? "Atualizar" : "Registrar"}
               </Button>
             </DialogFooter>
           </form>
