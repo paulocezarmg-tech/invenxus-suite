@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CategoriesSettings } from "@/components/settings/CategoriesSettings";
 import { LocationsSettings } from "@/components/settings/LocationsSettings";
 import { SuppliersSettings } from "@/components/settings/SuppliersSettings";
+import { UsersSettings } from "@/components/settings/UsersSettings";
 
 const Settings = () => {
   return (
@@ -12,12 +13,25 @@ const Settings = () => {
         <p className="text-muted-foreground">Gerenciar configurações do sistema</p>
       </div>
 
-      <Tabs defaultValue="categories" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+      <Tabs defaultValue="users" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+          <TabsTrigger value="users">Usuários</TabsTrigger>
           <TabsTrigger value="categories">Categorias</TabsTrigger>
           <TabsTrigger value="locations">Locais</TabsTrigger>
           <TabsTrigger value="suppliers">Fornecedores</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="users" className="mt-6">
+          <Card className="bg-card border-muted">
+            <CardHeader>
+              <CardTitle>Gerenciamento de Usuários</CardTitle>
+              <CardDescription>Controle total sobre usuários e permissões</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <UsersSettings />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="categories" className="mt-6">
           <Card className="bg-card border-muted">
