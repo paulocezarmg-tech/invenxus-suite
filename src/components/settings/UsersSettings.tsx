@@ -3,6 +3,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -28,8 +36,10 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Shield, Trash2 } from "lucide-react";
+import { Plus, MoreVertical, Pencil, UserX, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 type Role = "superadmin" | "admin" | "almoxarife" | "operador" | "auditor";
 
@@ -42,11 +52,11 @@ const roleLabels: Record<Role, string> = {
 };
 
 const roleColors: Record<Role, string> = {
-  superadmin: "bg-purple text-white",
-  admin: "bg-danger text-white",
+  superadmin: "bg-accent text-white",
+  admin: "bg-success text-white",
   almoxarife: "bg-primary text-white",
-  operador: "bg-accent text-white",
-  auditor: "bg-muted text-foreground",
+  operador: "bg-secondary text-white",
+  auditor: "bg-muted-foreground/20 text-foreground",
 };
 
 export function UsersSettings() {
@@ -56,6 +66,7 @@ export function UsersSettings() {
   const [name, setName] = useState("");
   const [selectedRole, setSelectedRole] = useState<Role>("operador");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
 
   const { data: users, isLoading } = useQuery({
@@ -93,10 +104,16 @@ export function UsersSettings() {
           ...profile,
           email: authUser?.email || "",
           roles: userRoles.map((r) => r.role as Role),
+          active: true, // Mock status - can be extended with real status tracking
         };
       });
     },
   });
+
+  const filteredUsers = users?.filter(user => 
+    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleCreateUser = async () => {
     setIsSubmitting(true);
@@ -163,29 +180,45 @@ export function UsersSettings() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium">Usuários e Permissões</h3>
-          <p className="text-sm text-muted-foreground">
-            Gerencie usuários e suas permissões de acesso
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-card border border-border">
+              <Plus className="h-5 w-5" />
+            </div>
+            Usuários
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Visualize os usuários cadastrados no sistema.
           </p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} className="gap-2">
+        <Button onClick={() => setDialogOpen(true)} className="gap-2 bg-success hover:bg-success/90 text-white">
           <Plus className="h-4 w-4" />
-          Novo Usuário
+          Adicionar
         </Button>
       </div>
 
-      <div className="rounded-lg border">
+      {/* Search Bar */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Pesquisar"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10 bg-card/50 border-border"
+        />
+      </div>
+
+      <div className="rounded-lg border border-border bg-card/50 overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Permissão</TableHead>
-              <TableHead>Cadastro</TableHead>
-              <TableHead className="w-[100px]">Ações</TableHead>
+            <TableRow className="border-border hover:bg-transparent">
+              <TableHead className="text-muted-foreground">Usuário</TableHead>
+              <TableHead className="text-muted-foreground">Função</TableHead>
+              <TableHead className="text-muted-foreground">Status</TableHead>
+              <TableHead className="text-muted-foreground">Data de criação</TableHead>
+              <TableHead className="text-muted-foreground text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -195,11 +228,23 @@ export function UsersSettings() {
                   Carregando...
                 </TableCell>
               </TableRow>
-            ) : users && users.length > 0 ? (
-              users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
+            ) : filteredUsers && filteredUsers.length > 0 ? (
+              filteredUsers.map((user) => (
+                <TableRow key={user.id} className="border-border">
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={user.avatar_url || ""} />
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {user.name?.charAt(0).toUpperCase() || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium">{user.name}</div>
+                        <div className="text-sm text-muted-foreground">{user.email}</div>
+                      </div>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       {user.roles.map((role) => (
@@ -210,32 +255,54 @@ export function UsersSettings() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {new Date(user.created_at).toLocaleDateString("pt-BR")}
+                    <Switch checked={user.active} className="data-[state=checked]:bg-success" />
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          const newRole = prompt(
-                            `Escolha a permissão para ${user.name}:\n\n1. superadmin\n2. admin\n3. almoxarife\n4. operador\n5. auditor`
-                          );
-                          if (newRole && Object.keys(roleLabels).includes(newRole)) {
-                            handleUpdateRole(user.user_id, newRole as Role);
-                          }
-                        }}
-                      >
-                        <Shield className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteUser(user.user_id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <div className="text-sm">
+                      {new Date(user.created_at).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "short"
+                      })}
                     </div>
+                    <div className="text-xs text-muted-foreground">
+                      há {formatDistanceToNow(new Date(user.created_at), { locale: ptBR })}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            const newRole = prompt(
+                              `Escolha a permissão para ${user.name}:\n\n1. superadmin\n2. admin\n3. almoxarife\n4. operador\n5. auditor`
+                            );
+                            if (newRole && Object.keys(roleLabels).includes(newRole)) {
+                              handleUpdateRole(user.user_id, newRole as Role);
+                            }
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer">
+                          <UserX className="mr-2 h-4 w-4" />
+                          Desativar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteUser(user.user_id)}
+                          className="cursor-pointer text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Deletar usuário
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
