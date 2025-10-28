@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,13 +12,35 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil } from "lucide-react";
+import { Plus, Search, Pencil, Trash2 } from "lucide-react";
 import { ProductDialog } from "@/components/products/ProductDialog";
+import { toast } from "sonner";
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  // Check user role
+  const { data: currentUser } = useQuery({
+    queryKey: ["current-user"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      
+      if (roles && roles.length > 0) {
+        setUserRole(roles[0].role);
+      }
+      return user;
+    },
+  });
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["products", searchTerm],
@@ -52,6 +74,20 @@ const Products = () => {
       return <Badge className="bg-yellow-600">Crítico</Badge>;
     } else {
       return <Badge className="bg-green-600">Normal</Badge>;
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este produto?")) return;
+
+    try {
+      const { error } = await supabase.from("products").delete().eq("id", id);
+      if (error) throw error;
+
+      toast.success("Produto excluído");
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao excluir produto");
     }
   };
 
@@ -100,13 +136,13 @@ const Products = () => {
               <TableHead>Local</TableHead>
               <TableHead>Custo</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-[80px]">Ações</TableHead>
+              {userRole === "superadmin" && <TableHead className="w-[100px]">Ações</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center">
+                <TableCell colSpan={userRole === "superadmin" ? 9 : 8} className="text-center">
                   Carregando...
                 </TableCell>
               </TableRow>
@@ -132,23 +168,34 @@ const Products = () => {
                   <TableCell>
                     {getStockBadge(Number(product.quantity), Number(product.min_quantity))}
                   </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setSelectedProduct(product);
-                        setDialogOpen(true);
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+                  {userRole === "superadmin" && (
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedProduct(product);
+                            setDialogOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(product.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
+                <TableCell colSpan={userRole === "superadmin" ? 9 : 8} className="text-center text-muted-foreground">
                   Nenhum produto encontrado
                 </TableCell>
               </TableRow>
