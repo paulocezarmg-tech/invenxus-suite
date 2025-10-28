@@ -49,9 +49,16 @@ All colors MUST be HSL.
     --sidebar-ring: 162 66% 38%;
 
     /* Custom tokens */
-    --success: 162 66% 38%;
-    --warning: 38 92% 50%;
-    --info: 217 76% 44%;
+    --success: 142 76% 36%;          /* #16A34A - Verde vibrante */
+    --warning: 38 92% 50%;           /* #F59E0B - Laranja */
+    --info: 217 76% 44%;             /* #1155CC - Azul */
+    --danger: 350 89% 60%;           /* #EF4444 - Vermelho/Rosa */
+    --cancelled: 330 81% 60%;        /* #EC4899 - Rosa vibrante */
+    
+    /* Status colors */
+    --status-paid: 142 76% 36%;      /* Verde - Pago */
+    --status-pending: 38 92% 50%;    /* Laranja - Aguardando */
+    --status-cancelled: 330 81% 60%; /* Rosa - Cancelado */
     
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(162 66% 38%) 0%, hsl(162 66% 48%) 100%);

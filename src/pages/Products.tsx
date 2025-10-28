@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -12,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Package, TrendingDown, AlertCircle, DollarSign } from "lucide-react";
 import { ProductDialog } from "@/components/products/ProductDialog";
 import { toast } from "sonner";
 
@@ -39,6 +40,25 @@ const Products = () => {
         setUserRole(roles[0].role);
       }
       return user;
+    },
+  });
+
+  // Stats query
+  const { data: stats } = useQuery({
+    queryKey: ["product-stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("quantity, min_quantity, cost");
+      
+      if (error) throw error;
+      
+      const total = data?.length || 0;
+      const critical = data?.filter(p => p.quantity <= p.min_quantity).length || 0;
+      const outOfStock = data?.filter(p => p.quantity === 0).length || 0;
+      const totalValue = data?.reduce((sum, p) => sum + (Number(p.cost) * Number(p.quantity)), 0) || 0;
+      
+      return { total, critical, outOfStock, totalValue };
     },
   });
 
@@ -69,11 +89,11 @@ const Products = () => {
 
   const getStockBadge = (quantity: number, minQuantity: number) => {
     if (quantity === 0) {
-      return <Badge variant="destructive">Sem Estoque</Badge>;
+      return <Badge className="bg-danger text-white">Sem Estoque</Badge>;
     } else if (quantity <= minQuantity) {
-      return <Badge className="bg-yellow-600">Crítico</Badge>;
+      return <Badge className="bg-warning text-white">Crítico</Badge>;
     } else {
-      return <Badge className="bg-green-600">Normal</Badge>;
+      return <Badge className="bg-success text-white">Normal</Badge>;
     }
   };
 
@@ -112,6 +132,51 @@ const Products = () => {
         </Button>
       </div>
 
+      {/* Metrics Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total de Produtos</CardTitle>
+            <Package className="h-5 w-5 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stats?.total || 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Estoque Crítico</CardTitle>
+            <AlertCircle className="h-5 w-5 text-warning" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-warning">{stats?.critical || 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Sem Estoque</CardTitle>
+            <TrendingDown className="h-5 w-5 text-danger" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-danger">{stats?.outOfStock || 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Valor Total</CardTitle>
+            <DollarSign className="h-5 w-5 text-success" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-success">
+              R$ {(stats?.totalValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -124,7 +189,7 @@ const Products = () => {
         </div>
       </div>
 
-      <div className="rounded-lg border shadow-card">
+      <div className="rounded-lg border border-border bg-card/50 shadow-card overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>

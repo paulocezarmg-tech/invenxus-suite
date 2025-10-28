@@ -139,43 +139,43 @@ const Reports = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-card border-muted">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
-            <Package className="h-4 w-4 text-muted" />
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total de Produtos</CardTitle>
+            <Package className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalProducts || 0}</div>
+            <div className="text-3xl font-bold">{stats?.totalProducts || 0}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-muted">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Movimentações</CardTitle>
-            <Activity className="h-4 w-4 text-muted" />
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Movimentações</CardTitle>
+            <Activity className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalMovements || 0}</div>
+            <div className="text-3xl font-bold">{stats?.totalMovements || 0}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-muted">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Itens Críticos</CardTitle>
-            <TrendingUp className="h-4 w-4 text-danger" />
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Itens Críticos</CardTitle>
+            <TrendingUp className="h-5 w-5 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-danger">{stats?.criticalProducts || 0}</div>
+            <div className="text-3xl font-bold text-warning">{stats?.criticalProducts || 0}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-muted">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
-            <FileText className="h-4 w-4 text-success" />
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Valor Total</CardTitle>
+            <FileText className="h-5 w-5 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">
+            <div className="text-3xl font-bold text-success">
               R$ {(stats?.totalValue || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
             </div>
           </CardContent>
@@ -183,7 +183,7 @@ const Reports = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="bg-card border-muted">
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
           <CardHeader>
             <CardTitle>Relatório de Inventário</CardTitle>
             <CardDescription>
@@ -198,7 +198,7 @@ const Reports = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-muted">
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
           <CardHeader>
             <CardTitle>Relatório de Movimentações</CardTitle>
             <CardDescription>

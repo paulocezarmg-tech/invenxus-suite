@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, Pencil, Trash2 } from "lucide-react";
+import { Plus, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, Pencil, Trash2, Activity, TrendingUp, TrendingDown } from "lucide-react";
 import { MovementDialog } from "@/components/movements/MovementDialog";
 import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -42,6 +43,25 @@ const Movements = () => {
     },
   });
 
+  // Stats query
+  const { data: stats } = useQuery({
+    queryKey: ["movement-stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("movements")
+        .select("type, quantity");
+      
+      if (error) throw error;
+      
+      const total = data?.length || 0;
+      const entries = data?.filter(m => m.type === "IN").length || 0;
+      const exits = data?.filter(m => m.type === "OUT").length || 0;
+      const transfers = data?.filter(m => m.type === "TRANSFER").length || 0;
+      
+      return { total, entries, exits, transfers };
+    },
+  });
+
   const { data: movements, isLoading } = useQuery({
     queryKey: ["movements"],
     queryFn: async () => {
@@ -76,11 +96,11 @@ const Movements = () => {
   const getTypeBadge = (type: string) => {
     switch (type) {
       case "IN":
-        return <Badge className="bg-success">Entrada</Badge>;
+        return <Badge className="bg-success text-white">Entrada</Badge>;
       case "OUT":
-        return <Badge className="bg-danger">Saída</Badge>;
+        return <Badge className="bg-danger text-white">Saída</Badge>;
       case "TRANSFER":
-        return <Badge className="bg-primary">Transferência</Badge>;
+        return <Badge className="bg-primary text-white">Transferência</Badge>;
       default:
         return <Badge>{type}</Badge>;
     }
@@ -122,7 +142,50 @@ const Movements = () => {
         </Button>
       </div>
 
-      <div className="rounded-lg border shadow-card">
+      {/* Metrics Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total de Movimentações</CardTitle>
+            <Activity className="h-5 w-5 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stats?.total || 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Entradas</CardTitle>
+            <TrendingUp className="h-5 w-5 text-success" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-success">{stats?.entries || 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Saídas</CardTitle>
+            <TrendingDown className="h-5 w-5 text-danger" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-danger">{stats?.exits || 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Transferências</CardTitle>
+            <ArrowRightLeft className="h-5 w-5 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-primary">{stats?.transfers || 0}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="rounded-lg border border-border bg-card/50 shadow-card overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
