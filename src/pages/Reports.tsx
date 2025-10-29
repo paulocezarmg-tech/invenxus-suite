@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, FileText, Package, TrendingUp, Activity } from "lucide-react";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import logo from "@/assets/stockmaster-logo.png";
 
 const Reports = () => {
   const [isExporting, setIsExporting] = useState(false);
@@ -81,6 +84,135 @@ const Reports = () => {
       a.click();
 
       toast.success("Relatório exportado com sucesso");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao exportar relatório");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportInventoryPDF = async () => {
+    setIsExporting(true);
+    try {
+      const { data, error } = await supabase.from("products").select(`
+        sku,
+        name,
+        barcode,
+        quantity,
+        min_quantity,
+        cost,
+        unit,
+        categories (name),
+        locations (name),
+        suppliers (name)
+      `);
+
+      if (error) throw error;
+
+      const doc = new jsPDF();
+      
+      // Add logo
+      const imgWidth = 30;
+      const imgHeight = 30;
+      doc.addImage(logo, "PNG", 14, 10, imgWidth, imgHeight);
+      
+      // Add title
+      doc.setFontSize(20);
+      doc.setFont("helvetica", "bold");
+      doc.text("StockMaster CMS", 50, 20);
+      
+      doc.setFontSize(16);
+      doc.text("Relatório de Inventário", 50, 30);
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 50, 37);
+
+      // Add table
+      autoTable(doc, {
+        startY: 50,
+        head: [["SKU", "Nome", "Cód. Barras", "Qtd", "Qtd Min", "Custo", "Un", "Categoria", "Local", "Fornecedor"]],
+        body: data.map((p: any) => [
+          p.sku,
+          p.name,
+          p.barcode || "-",
+          p.quantity,
+          p.min_quantity,
+          `R$ ${Number(p.cost).toFixed(2)}`,
+          p.unit,
+          p.categories?.name || "-",
+          p.locations?.name || "-",
+          p.suppliers?.name || "-",
+        ]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [59, 130, 246] },
+      });
+
+      doc.save(`inventario_${new Date().toISOString().split("T")[0]}.pdf`);
+      toast.success("Relatório PDF exportado com sucesso");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao exportar relatório");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportMovementsPDF = async () => {
+    setIsExporting(true);
+    try {
+      const { data, error } = await supabase.from("movements").select(`
+        created_at,
+        type,
+        quantity,
+        reference,
+        note,
+        products (sku, name),
+        from_location:locations!movements_from_location_id_fkey (name),
+        to_location:locations!movements_to_location_id_fkey (name)
+      `).order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const doc = new jsPDF();
+      
+      // Add logo
+      const imgWidth = 30;
+      const imgHeight = 30;
+      doc.addImage(logo, "PNG", 14, 10, imgWidth, imgHeight);
+      
+      // Add title
+      doc.setFontSize(20);
+      doc.setFont("helvetica", "bold");
+      doc.text("StockMaster CMS", 50, 20);
+      
+      doc.setFontSize(16);
+      doc.text("Relatório de Movimentações", 50, 30);
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 50, 37);
+
+      // Add table
+      autoTable(doc, {
+        startY: 50,
+        head: [["Data", "Tipo", "Produto", "SKU", "Qtd", "Origem", "Destino", "Ref", "Obs"]],
+        body: data.map((m: any) => [
+          new Date(m.created_at).toLocaleString("pt-BR"),
+          m.type === "IN" ? "Entrada" : m.type === "OUT" ? "Saída" : "Transfer",
+          m.products?.name || "-",
+          m.products?.sku || "-",
+          m.quantity,
+          m.from_location?.name || "-",
+          m.to_location?.name || "-",
+          m.reference || "-",
+          m.note || "-",
+        ]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [59, 130, 246] },
+      });
+
+      doc.save(`movimentacoes_${new Date().toISOString().split("T")[0]}.pdf`);
+      toast.success("Relatório PDF exportado com sucesso");
     } catch (error: any) {
       toast.error(error.message || "Erro ao exportar relatório");
     } finally {
@@ -200,10 +332,14 @@ const Reports = () => {
               Exportar lista completa de produtos com quantidades e valores
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button onClick={exportInventory} disabled={isExporting} className="w-full gap-2">
+          <CardContent className="space-y-2">
+            <Button onClick={exportInventoryPDF} disabled={isExporting} className="w-full gap-2">
+              <FileText className="h-4 w-4" />
+              {isExporting ? "Exportando..." : "Exportar PDF (com logo)"}
+            </Button>
+            <Button onClick={exportInventory} disabled={isExporting} variant="outline" className="w-full gap-2">
               <Download className="h-4 w-4" />
-              {isExporting ? "Exportando..." : "Exportar Inventário (CSV)"}
+              {isExporting ? "Exportando..." : "Exportar CSV"}
             </Button>
           </CardContent>
         </Card>
@@ -215,10 +351,14 @@ const Reports = () => {
               Exportar histórico de entradas, saídas e transferências
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button onClick={exportMovements} disabled={isExporting} className="w-full gap-2">
+          <CardContent className="space-y-2">
+            <Button onClick={exportMovementsPDF} disabled={isExporting} className="w-full gap-2">
+              <FileText className="h-4 w-4" />
+              {isExporting ? "Exportando..." : "Exportar PDF (com logo)"}
+            </Button>
+            <Button onClick={exportMovements} disabled={isExporting} variant="outline" className="w-full gap-2">
               <Download className="h-4 w-4" />
-              {isExporting ? "Exportando..." : "Exportar Movimentações (CSV)"}
+              {isExporting ? "Exportando..." : "Exportar CSV"}
             </Button>
           </CardContent>
         </Card>
