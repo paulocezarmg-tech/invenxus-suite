@@ -50,7 +50,12 @@ const Reports = () => {
 
       if (error) throw error;
 
+      const currentDate = new Date().toLocaleString("pt-BR");
       const csv = [
+        ["StockMaster CMS"],
+        ["Relatório de Inventário"],
+        [`Gerado em: ${currentDate}`],
+        [""],
         ["SKU", "Nome", "Código de Barras", "Quantidade", "Qtd. Mínima", "Custo", "Unidade", "Categoria", "Local", "Fornecedor"],
         ...data.map((p: any) => [
           p.sku,
@@ -68,7 +73,7 @@ const Reports = () => {
         .map((row) => row.join(","))
         .join("\n");
 
-      const blob = new Blob([csv], { type: "text/csv" });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -99,7 +104,12 @@ const Reports = () => {
 
       if (error) throw error;
 
+      const currentDate = new Date().toLocaleString("pt-BR");
       const csv = [
+        ["StockMaster CMS"],
+        ["Relatório de Movimentações"],
+        [`Gerado em: ${currentDate}`],
+        [""],
         ["Data", "Tipo", "Produto", "SKU", "Quantidade", "Origem", "Destino", "Referência", "Observação"],
         ...data.map((m: any) => [
           new Date(m.created_at).toLocaleString("pt-BR"),
@@ -116,7 +126,7 @@ const Reports = () => {
         .map((row) => row.join(","))
         .join("\n");
 
-      const blob = new Blob([csv], { type: "text/csv" });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
