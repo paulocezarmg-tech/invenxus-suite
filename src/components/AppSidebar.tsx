@@ -1,4 +1,4 @@
-import { Home, Package, TrendingUp, FileText, Settings, LogOut, ChevronLeft } from "lucide-react";
+import { Home, Package, TrendingUp, FileText, Settings, LogOut } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -11,7 +11,6 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,21 +43,16 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-r border-border">
       <SidebarHeader className="border-b border-border p-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Package className="h-5 w-5 text-primary" />
-            </div>
-            {!collapsed && (
-              <div>
-                <h2 className="font-semibold text-sm">StockMaster</h2>
-                <p className="text-xs text-muted-foreground">CMS</p>
-              </div>
-            )}
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Package className="h-5 w-5 text-primary" />
           </div>
-          <SidebarTrigger className="hover:bg-accent/50 rounded-md p-1.5">
-            <ChevronLeft className={`h-4 w-4 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
-          </SidebarTrigger>
+          {!collapsed && (
+            <div>
+              <h2 className="font-semibold text-sm">StockMaster</h2>
+              <p className="text-xs text-muted-foreground">CMS</p>
+            </div>
+          )}
         </div>
       </SidebarHeader>
 
