@@ -68,6 +68,39 @@ export type Database = {
         }
         Relationships: []
       }
+      invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          created_by: string
+          email: string
+          expires_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          status: Database["public"]["Enums"]["invite_status"]
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          created_by: string
+          email: string
+          expires_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           active: boolean
@@ -360,6 +393,7 @@ export type Database = {
     }
     Enums: {
       app_role: "superadmin" | "admin" | "almoxarife" | "operador" | "auditor"
+      invite_status: "pending" | "accepted" | "expired" | "cancelled"
       movement_type: "IN" | "OUT" | "TRANSFER"
     }
     CompositeTypes: {
@@ -489,6 +523,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["superadmin", "admin", "almoxarife", "operador", "auditor"],
+      invite_status: ["pending", "accepted", "expired", "cancelled"],
       movement_type: ["IN", "OUT", "TRANSFER"],
     },
   },

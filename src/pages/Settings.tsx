@@ -3,6 +3,7 @@ import { CategoriesSettings } from "@/components/settings/CategoriesSettings";
 import { LocationsSettings } from "@/components/settings/LocationsSettings";
 import { SuppliersSettings } from "@/components/settings/SuppliersSettings";
 import { UsersSettings } from "@/components/settings/UsersSettings";
+import { InvitesSettings } from "@/components/settings/InvitesSettings";
 import { Users, UserPlus } from "lucide-react";
 
 const Settings = () => {
@@ -34,9 +35,7 @@ const Settings = () => {
         </TabsContent>
 
         <TabsContent value="invites" className="mt-6">
-          <div className="rounded-lg border border-border bg-card/50 p-8 text-center">
-            <p className="text-muted-foreground">Funcionalidade de convites em desenvolvimento</p>
-          </div>
+          <InvitesSettings />
         </TabsContent>
 
         <TabsContent value="categories" className="mt-6">
