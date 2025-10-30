@@ -34,7 +34,7 @@ export default function Kits() {
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
       
       setUserRole(data?.role || null);
       return data?.role || null;
