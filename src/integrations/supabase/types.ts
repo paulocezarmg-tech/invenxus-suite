@@ -101,6 +101,75 @@ export type Database = {
         }
         Relationships: []
       }
+      kit_items: {
+        Row: {
+          created_at: string
+          id: string
+          kit_id: string
+          product_id: string
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kit_id: string
+          product_id: string
+          quantity: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kit_id?: string
+          product_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kit_items_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "kits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kit_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kits: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          sku: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          sku: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          sku?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           active: boolean
@@ -140,6 +209,7 @@ export type Database = {
           created_by: string
           from_location_id: string | null
           id: string
+          kit_id: string | null
           note: string | null
           product_id: string
           quantity: number
@@ -152,6 +222,7 @@ export type Database = {
           created_by: string
           from_location_id?: string | null
           id?: string
+          kit_id?: string | null
           note?: string | null
           product_id: string
           quantity: number
@@ -164,6 +235,7 @@ export type Database = {
           created_by?: string
           from_location_id?: string | null
           id?: string
+          kit_id?: string | null
           note?: string | null
           product_id?: string
           quantity?: number
@@ -177,6 +249,13 @@ export type Database = {
             columns: ["from_location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "kits"
             referencedColumns: ["id"]
           },
           {

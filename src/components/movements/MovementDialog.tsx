@@ -34,12 +34,17 @@ import { Button } from "@/components/ui/button";
 
 const movementSchema = z.object({
   type: z.enum(["IN", "OUT", "TRANSFER"]),
-  product_id: z.string().min(1, "Produto é obrigatório"),
+  item_type: z.enum(["product", "kit"]),
+  product_id: z.string().optional(),
+  kit_id: z.string().optional(),
   quantity: z.string().min(1, "Quantidade é obrigatória"),
   from_location_id: z.string().optional(),
   to_location_id: z.string().optional(),
   reference: z.string().optional(),
   note: z.string().optional(),
+}).refine((data) => data.product_id || data.kit_id, {
+  message: "Selecione um produto ou kit",
+  path: ["product_id"],
 });
 
 type MovementFormData = z.infer<typeof movementSchema>;
@@ -60,6 +65,20 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
       const { data, error } = await supabase
         .from("products")
         .select("id, name, sku")
+        .eq("active", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: kits } = useQuery({
+    queryKey: ["kits-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("kits")
+        .select("id, name, sku")
+        .eq("active", true)
         .order("name");
       if (error) throw error;
       return data;
@@ -79,7 +98,9 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
     resolver: zodResolver(movementSchema),
     defaultValues: {
       type: "IN",
+      item_type: "product",
       product_id: "",
+      kit_id: "",
       quantity: "",
       from_location_id: "",
       to_location_id: "",
@@ -92,7 +113,9 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
     if (movement) {
       form.reset({
         type: movement.type,
-        product_id: movement.product_id,
+        item_type: movement.kit_id ? "kit" : "product",
+        product_id: movement.product_id || "",
+        kit_id: movement.kit_id || "",
         quantity: String(movement.quantity),
         from_location_id: movement.from_location_id || "",
         to_location_id: movement.to_location_id || "",
@@ -102,7 +125,9 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
     } else {
       form.reset({
         type: "IN",
+        item_type: "product",
         product_id: "",
+        kit_id: "",
         quantity: "",
         from_location_id: "",
         to_location_id: "",
@@ -113,6 +138,7 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
   }, [movement, form]);
 
   const movementType = form.watch("type");
+  const itemType = form.watch("item_type");
 
   const onSubmit = async (data: MovementFormData) => {
     setIsSubmitting(true);
@@ -122,7 +148,8 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
 
       const movementData = {
         type: data.type,
-        product_id: data.product_id,
+        product_id: data.item_type === "product" ? data.product_id : null,
+        kit_id: data.item_type === "kit" ? data.kit_id : null,
         quantity: parseFloat(data.quantity),
         from_location_id: data.from_location_id || null,
         to_location_id: data.to_location_id || null,
@@ -193,28 +220,77 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
 
             <FormField
               control={form.control}
-              name="product_id"
+              name="item_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Produto *</FormLabel>
+                  <FormLabel>Tipo de Item *</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o produto" />
+                        <SelectValue />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {products?.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.sku} - {product.name}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="product">Produto</SelectItem>
+                      <SelectItem value="kit">Kit</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {itemType === "product" ? (
+              <FormField
+                control={form.control}
+                name="product_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Produto *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o produto" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {products?.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.sku} - {product.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : (
+              <FormField
+                control={form.control}
+                name="kit_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Kit *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o kit" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {kits?.map((kit) => (
+                          <SelectItem key={kit.id} value={kit.id}>
+                            {kit.sku} - {kit.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}

@@ -1,4 +1,4 @@
-import { Home, Package, TrendingUp, FileText, Settings, LogOut } from "lucide-react";
+import { Home, Package, TrendingUp, FileText, Settings, LogOut, Boxes } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 const menuItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Produtos", url: "/products", icon: Package },
+  { title: "Kits", url: "/kits", icon: Boxes },
   { title: "Movimentações", url: "/movements", icon: TrendingUp },
   { title: "Relatórios", url: "/reports", icon: FileText },
   { title: "Configurações", url: "/settings", icon: Settings },

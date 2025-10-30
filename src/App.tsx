@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
+import Kits from "./pages/Kits";
 import Movements from "./pages/Movements";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
@@ -35,6 +36,14 @@ const App = () => (
             element={
               <Layout>
                 <Products />
+              </Layout>
+            }
+          />
+          <Route
+            path="/kits"
+            element={
+              <Layout>
+                <Kits />
               </Layout>
             }
           />
