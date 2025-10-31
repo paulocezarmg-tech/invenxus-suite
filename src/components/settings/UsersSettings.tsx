@@ -72,6 +72,26 @@ export function UsersSettings() {
   const { data: users, isLoading } = useQuery({
     queryKey: ["users-with-roles"],
     queryFn: async () => {
+      // Ensure current user's profile exists
+      const { data: userRes } = await supabase.auth.getUser();
+      const currentUser = userRes?.user;
+      if (currentUser) {
+        const { data: existingProfile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("user_id", currentUser.id)
+          .maybeSingle();
+        if (!existingProfile) {
+          await supabase.from("profiles").insert({
+            user_id: currentUser.id,
+            name:
+              (currentUser.user_metadata as any)?.name ||
+              currentUser.email?.split("@")[0] ||
+              "Usuário",
+          });
+        }
+      }
+
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select(`
@@ -90,21 +110,28 @@ export function UsersSettings() {
 
       if (rolesError) throw rolesError;
 
-      const { data: authData, error: usersError } = await supabase.auth.admin.listUsers();
-      
-      if (usersError) throw usersError;
-
-      const authUsers = authData?.users || [];
+      // Fetch auth users via secure backend function (degrades gracefully if not authorized)
+      let authUsers: Array<{ id: string; email: string | null; created_at?: string }> = [];
+      try {
+        const { data: funcData, error: funcError } = await supabase.functions.invoke(
+          "list-users"
+        );
+        if (!funcError && (funcData as any)?.users) {
+          authUsers = (funcData as any).users as typeof authUsers;
+        }
+      } catch {
+        // ignore and continue with profiles only
+      }
 
       return profiles.map((profile) => {
         const authUser = authUsers.find((u) => u.id === profile.user_id);
         const userRoles = roles.filter((r) => r.user_id === profile.user_id);
-        
+
         return {
           ...profile,
           email: authUser?.email || "",
           roles: userRoles.map((r) => r.role as Role),
-          active: true, // Mock status - can be extended with real status tracking
+          active: true,
         };
       });
     },
