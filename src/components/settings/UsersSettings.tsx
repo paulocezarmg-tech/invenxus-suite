@@ -178,12 +178,17 @@ export function UsersSettings() {
 
   const handleUpdateRole = async (userId: string, newRole: Role) => {
     try {
-      const { error } = await supabase
+      // Substitui todas as funções atuais por uma única função selecionada
+      const { error: delErr } = await supabase
         .from("user_roles")
-        .update({ role: newRole })
+        .delete()
         .eq("user_id", userId);
+      if (delErr) throw delErr;
 
-      if (error) throw error;
+      const { error: insErr } = await supabase
+        .from("user_roles")
+        .insert({ user_id: userId, role: newRole });
+      if (insErr) throw insErr;
 
       toast.success("Permissão atualizada");
       queryClient.invalidateQueries({ queryKey: ["users-with-roles"] });
@@ -191,7 +196,6 @@ export function UsersSettings() {
       toast.error(error.message || "Erro ao atualizar permissão");
     }
   };
-
   const handleDeleteUser = async (userId: string) => {
     if (!confirm("Tem certeza que deseja excluir este usuário?")) return;
 
@@ -305,12 +309,29 @@ export function UsersSettings() {
                       <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem
                           onClick={() => {
-                            const newRole = prompt(
-                              `Escolha a permissão para ${user.name}:\n\n1. superadmin\n2. admin\n3. almoxarife\n4. operador\n5. auditor`
+                            const input = prompt(
+                              `Escolha a permissão para ${user.name}:\n\n1. superadmin\n2. admin\n3. almoxarife\n4. operador\n5. auditor\n\nDica: você pode digitar o número (1-5) ou o nome.`
                             );
-                            if (newRole && Object.keys(roleLabels).includes(newRole)) {
-                              handleUpdateRole(user.user_id, newRole as Role);
+                            if (!input) return;
+                            const value = input.trim().toLowerCase();
+                            const map: Record<string, Role> = {
+                              "1": "superadmin",
+                              "2": "admin",
+                              "3": "almoxarife",
+                              "4": "operador",
+                              "5": "auditor",
+                              superadmin: "superadmin",
+                              admin: "admin",
+                              almoxarife: "almoxarife",
+                              operador: "operador",
+                              auditor: "auditor",
+                            };
+                            const role = map[value];
+                            if (!role) {
+                              toast.error("Entrada inválida. Digite 1-5 ou o nome da função.");
+                              return;
                             }
+                            handleUpdateRole(user.user_id, role);
                           }}
                           className="cursor-pointer"
                         >
