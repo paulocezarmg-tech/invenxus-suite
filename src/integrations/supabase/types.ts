@@ -211,7 +211,7 @@ export type Database = {
           id: string
           kit_id: string | null
           note: string | null
-          product_id: string
+          product_id: string | null
           quantity: number
           reference: string | null
           to_location_id: string | null
@@ -224,7 +224,7 @@ export type Database = {
           id?: string
           kit_id?: string | null
           note?: string | null
-          product_id: string
+          product_id?: string | null
           quantity: number
           reference?: string | null
           to_location_id?: string | null
@@ -237,7 +237,7 @@ export type Database = {
           id?: string
           kit_id?: string | null
           note?: string | null
-          product_id?: string
+          product_id?: string | null
           quantity?: number
           reference?: string | null
           to_location_id?: string | null
