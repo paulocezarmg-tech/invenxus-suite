@@ -23,21 +23,21 @@ export default function Kits() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  // Fetch user role
+  // Fetch user roles
   useQuery({
-    queryKey: ["userRole"],
+    queryKey: ["userRoles"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!user) return [];
       
       const { data } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
+        .eq("user_id", user.id);
       
-      setUserRole(data?.role || null);
-      return data?.role || null;
+      const roles = data?.map(r => r.role) || [];
+      setUserRole(roles.length > 0 ? roles[0] : null);
+      return roles;
     },
   });
 
