@@ -57,7 +57,10 @@ const Dashboard = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KPICard
           title="Valor Total em Estoque"
-          value={`R$ ${stats?.totalValue.toFixed(2) || "0.00"}`}
+          value={new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          }).format(stats?.totalValue || 0)}
           icon={DollarSign}
           description="Valor total de produtos"
         />
