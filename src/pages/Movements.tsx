@@ -70,6 +70,7 @@ const Movements = () => {
         .select(`
           *,
           products (name, sku),
+          kits (name, sku),
           from_location:locations!movements_from_location_id_fkey (name),
           to_location:locations!movements_to_location_id_fkey (name)
         `)
@@ -222,9 +223,11 @@ const Movements = () => {
                   </TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{movement.products?.name}</div>
+                      <div className="font-medium">
+                        {movement.products?.name || movement.kits?.name || "-"}
+                      </div>
                       <div className="text-xs text-muted-foreground font-mono">
-                        {movement.products?.sku}
+                        {movement.products?.sku || movement.kits?.sku || "-"}
                       </div>
                     </div>
                   </TableCell>
