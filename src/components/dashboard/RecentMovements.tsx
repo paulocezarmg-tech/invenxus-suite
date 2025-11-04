@@ -17,18 +17,34 @@ export const RecentMovements = () => {
   const { data: movements, isLoading } = useQuery({
     queryKey: ["recent-movements"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: movementsData, error } = await supabase
         .from("movements")
         .select(`
           *,
-          products (name, sku),
-          profiles (name)
+          products (name, sku)
         `)
         .order("created_at", { ascending: false })
         .limit(10);
 
       if (error) throw error;
-      return data;
+
+      // Buscar os profiles dos usuários que criaram as movimentações
+      const userIds = [...new Set(movementsData?.map(m => m.created_by).filter(Boolean))];
+      
+      if (userIds.length === 0) return movementsData;
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, name")
+        .in("user_id", userIds);
+
+      // Adicionar o nome do profile em cada movimento
+      const movementsWithProfiles = movementsData?.map(movement => ({
+        ...movement,
+        profile_name: profiles?.find(p => p.user_id === movement.created_by)?.name
+      }));
+
+      return movementsWithProfiles;
     },
   });
 
@@ -106,7 +122,7 @@ export const RecentMovements = () => {
                     </div>
                   </TableCell>
                   <TableCell>{movement.quantity}</TableCell>
-                  <TableCell>{movement.profiles?.name || "N/A"}</TableCell>
+                  <TableCell>{movement.profile_name || "Sistema"}</TableCell>
                   <TableCell>
                     {format(new Date(movement.created_at), "dd/MM/yyyy HH:mm")}
                   </TableCell>
