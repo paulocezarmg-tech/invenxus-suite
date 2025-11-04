@@ -231,7 +231,9 @@ const Movements = () => {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="font-medium">{movement.quantity}</TableCell>
+                  <TableCell className="font-medium">
+                    {new Intl.NumberFormat("pt-BR").format(Number(movement.quantity))}
+                  </TableCell>
                   <TableCell>{movement.from_location?.name || "-"}</TableCell>
                   <TableCell>{movement.to_location?.name || "-"}</TableCell>
                   <TableCell className="font-mono text-sm">
