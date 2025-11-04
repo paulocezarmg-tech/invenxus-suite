@@ -21,7 +21,8 @@ export const RecentMovements = () => {
         .from("movements")
         .select(`
           *,
-          products (name, sku)
+          products (name, sku),
+          kits (name, sku)
         `)
         .order("created_at", { ascending: false })
         .limit(10);
@@ -115,9 +116,11 @@ export const RecentMovements = () => {
                   </TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{movement.products?.name}</div>
+                      <div className="font-medium">
+                        {movement.products?.name || movement.kits?.name || "N/A"}
+                      </div>
                       <div className="text-xs text-muted-foreground">
-                        SKU: {movement.products?.sku}
+                        SKU: {movement.products?.sku || movement.kits?.sku || "-"}
                       </div>
                     </div>
                   </TableCell>
