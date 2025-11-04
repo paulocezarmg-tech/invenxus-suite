@@ -1,4 +1,4 @@
-import { Home, Package, TrendingUp, FileText, Settings, LogOut, Boxes } from "lucide-react";
+import { Home, Package, TrendingUp, FileText, Settings, LogOut, Boxes, Warehouse } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -22,6 +22,7 @@ const menuItems = [
   { title: "Produtos", url: "/products", icon: Package },
   { title: "Kits", url: "/kits", icon: Boxes },
   { title: "Movimentações", url: "/movements", icon: TrendingUp },
+  { title: "Estoque", url: "/stock", icon: Warehouse },
   { title: "Relatórios", url: "/reports", icon: FileText },
   { title: "Configurações", url: "/settings", icon: Settings },
 ];

@@ -10,6 +10,7 @@ import Kits from "./pages/Kits";
 import Movements from "./pages/Movements";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import Stock from "./pages/Stock";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -60,6 +61,14 @@ const App = () => (
             element={
               <Layout>
                 <Reports />
+              </Layout>
+            }
+          />
+          <Route
+            path="/stock"
+            element={
+              <Layout>
+                <Stock />
               </Layout>
             }
           />
