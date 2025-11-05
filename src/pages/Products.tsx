@@ -133,7 +133,7 @@ const Products = () => {
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className={`grid gap-4 ${userRole === "operador" ? "md:grid-cols-3" : "md:grid-cols-2 lg:grid-cols-4"}`}>
         <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total de Produtos</CardTitle>
@@ -164,17 +164,19 @@ const Products = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Valor Total</CardTitle>
-            <DollarSign className="h-5 w-5 text-success" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-success">
-              R$ {(stats?.totalValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </div>
-          </CardContent>
-        </Card>
+        {userRole !== "operador" && (
+          <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Valor Total</CardTitle>
+              <DollarSign className="h-5 w-5 text-success" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-success">
+                R$ {(stats?.totalValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div className="flex items-center gap-4">
@@ -199,7 +201,7 @@ const Products = () => {
               <TableHead>Quantidade</TableHead>
               <TableHead>Estoque Mín.</TableHead>
               <TableHead>Local</TableHead>
-              <TableHead>Custo</TableHead>
+              {userRole !== "operador" && <TableHead>Custo</TableHead>}
               <TableHead>Status</TableHead>
               {userRole === "superadmin" && <TableHead className="w-[100px]">Ações</TableHead>}
             </TableRow>
@@ -229,7 +231,9 @@ const Products = () => {
                   <TableCell className="font-medium">{product.quantity}</TableCell>
                   <TableCell>{product.min_quantity}</TableCell>
                   <TableCell>{product.locations?.name || "N/A"}</TableCell>
-                  <TableCell>R$ {Number(product.cost).toFixed(2)}</TableCell>
+                  {userRole !== "operador" && (
+                    <TableCell>R$ {Number(product.cost).toFixed(2)}</TableCell>
+                  )}
                   <TableCell>
                     {getStockBadge(Number(product.quantity), Number(product.min_quantity))}
                   </TableCell>

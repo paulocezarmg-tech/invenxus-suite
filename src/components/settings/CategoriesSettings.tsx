@@ -46,6 +46,7 @@ export function CategoriesSettings() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const form = useForm<CategoryFormData>({
@@ -53,6 +54,25 @@ export function CategoriesSettings() {
     defaultValues: {
       name: "",
       description: "",
+    },
+  });
+
+  // Check user role
+  const { data: currentUser } = useQuery({
+    queryKey: ["current-user-categories"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      
+      if (roles && roles.length > 0) {
+        setUserRole(roles[0].role);
+      }
+      return user;
     },
   });
 
@@ -130,17 +150,19 @@ export function CategoriesSettings() {
   return (
     <>
       <div className="space-y-4">
-        <Button onClick={() => handleOpenDialog()} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nova Categoria
-        </Button>
+        {userRole !== "operador" && (
+          <Button onClick={() => handleOpenDialog()} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Nova Categoria
+          </Button>
+        )}
 
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Descrição</TableHead>
-              <TableHead className="w-[100px]">Ações</TableHead>
+              {userRole !== "operador" && <TableHead className="w-[100px]">Ações</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -155,16 +177,18 @@ export function CategoriesSettings() {
                 <TableRow key={category.id}>
                   <TableCell className="font-medium">{category.name}</TableCell>
                   <TableCell className="text-muted-foreground">{category.description || "-"}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(category)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(category.id)}>
-                        <Trash2 className="h-4 w-4 text-danger" />
-                      </Button>
-                    </div>
-                  </TableCell>
+                  {userRole !== "operador" && (
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(category)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(category.id)}>
+                          <Trash2 className="h-4 w-4 text-danger" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             ) : (
