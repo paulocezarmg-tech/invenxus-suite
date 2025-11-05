@@ -310,22 +310,21 @@ export function UsersSettings() {
 
       if (profileError) throw profileError;
 
-      // Update email if changed
-      if (data.email !== selectedUser.email) {
-        const { error: emailError } = await supabase.auth.admin.updateUserById(
-          selectedUser.user_id,
-          { email: data.email }
+      // Update email and/or password via secure backend function
+      if (data.email !== selectedUser.email || data.password) {
+        const { data: updateData, error: updateError } = await supabase.functions.invoke(
+          'update-user',
+          {
+            body: {
+              targetUserId: selectedUser.user_id,
+              email: data.email !== selectedUser.email ? data.email : undefined,
+              password: data.password || undefined,
+            },
+          }
         );
-        if (emailError) throw emailError;
-      }
 
-      // Update password if provided
-      if (data.password) {
-        const { error: passwordError } = await supabase.auth.admin.updateUserById(
-          selectedUser.user_id,
-          { password: data.password }
-        );
-        if (passwordError) throw passwordError;
+        if (updateError) throw updateError;
+        if (updateData?.error) throw new Error(updateData.error);
       }
 
       toast.success("Usuário atualizado com sucesso!");
