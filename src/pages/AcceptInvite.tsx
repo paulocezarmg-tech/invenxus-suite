@@ -119,7 +119,10 @@ const AcceptInvite = () => {
     setLoading(true);
 
     try {
-      // Create user in Supabase Auth
+      let userId: string | null = null;
+      let isNewUser = false;
+
+      // Try to create user in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: invite.email,
         password: data.password,
@@ -131,35 +134,80 @@ const AcceptInvite = () => {
       });
 
       if (authError) {
-        throw new Error(getErrorMessage(authError));
-      }
-      
-      if (!authData.user) {
-        throw new Error("Erro ao criar usuário");
+        // Check if user already exists
+        if (authError.message?.toLowerCase().includes('already registered') || 
+            authError.message?.toLowerCase().includes('email already exists')) {
+          // Try to sign in to get the user ID
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: invite.email,
+            password: data.password,
+          });
+
+          if (signInError) {
+            throw new Error("Este email já está cadastrado com uma senha diferente. Use a recuperação de senha se necessário.");
+          }
+
+          if (!signInData.user) {
+            throw new Error("Erro ao verificar usuário existente");
+          }
+
+          userId = signInData.user.id;
+          // Sign out immediately as we'll let them login properly later
+          await supabase.auth.signOut();
+        } else {
+          throw new Error(getErrorMessage(authError));
+        }
+      } else {
+        if (!authData.user) {
+          throw new Error("Erro ao criar usuário");
+        }
+        userId = authData.user.id;
+        isNewUser = true;
       }
 
-      // Create profile
-      const { error: profileError } = await supabase
+      // Check if profile exists
+      const { data: existingProfile } = await supabase
         .from("profiles")
-        .insert({
-          user_id: authData.user.id,
-          name: data.name,
-        });
+        .select("id")
+        .eq("user_id", userId)
+        .single();
 
-      if (profileError) {
-        throw new Error("Erro ao criar perfil do usuário");
+      // Create profile only if it doesn't exist
+      if (!existingProfile) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .insert({
+            user_id: userId,
+            name: data.name,
+          });
+
+        if (profileError) {
+          console.error("Profile error:", profileError);
+          throw new Error("Erro ao criar perfil do usuário");
+        }
       }
 
-      // Assign role to user
-      const { error: roleError } = await supabase
+      // Check if role exists
+      const { data: existingRole } = await supabase
         .from("user_roles")
-        .insert({
-          user_id: authData.user.id,
-          role: invite.role,
-        });
+        .select("id")
+        .eq("user_id", userId)
+        .eq("role", invite.role)
+        .single();
 
-      if (roleError) {
-        throw new Error("Erro ao atribuir permissões ao usuário");
+      // Assign role only if it doesn't exist
+      if (!existingRole) {
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .insert({
+            user_id: userId,
+            role: invite.role,
+          });
+
+        if (roleError) {
+          console.error("Role error:", roleError);
+          throw new Error("Erro ao atribuir permissões ao usuário");
+        }
       }
 
       // Update invite status
@@ -175,24 +223,26 @@ const AcceptInvite = () => {
         console.error("Error updating invite:", inviteError);
       }
 
-      // Notify admins about new user
-      try {
-        await supabase.functions.invoke("notify-admins-new-user", {
-          body: {
-            userName: data.name,
-            userEmail: invite.email,
-            userRole: invite.role,
-          },
-        });
-      } catch (notifyError) {
-        // Don't fail the signup if notification fails
-        console.error("Error notifying admins:", notifyError);
+      // Notify admins about new user (only if it's a new user)
+      if (isNewUser) {
+        try {
+          await supabase.functions.invoke("notify-admins-new-user", {
+            body: {
+              userName: data.name,
+              userEmail: invite.email,
+              userRole: invite.role,
+            },
+          });
+        } catch (notifyError) {
+          // Don't fail the signup if notification fails
+          console.error("Error notifying admins:", notifyError);
+        }
       }
 
-      // Sign out the user so they can log in
+      // Sign out the user so they can log in properly
       await supabase.auth.signOut();
 
-      toast.success("Conta criada com sucesso! Faça login para continuar.");
+      toast.success("Cadastro concluído com sucesso! Faça login para acessar o sistema.");
       
       // Use setTimeout to ensure navigation happens after state updates
       setTimeout(() => {
@@ -200,7 +250,7 @@ const AcceptInvite = () => {
       }, 100);
     } catch (error: any) {
       console.error("Signup error:", error);
-      toast.error(error.message || "Erro ao criar conta");
+      toast.error(error.message || "Erro ao completar cadastro");
     } finally {
       setLoading(false);
     }
