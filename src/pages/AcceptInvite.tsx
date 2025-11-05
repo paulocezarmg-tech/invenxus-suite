@@ -93,6 +93,26 @@ const AcceptInvite = () => {
     validateInvite();
   }, [inviteId]);
 
+  const getErrorMessage = (error: any): string => {
+    const message = error.message?.toLowerCase() || '';
+    
+    // Map common Supabase auth errors to Portuguese
+    if (message.includes('user already registered') || message.includes('email already exists')) {
+      return 'Este email já está cadastrado no sistema';
+    }
+    if (message.includes('invalid email')) {
+      return 'Email inválido';
+    }
+    if (message.includes('password')) {
+      return 'Senha inválida. Deve ter no mínimo 6 caracteres';
+    }
+    if (message.includes('network')) {
+      return 'Erro de conexão. Verifique sua internet';
+    }
+    
+    return 'Erro ao criar conta. Tente novamente';
+  };
+
   const handleSignup = async (data: SignupFormData) => {
     if (!invite) return;
     
@@ -110,8 +130,13 @@ const AcceptInvite = () => {
         },
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Erro ao criar usuário");
+      if (authError) {
+        throw new Error(getErrorMessage(authError));
+      }
+      
+      if (!authData.user) {
+        throw new Error("Erro ao criar usuário");
+      }
 
       // Create profile
       const { error: profileError } = await supabase
@@ -121,7 +146,9 @@ const AcceptInvite = () => {
           name: data.name,
         });
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        throw new Error("Erro ao criar perfil do usuário");
+      }
 
       // Assign role to user
       const { error: roleError } = await supabase
@@ -131,7 +158,9 @@ const AcceptInvite = () => {
           role: invite.role,
         });
 
-      if (roleError) throw roleError;
+      if (roleError) {
+        throw new Error("Erro ao atribuir permissões ao usuário");
+      }
 
       // Update invite status
       const { error: inviteError } = await supabase
@@ -142,7 +171,9 @@ const AcceptInvite = () => {
         })
         .eq("id", inviteId);
 
-      if (inviteError) throw inviteError;
+      if (inviteError) {
+        console.error("Error updating invite:", inviteError);
+      }
 
       // Notify admins about new user
       try {
@@ -158,8 +189,15 @@ const AcceptInvite = () => {
         console.error("Error notifying admins:", notifyError);
       }
 
+      // Sign out the user so they can log in
+      await supabase.auth.signOut();
+
       toast.success("Conta criada com sucesso! Faça login para continuar.");
-      navigate("/auth");
+      
+      // Use setTimeout to ensure navigation happens after state updates
+      setTimeout(() => {
+        navigate("/auth");
+      }, 100);
     } catch (error: any) {
       console.error("Signup error:", error);
       toast.error(error.message || "Erro ao criar conta");
