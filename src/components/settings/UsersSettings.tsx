@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, MoreVertical, Pencil, UserX, Trash2, Search, Upload } from "lucide-react";
+import { Plus, MoreVertical, Pencil, UserX, Trash2, Search, Upload, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -90,11 +90,13 @@ const roleColors: Record<Role, string> = {
 export function UsersSettings() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editAvatar, setEditAvatar] = useState<File | null>(null);
   const [editAvatarPreview, setEditAvatarPreview] = useState("");
+  const [selectedRoles, setSelectedRoles] = useState<Role[]>([]);
   const queryClient = useQueryClient();
 
   const createForm = useForm<CreateUserFormData>({
@@ -248,6 +250,51 @@ export function UsersSettings() {
     } catch (error: any) {
       toast.error(error.message || "Erro ao atualizar permissão");
     }
+  };
+
+  const handleManageRoles = async () => {
+    if (!selectedUser) return;
+    
+    setIsSubmitting(true);
+    try {
+      // Delete all current roles
+      const { error: delErr } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", selectedUser.user_id);
+      
+      if (delErr) throw delErr;
+
+      // Insert selected roles
+      if (selectedRoles.length > 0) {
+        const rolesToInsert = selectedRoles.map(role => ({
+          user_id: selectedUser.user_id,
+          role: role,
+        }));
+
+        const { error: insErr } = await supabase
+          .from("user_roles")
+          .insert(rolesToInsert);
+        
+        if (insErr) throw insErr;
+      }
+
+      toast.success("Funções atualizadas com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["users-with-roles"] });
+      setRolesDialogOpen(false);
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao atualizar funções");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const toggleRole = (role: Role) => {
+    setSelectedRoles(prev => 
+      prev.includes(role)
+        ? prev.filter(r => r !== role)
+        : [...prev, role]
+    );
   };
   const handleDeleteUser = async (userId: string) => {
     if (!confirm("Tem certeza que deseja excluir este usuário?")) return;
@@ -483,6 +530,17 @@ export function UsersSettings() {
                           <Pencil className="mr-2 h-4 w-4" />
                           Editar
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setSelectedRoles(user.roles || []);
+                            setRolesDialogOpen(true);
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <Shield className="mr-2 h-4 w-4" />
+                          Gerenciar Funções
+                        </DropdownMenuItem>
                         <DropdownMenuItem className="cursor-pointer">
                           <UserX className="mr-2 h-4 w-4" />
                           Desativar
@@ -613,6 +671,52 @@ export function UsersSettings() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Roles Dialog */}
+      <Dialog open={rolesDialogOpen} onOpenChange={setRolesDialogOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle>Gerenciar Funções</DialogTitle>
+            <DialogDescription>
+              Selecione as funções que deseja atribuir a {selectedUser?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-3">
+              {(Object.entries(roleLabels) as [Role, string][]).map(([role, label]) => (
+                <div key={role} className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/50 hover:bg-card transition-colors">
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <div className="font-medium">{label}</div>
+                      <Badge className={`${roleColors[role]} mt-1`} variant="secondary">
+                        {role}
+                      </Badge>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={selectedRoles.includes(role)}
+                    onCheckedChange={() => toggleRole(role)}
+                    className="data-[state=checked]:bg-success"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setRolesDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleManageRoles} disabled={isSubmitting}>
+              {isSubmitting ? "Salvando..." : "Salvar Funções"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
