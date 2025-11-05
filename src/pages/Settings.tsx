@@ -7,7 +7,8 @@ import { LocationsSettings } from "@/components/settings/LocationsSettings";
 import { SuppliersSettings } from "@/components/settings/SuppliersSettings";
 import { UsersSettings } from "@/components/settings/UsersSettings";
 import { InvitesSettings } from "@/components/settings/InvitesSettings";
-import { Users, UserPlus } from "lucide-react";
+import { ProfileSettings } from "@/components/settings/ProfileSettings";
+import { Users, UserPlus, User } from "lucide-react";
 
 const Settings = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -31,12 +32,19 @@ const Settings = () => {
     },
   });
 
-  const defaultTab = userRole === "operador" ? "categories" : "users";
+  const defaultTab = userRole === "operador" ? "profile" : "users";
 
   return (
     <div className="p-6 space-y-6">
       <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="inline-flex h-12 items-center justify-start gap-2 rounded-lg bg-card/50 p-1 border border-border">
+          <TabsTrigger 
+            value="profile"
+            className="inline-flex items-center gap-2 rounded-md px-4 py-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
+          >
+            <User className="h-4 w-4" />
+            Meu Perfil
+          </TabsTrigger>
           {userRole !== "operador" && (
             <>
               <TabsTrigger 
@@ -53,12 +61,16 @@ const Settings = () => {
                 <UserPlus className="h-4 w-4" />
                 Convites
               </TabsTrigger>
+              <TabsTrigger value="categories">Categorias</TabsTrigger>
+              <TabsTrigger value="locations">Locais</TabsTrigger>
+              <TabsTrigger value="suppliers">Fornecedores</TabsTrigger>
             </>
           )}
-          <TabsTrigger value="categories">Categorias</TabsTrigger>
-          <TabsTrigger value="locations">Locais</TabsTrigger>
-          <TabsTrigger value="suppliers">Fornecedores</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="profile" className="mt-6">
+          <ProfileSettings />
+        </TabsContent>
 
         {userRole !== "operador" && (
           <>
@@ -69,26 +81,26 @@ const Settings = () => {
             <TabsContent value="invites" className="mt-6">
               <InvitesSettings />
             </TabsContent>
+
+            <TabsContent value="categories" className="mt-6">
+              <div className="rounded-lg border border-border bg-card/50 p-6">
+                <CategoriesSettings />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="locations" className="mt-6">
+              <div className="rounded-lg border border-border bg-card/50 p-6">
+                <LocationsSettings />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="suppliers" className="mt-6">
+              <div className="rounded-lg border border-border bg-card/50 p-6">
+                <SuppliersSettings />
+              </div>
+            </TabsContent>
           </>
         )}
-
-        <TabsContent value="categories" className="mt-6">
-          <div className="rounded-lg border border-border bg-card/50 p-6">
-            <CategoriesSettings />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="locations" className="mt-6">
-          <div className="rounded-lg border border-border bg-card/50 p-6">
-            <LocationsSettings />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="suppliers" className="mt-6">
-          <div className="rounded-lg border border-border bg-card/50 p-6">
-            <SuppliersSettings />
-          </div>
-        </TabsContent>
       </Tabs>
     </div>
   );

@@ -17,7 +17,27 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Stock() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [userRole, setUserRole] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  // Check user role
+  const { data: currentUser } = useQuery({
+    queryKey: ["current-user-stock"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      
+      if (roles && roles.length > 0) {
+        setUserRole(roles[0].role);
+      }
+      return user;
+    },
+  });
 
   // Fetch products data
   const { data: products, isLoading } = useQuery({
@@ -127,20 +147,22 @@ export default function Stock() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {new Intl.NumberFormat("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              }).format(totalValue)}
-            </div>
-          </CardContent>
-        </Card>
+        {userRole !== "operador" && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {new Intl.NumberFormat("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                }).format(totalValue)}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Search */}
@@ -178,8 +200,12 @@ export default function Stock() {
                     <TableHead className="text-center">Quantidade</TableHead>
                     <TableHead className="text-center">Qtd. Mínima</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Valor Unitário</TableHead>
-                    <TableHead className="text-right">Valor Total</TableHead>
+                    {userRole !== "operador" && (
+                      <>
+                        <TableHead className="text-right">Valor Unitário</TableHead>
+                        <TableHead className="text-right">Valor Total</TableHead>
+                      </>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -199,23 +225,27 @@ export default function Stock() {
                         <TableCell>
                           {getStockBadge(Number(product.quantity), Number(product.min_quantity))}
                         </TableCell>
-                        <TableCell className="text-right">
-                          {new Intl.NumberFormat("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          }).format(Number(product.cost))}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {new Intl.NumberFormat("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          }).format(Number(product.cost) * Number(product.quantity))}
-                        </TableCell>
+                        {userRole !== "operador" && (
+                          <>
+                            <TableCell className="text-right">
+                              {new Intl.NumberFormat("pt-BR", {
+                                style: "currency",
+                                currency: "BRL",
+                              }).format(Number(product.cost))}
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {new Intl.NumberFormat("pt-BR", {
+                                style: "currency",
+                                currency: "BRL",
+                              }).format(Number(product.cost) * Number(product.quantity))}
+                            </TableCell>
+                          </>
+                        )}
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground">
+                      <TableCell colSpan={userRole !== "operador" ? 9 : 7} className="text-center text-muted-foreground">
                         Nenhum produto encontrado
                       </TableCell>
                     </TableRow>
