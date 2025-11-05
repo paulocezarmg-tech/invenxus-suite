@@ -11,6 +11,27 @@ import { Package, DollarSign, AlertTriangle, TrendingUp } from "lucide-react";
 const Dashboard = () => {
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
   const [dateTo, setDateTo] = useState<Date | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Check user role
+  const { data: currentUser } = useQuery({
+    queryKey: ["current-user-dashboard"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      if (roleData) {
+        setUserRole(roleData.role);
+      }
+      return user;
+    },
+  });
 
   const handleDateChange = (from: Date | null, to: Date | null) => {
     setDateFrom(from);
@@ -78,15 +99,17 @@ const Dashboard = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <KPICard
-          title="Valor Total em Estoque"
-          value={new Intl.NumberFormat("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          }).format(stats?.totalValue || 0)}
-          icon={DollarSign}
-          description="Valor total de produtos"
-        />
+        {userRole !== "operador" && (
+          <KPICard
+            title="Valor Total em Estoque"
+            value={new Intl.NumberFormat("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            }).format(stats?.totalValue || 0)}
+            icon={DollarSign}
+            description="Valor total de produtos"
+          />
+        )}
         <KPICard
           title="Itens Críticos"
           value={stats?.criticalItems || 0}
