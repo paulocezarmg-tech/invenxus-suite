@@ -122,8 +122,10 @@ export function UsersSettings() {
   });
 
   const { data: users, isLoading } = useQuery({
-    queryKey: ["users-with-roles"],
+    queryKey: ["users-with-roles", organizationId],
     queryFn: async () => {
+      if (!organizationId) return [];
+      
       // Ensure current user's profile exists
       const { data: userRes } = await supabase.auth.getUser();
       const currentUser = userRes?.user;
@@ -154,7 +156,8 @@ export function UsersSettings() {
           avatar_url,
           phone,
           created_at
-        `);
+        `)
+        .eq("organization_id", organizationId);
 
       if (profilesError) throw profilesError;
 

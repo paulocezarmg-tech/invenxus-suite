@@ -14,11 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Package, AlertTriangle, CheckCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useOrganization } from "@/hooks/useOrganization";
 
 export default function Stock() {
   const [searchTerm, setSearchTerm] = useState("");
   const [userRole, setUserRole] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { data: organizationId } = useOrganization();
 
   // Check user role - get highest privilege role
   const { data: currentUser, isLoading: isLoadingRole } = useQuery({
@@ -89,8 +91,10 @@ export default function Stock() {
 
   // Fetch products data
   const { data: products, isLoading } = useQuery({
-    queryKey: ["stock-products"],
+    queryKey: ["stock-products", organizationId],
     queryFn: async () => {
+      if (!organizationId) return [];
+      
       const { data, error } = await supabase
         .from("products")
         .select(`
@@ -100,11 +104,13 @@ export default function Stock() {
           supplier:suppliers(name)
         `)
         .eq("active", true)
+        .eq("organization_id", organizationId)
         .order("name");
 
       if (error) throw error;
       return data;
     },
+    enabled: !!organizationId,
   });
 
   // Set up realtime subscription

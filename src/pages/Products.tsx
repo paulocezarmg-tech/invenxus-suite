@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Pencil, Trash2, Package, TrendingDown, AlertCircle, DollarSign } from "lucide-react";
 import { ProductDialog } from "@/components/products/ProductDialog";
 import { toast } from "sonner";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,6 +24,7 @@ const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { data: organizationId } = useOrganization();
 
   // Check user role - get highest privilege role
   const { data: currentUser, isLoading: isLoadingRole } = useQuery({
@@ -93,11 +95,14 @@ const Products = () => {
 
   // Stats query
   const { data: stats } = useQuery({
-    queryKey: ["product-stats"],
+    queryKey: ["product-stats", organizationId],
     queryFn: async () => {
+      if (!organizationId) return { total: 0, critical: 0, outOfStock: 0, totalValue: 0 };
+      
       const { data, error } = await supabase
         .from("products")
-        .select("quantity, min_quantity, cost");
+        .select("quantity, min_quantity, cost")
+        .eq("organization_id", organizationId);
       
       if (error) throw error;
       
@@ -108,11 +113,14 @@ const Products = () => {
       
       return { total, critical, outOfStock, totalValue };
     },
+    enabled: !!organizationId,
   });
 
   const { data: products, isLoading } = useQuery({
-    queryKey: ["products", searchTerm],
+    queryKey: ["products", searchTerm, organizationId],
     queryFn: async () => {
+      if (!organizationId) return [];
+      
       let query = supabase
         .from("products")
         .select(`
@@ -121,6 +129,7 @@ const Products = () => {
           locations (name),
           suppliers (name)
         `)
+        .eq("organization_id", organizationId)
         .order("name", { ascending: true });
 
       if (searchTerm) {
@@ -133,6 +142,7 @@ const Products = () => {
       if (error) throw error;
       return data;
     },
+    enabled: !!organizationId,
   });
 
   const getStockBadge = (quantity: number, minQuantity: number) => {

@@ -18,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const Movements = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -26,6 +27,7 @@ const Movements = () => {
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
   const [dateTo, setDateTo] = useState<Date | null>(null);
   const queryClient = useQueryClient();
+  const { data: organizationId } = useOrganization();
 
   const handleDateChange = (from: Date | null, to: Date | null) => {
     setDateFrom(from);
@@ -53,11 +55,14 @@ const Movements = () => {
 
   // Stats query
   const { data: stats } = useQuery({
-    queryKey: ["movement-stats", dateFrom, dateTo],
+    queryKey: ["movement-stats", dateFrom, dateTo, organizationId],
     queryFn: async () => {
+      if (!organizationId) return { total: 0, entries: 0, exits: 0, transfers: 0 };
+      
       let query = supabase
         .from("movements")
-        .select("type, quantity");
+        .select("type, quantity")
+        .eq("organization_id", organizationId);
 
       if (dateFrom && dateTo) {
         query = query
@@ -76,11 +81,14 @@ const Movements = () => {
       
       return { total, entries, exits, transfers };
     },
+    enabled: !!organizationId,
   });
 
   const { data: movements, isLoading } = useQuery({
-    queryKey: ["movements", dateFrom, dateTo],
+    queryKey: ["movements", dateFrom, dateTo, organizationId],
     queryFn: async () => {
+      if (!organizationId) return [];
+      
       let query = supabase
         .from("movements")
         .select(`
@@ -90,6 +98,7 @@ const Movements = () => {
           from_location:locations!movements_from_location_id_fkey (name),
           to_location:locations!movements_to_location_id_fkey (name)
         `)
+        .eq("organization_id", organizationId)
         .order("created_at", { ascending: false })
         .limit(100);
 
@@ -103,6 +112,7 @@ const Movements = () => {
       if (error) throw error;
       return data;
     },
+    enabled: !!organizationId,
   });
 
   const getTypeIcon = (type: string) => {

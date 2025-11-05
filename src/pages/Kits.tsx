@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Package, Search } from "lucide-react";
 import { toast } from "sonner";
 import { KitDialog } from "@/components/kits/KitDialog";
+import { useOrganization } from "@/hooks/useOrganization";
 
 export default function Kits() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,6 +23,7 @@ export default function Kits() {
   const [selectedKit, setSelectedKit] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { data: organizationId } = useOrganization();
 
   // Fetch user roles
   useQuery({
@@ -43,14 +45,17 @@ export default function Kits() {
 
   // Fetch kits with items count
   const { data: kits, isLoading } = useQuery({
-    queryKey: ["kits", searchTerm],
+    queryKey: ["kits", searchTerm, organizationId],
     queryFn: async () => {
+      if (!organizationId) return [];
+      
       let query = supabase
         .from("kits")
         .select(`
           *,
           kit_items(count)
         `)
+        .eq("organization_id", organizationId)
         .order("name");
 
       if (searchTerm) {
@@ -61,6 +66,7 @@ export default function Kits() {
       if (error) throw error;
       return data;
     },
+    enabled: !!organizationId,
   });
 
   const deleteMutation = useMutation({

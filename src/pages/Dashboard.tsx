@@ -7,12 +7,14 @@ import { StockChart } from "@/components/dashboard/StockChart";
 import { CriticalStock } from "@/components/dashboard/CriticalStock";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { Package, DollarSign, AlertTriangle, TrendingUp } from "lucide-react";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
   const [dateTo, setDateTo] = useState<Date | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const { data: organizationId } = useOrganization();
 
   // Check user role - get highest privilege role
   const { data: currentUser, isLoading: isLoadingRole } = useQuery({
@@ -87,17 +89,21 @@ const Dashboard = () => {
   };
 
   const { data: stats } = useQuery({
-    queryKey: ["dashboard-stats", dateFrom, dateTo],
+    queryKey: ["dashboard-stats", dateFrom, dateTo, organizationId],
     queryFn: async () => {
+      if (!organizationId) return { totalValue: 0, criticalItems: 0, todayMovements: 0, zeroStock: 0 };
+      
       const { data: products, error: productsError } = await supabase
         .from("products")
-        .select("quantity, cost, min_quantity");
+        .select("quantity, cost, min_quantity")
+        .eq("organization_id", organizationId);
 
       if (productsError) throw productsError;
 
       let movementsQuery = supabase
         .from("movements")
-        .select("type, created_at");
+        .select("type, created_at")
+        .eq("organization_id", organizationId);
 
       if (dateFrom && dateTo) {
         movementsQuery = movementsQuery
@@ -132,6 +138,7 @@ const Dashboard = () => {
         zeroStock,
       };
     },
+    enabled: !!organizationId,
   });
 
   if (isLoadingRole) {

@@ -12,11 +12,16 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, ArrowLeftRight } from "lucide-react";
 import { format } from "date-fns";
+import { useOrganization } from "@/hooks/useOrganization";
 
 export const RecentMovements = () => {
+  const { data: organizationId } = useOrganization();
+  
   const { data: movements, isLoading } = useQuery({
-    queryKey: ["recent-movements"],
+    queryKey: ["recent-movements", organizationId],
     queryFn: async () => {
+      if (!organizationId) return [];
+      
       const { data: movementsData, error } = await supabase
         .from("movements")
         .select(`
@@ -24,6 +29,7 @@ export const RecentMovements = () => {
           products (name, sku),
           kits (name, sku)
         `)
+        .eq("organization_id", organizationId)
         .order("created_at", { ascending: false })
         .limit(10);
 

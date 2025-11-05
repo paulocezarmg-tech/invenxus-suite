@@ -9,11 +9,13 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import logo from "@/assets/stockmaster-logo.png";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const Reports = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
   const [dateTo, setDateTo] = useState<Date | null>(null);
+  const { data: organizationId } = useOrganization();
 
   const handleDateChange = (from: Date | null, to: Date | null) => {
     setDateFrom(from);
@@ -21,9 +23,14 @@ const Reports = () => {
   };
 
   const { data: stats } = useQuery({
-    queryKey: ["report-stats", dateFrom, dateTo],
+    queryKey: ["report-stats", dateFrom, dateTo, organizationId],
     queryFn: async () => {
-      let movementsQuery = supabase.from("movements").select("id", { count: "exact" });
+      if (!organizationId) return { totalProducts: 0, totalMovements: 0, criticalProducts: 0, totalValue: 0 };
+      
+      let movementsQuery = supabase
+        .from("movements")
+        .select("id", { count: "exact" })
+        .eq("organization_id", organizationId);
       
       if (dateFrom && dateTo) {
         movementsQuery = movementsQuery
@@ -32,12 +39,17 @@ const Reports = () => {
       }
 
       const [productsRes, movementsRes] = await Promise.all([
-        supabase.from("products").select("id, cost, quantity", { count: "exact" }),
+        supabase
+          .from("products")
+          .select("id, cost, quantity, min_quantity", { count: "exact" })
+          .eq("organization_id", organizationId),
         movementsQuery,
       ]);
 
-      // Get critical products
-      const criticalRes = await supabase.rpc("get_critical_products");
+      // Calculate critical products (quantity <= min_quantity)
+      const criticalProducts = productsRes.data?.filter(
+        p => Number(p.quantity) <= Number(p.min_quantity)
+      ).length || 0;
 
       const totalValue =
         productsRes.data?.reduce((sum, p) => sum + Number(p.cost) * Number(p.quantity), 0) || 0;
@@ -45,27 +57,36 @@ const Reports = () => {
       return {
         totalProducts: productsRes.count || 0,
         totalMovements: movementsRes.count || 0,
-        criticalProducts: criticalRes.data?.length || 0,
+        criticalProducts,
         totalValue,
       };
     },
+    enabled: !!organizationId,
   });
 
   const exportInventory = async () => {
+    if (!organizationId) {
+      toast.error("Organização não encontrada");
+      return;
+    }
+    
     setIsExporting(true);
     try {
-      const { data, error } = await supabase.from("products").select(`
-        sku,
-        name,
-        barcode,
-        quantity,
-        min_quantity,
-        cost,
-        unit,
-        categories (name),
-        locations (name),
-        suppliers (name)
-      `);
+      const { data, error } = await supabase
+        .from("products")
+        .select(`
+          sku,
+          name,
+          barcode,
+          quantity,
+          min_quantity,
+          cost,
+          unit,
+          categories (name),
+          locations (name),
+          suppliers (name)
+        `)
+        .eq("organization_id", organizationId);
 
       if (error) throw error;
 
@@ -108,20 +129,28 @@ const Reports = () => {
   };
 
   const exportInventoryPDF = async () => {
+    if (!organizationId) {
+      toast.error("Organização não encontrada");
+      return;
+    }
+    
     setIsExporting(true);
     try {
-      const { data, error } = await supabase.from("products").select(`
-        sku,
-        name,
-        barcode,
-        quantity,
-        min_quantity,
-        cost,
-        unit,
-        categories (name),
-        locations (name),
-        suppliers (name)
-      `);
+      const { data, error} = await supabase
+        .from("products")
+        .select(`
+          sku,
+          name,
+          barcode,
+          quantity,
+          min_quantity,
+          cost,
+          unit,
+          categories (name),
+          locations (name),
+          suppliers (name)
+        `)
+        .eq("organization_id", organizationId);
 
       if (error) throw error;
 

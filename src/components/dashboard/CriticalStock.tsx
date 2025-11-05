@@ -11,16 +11,38 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useOrganization } from "@/hooks/useOrganization";
 
 export const CriticalStock = () => {
+  const { data: organizationId } = useOrganization();
+  
   const { data: criticalProducts, isLoading } = useQuery({
-    queryKey: ["critical-stock"],
+    queryKey: ["critical-stock", organizationId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_critical_products");
+      if (!organizationId) return [];
+      
+      const { data, error } = await supabase
+        .from("products")
+        .select(`
+          *,
+          categories (name),
+          locations (name)
+        `)
+        .eq("organization_id", organizationId)
+        .order("quantity", { ascending: true });
 
       if (error) throw error;
-      return data;
+      
+      // Filter for critical products (quantity <= min_quantity)
+      return data?.filter(p => Number(p.quantity) <= Number(p.min_quantity))
+        .slice(0, 10)
+        .map(p => ({
+          ...p,
+          category_name: p.categories?.name,
+          location_name: p.locations?.name
+        }));
     },
+    enabled: !!organizationId,
   });
 
   return (
