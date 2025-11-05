@@ -11,6 +11,7 @@ interface InviteEmailRequest {
   email: string;
   role: string;
   inviteId: string;
+  appUrl: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -19,11 +20,10 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, role, inviteId }: InviteEmailRequest = await req.json();
+    const { email, role, inviteId, appUrl }: InviteEmailRequest = await req.json();
 
     console.log("Sending invite email to:", email, "with role:", role);
 
-    const appUrl = Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovable.app') || 'https://your-app.lovable.app';
     const acceptUrl = `${appUrl}/accept-invite?id=${inviteId}`;
 
     const emailResponse = await fetch("https://api.resend.com/emails", {

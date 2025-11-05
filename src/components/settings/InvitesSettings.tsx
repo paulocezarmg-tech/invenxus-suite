@@ -78,7 +78,8 @@ export const InvitesSettings = () => {
         body: { 
           email, 
           role,
-          inviteId: invite.id 
+          inviteId: invite.id,
+          appUrl: window.location.origin
         }
       });
 
@@ -138,7 +139,8 @@ export const InvitesSettings = () => {
         body: { 
           email: invite.email, 
           role: invite.role,
-          inviteId: invite.id 
+          inviteId: invite.id,
+          appUrl: window.location.origin
         }
       });
 
