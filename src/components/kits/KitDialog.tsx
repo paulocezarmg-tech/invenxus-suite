@@ -73,16 +73,20 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
 
   // Fetch products for dropdown
   const { data: products } = useQuery({
-    queryKey: ["products"],
+    queryKey: ["products", organizationId],
     queryFn: async () => {
+      if (!organizationId) return [];
+      
       const { data, error } = await supabase
         .from("products")
         .select("id, name, sku")
+        .eq("organization_id", organizationId)
         .eq("active", true)
         .order("name");
       if (error) throw error;
       return data;
     },
+    enabled: !!organizationId,
   });
 
   // Fetch kit items if editing
