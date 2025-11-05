@@ -64,7 +64,7 @@ const Auth = () => {
       <Card className="w-full max-w-md shadow-elevated">
         <CardHeader className="space-y-1 text-center">
           <div className="flex items-center justify-center mb-4">
-            <img src={logo} alt="StockMaster Logo" className="h-20 w-20 object-contain" />
+            <img src={logo} alt="StockMaster Logo" className="h-28 w-28 object-contain" />
           </div>
           <CardTitle className="text-3xl font-bold">StockMaster CMS</CardTitle>
           <CardDescription>Sistema de Controle de Estoque</CardDescription>
