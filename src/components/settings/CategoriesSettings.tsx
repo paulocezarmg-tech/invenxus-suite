@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,14 +26,35 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+const categorySchema = z.object({
+  name: z.string().trim().min(1, "Nome é obrigatório").max(200, "Nome deve ter no máximo 200 caracteres"),
+  description: z.string().trim().max(1000, "Descrição deve ter no máximo 1000 caracteres").optional(),
+});
+
+type CategoryFormData = z.infer<typeof categorySchema>;
 
 export function CategoriesSettings() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
   const queryClient = useQueryClient();
+
+  const form = useForm<CategoryFormData>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: "",
+      description: "",
+    },
+  });
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ["categories"],
@@ -41,41 +65,48 @@ export function CategoriesSettings() {
     },
   });
 
-  const handleOpenDialog = (category?: any) => {
-    if (category) {
-      setEditingCategory(category);
-      setName(category.name);
-      setDescription(category.description || "");
+  useEffect(() => {
+    if (editingCategory) {
+      form.reset({
+        name: editingCategory.name,
+        description: editingCategory.description || "",
+      });
     } else {
-      setEditingCategory(null);
-      setName("");
-      setDescription("");
+      form.reset({
+        name: "",
+        description: "",
+      });
     }
+  }, [editingCategory, form]);
+
+  const handleOpenDialog = (category?: any) => {
+    setEditingCategory(category);
     setDialogOpen(true);
   };
 
-  const handleSubmit = async () => {
-    if (!name.trim()) {
-      toast.error("Nome é obrigatório");
-      return;
-    }
-
+  const onSubmit = async (data: CategoryFormData) => {
     setIsSubmitting(true);
     try {
+      const categoryData = {
+        name: data.name,
+        description: data.description || null,
+      };
+
       if (editingCategory) {
         const { error } = await supabase
           .from("categories")
-          .update({ name, description: description || null })
+          .update(categoryData)
           .eq("id", editingCategory.id);
         if (error) throw error;
         toast.success("Categoria atualizada");
       } else {
-        const { error } = await supabase.from("categories").insert({ name, description: description || null });
+        const { error } = await supabase.from("categories").insert(categoryData);
         if (error) throw error;
         toast.success("Categoria criada");
       }
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       setDialogOpen(false);
+      form.reset();
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -155,34 +186,44 @@ export function CategoriesSettings() {
               {editingCategory ? "Atualize as informações" : "Adicione uma nova categoria"}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name">Nome *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Nome da categoria"
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nome da categoria" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div>
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Descrição da categoria"
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descrição</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Descrição da categoria" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? "Salvando..." : editingCategory ? "Atualizar" : "Criar"}
-            </Button>
-          </DialogFooter>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Salvando..." : editingCategory ? "Atualizar" : "Criar"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </>

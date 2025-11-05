@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,8 +43,33 @@ import { Plus, MoreVertical, Pencil, UserX, Trash2, Search, Upload } from "lucid
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 type Role = "superadmin" | "admin" | "almoxarife" | "operador" | "auditor";
+
+const createUserSchema = z.object({
+  name: z.string().trim().min(1, "Nome é obrigatório").max(200, "Nome deve ter no máximo 200 caracteres"),
+  email: z.string().trim().email("Email inválido"),
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres").max(72, "Senha deve ter no máximo 72 caracteres"),
+  role: z.enum(["superadmin", "admin", "almoxarife", "operador", "auditor"]),
+});
+
+const editUserSchema = z.object({
+  name: z.string().trim().min(1, "Nome é obrigatório").max(200, "Nome deve ter no máximo 200 caracteres"),
+  email: z.string().trim().email("Email inválido"),
+  phone: z.string().trim().max(20, "Telefone deve ter no máximo 20 caracteres").optional(),
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres").max(72, "Senha deve ter no máximo 72 caracteres").optional().or(z.literal("")),
+});
+
+type CreateUserFormData = z.infer<typeof createUserSchema>;
+type EditUserFormData = z.infer<typeof editUserSchema>;
 
 const roleLabels: Record<Role, string> = {
   superadmin: "Super Admin",
@@ -63,19 +91,31 @@ export function UsersSettings() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [selectedRole, setSelectedRole] = useState<Role>("operador");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [editEmail, setEditEmail] = useState("");
-  const [editPassword, setEditPassword] = useState("");
-  const [editName, setEditName] = useState("");
-  const [editPhone, setEditPhone] = useState("");
   const [editAvatar, setEditAvatar] = useState<File | null>(null);
   const [editAvatarPreview, setEditAvatarPreview] = useState("");
   const queryClient = useQueryClient();
+
+  const createForm = useForm<CreateUserFormData>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      role: "operador",
+    },
+  });
+
+  const editForm = useForm<EditUserFormData>({
+    resolver: zodResolver(editUserSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      password: "",
+    },
+  });
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["users-with-roles"],
@@ -151,33 +191,37 @@ export function UsersSettings() {
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleCreateUser = async () => {
+  const handleCreateUser = async (data: CreateUserFormData) => {
     setIsSubmitting(true);
     try {
       const { data: authData, error: signUpError } = await supabase.auth.admin.createUser({
-        email,
-        password,
+        email: data.email,
+        password: data.password,
         email_confirm: true,
-        user_metadata: { name },
+        user_metadata: { name: data.name },
       });
 
       if (signUpError) throw signUpError;
 
       if (!authData.user) throw new Error("Usuário não criado");
 
+      const { error: profileError } = await supabase.from("profiles").insert({
+        user_id: authData.user.id,
+        name: data.name,
+      });
+
+      if (profileError) throw profileError;
+
       const { error: roleError } = await supabase
         .from("user_roles")
-        .insert({ user_id: authData.user.id, role: selectedRole });
+        .insert({ user_id: authData.user.id, role: data.role });
 
       if (roleError) throw roleError;
 
       toast.success("Usuário criado com sucesso");
       queryClient.invalidateQueries({ queryKey: ["users-with-roles"] });
       setDialogOpen(false);
-      setEmail("");
-      setPassword("");
-      setName("");
-      setSelectedRole("operador");
+      createForm.reset();
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar usuário");
     } finally {
@@ -219,7 +263,19 @@ export function UsersSettings() {
     }
   };
 
-  const handleEditUser = async () => {
+  useEffect(() => {
+    if (selectedUser && editDialogOpen) {
+      editForm.reset({
+        name: selectedUser.name || "",
+        email: selectedUser.email || "",
+        phone: selectedUser.phone || "",
+        password: "",
+      });
+      setEditAvatarPreview(selectedUser.avatar_url || "");
+    }
+  }, [selectedUser, editDialogOpen, editForm]);
+
+  const handleEditUser = async (data: EditUserFormData) => {
     if (!selectedUser) return;
     
     setIsSubmitting(true);
@@ -246,8 +302,8 @@ export function UsersSettings() {
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          name: editName,
-          phone: editPhone,
+          name: data.name,
+          phone: data.phone || null,
           avatar_url: avatarUrl,
         })
         .eq('user_id', selectedUser.user_id);
@@ -255,19 +311,19 @@ export function UsersSettings() {
       if (profileError) throw profileError;
 
       // Update email if changed
-      if (editEmail !== selectedUser.email) {
+      if (data.email !== selectedUser.email) {
         const { error: emailError } = await supabase.auth.admin.updateUserById(
           selectedUser.user_id,
-          { email: editEmail }
+          { email: data.email }
         );
         if (emailError) throw emailError;
       }
 
       // Update password if provided
-      if (editPassword) {
+      if (data.password) {
         const { error: passwordError } = await supabase.auth.admin.updateUserById(
           selectedUser.user_id,
-          { password: editPassword }
+          { password: data.password }
         );
         if (passwordError) throw passwordError;
       }
@@ -275,7 +331,7 @@ export function UsersSettings() {
       toast.success("Usuário atualizado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["users-with-roles"] });
       setEditDialogOpen(false);
-      setEditPassword("");
+      editForm.reset();
       setEditAvatar(null);
       setEditAvatarPreview("");
     } catch (error: any) {
@@ -398,12 +454,6 @@ export function UsersSettings() {
                         <DropdownMenuItem
                           onClick={() => {
                             setSelectedUser(user);
-                            setEditEmail(user.email || "");
-                            setEditName(user.name || "");
-                            setEditPhone(user.phone || "");
-                            setEditPassword("");
-                            setEditAvatar(null);
-                            setEditAvatarPreview(user.avatar_url || "");
                             setEditDialogOpen(true);
                           }}
                           className="cursor-pointer"
@@ -447,84 +497,100 @@ export function UsersSettings() {
               Atualize as informações do usuário
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="flex flex-col items-center gap-4">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={editAvatarPreview} />
-                <AvatarFallback className="bg-primary/10 text-primary text-2xl">
-                  {editName.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <Label htmlFor="avatar" className="cursor-pointer">
-                <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
-                  <Upload className="h-4 w-4" />
-                  Alterar foto
-                </div>
-                <Input
-                  id="avatar"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                />
-              </Label>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="edit-name">Nome</Label>
-              <Input
-                id="edit-name"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="Nome do usuário"
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(handleEditUser)} className="grid gap-4 py-4">
+              <div className="flex flex-col items-center gap-4">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={editAvatarPreview} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-2xl">
+                    {editForm.watch("name")?.charAt(0).toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <Label htmlFor="avatar" className="cursor-pointer">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                    <Upload className="h-4 w-4" />
+                    Alterar foto
+                  </div>
+                  <Input
+                    id="avatar"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                </Label>
+              </div>
+              
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nome do usuário" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="edit-email">Email</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={editEmail}
-                onChange={(e) => setEditEmail(e.target.value)}
-                placeholder="email@exemplo.com"
+              
+              <FormField
+                control={editForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="email@exemplo.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="edit-phone">Telefone</Label>
-              <Input
-                id="edit-phone"
-                type="tel"
-                value={editPhone}
-                onChange={(e) => setEditPhone(e.target.value)}
-                placeholder="(00) 00000-0000"
+              
+              <FormField
+                control={editForm.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telefone</FormLabel>
+                    <FormControl>
+                      <Input type="tel" placeholder="(00) 00000-0000" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="edit-password">Nova Senha (deixe em branco para não alterar)</Label>
-              <Input
-                id="edit-password"
-                type="password"
-                value={editPassword}
-                onChange={(e) => setEditPassword(e.target.value)}
-                placeholder="••••••••"
+              
+              <FormField
+                control={editForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nova Senha (deixe em branco para não alterar)</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setEditDialogOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleEditUser} disabled={isSubmitting}>
-              {isSubmitting ? "Salvando..." : "Salvar alterações"}
-            </Button>
-          </DialogFooter>
+              
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditDialogOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Salvando..." : "Salvar alterações"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
@@ -537,60 +603,81 @@ export function UsersSettings() {
               Crie um novo usuário e defina suas permissões
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Nome completo"
+          <Form {...createForm}>
+            <form onSubmit={createForm.handleSubmit(handleCreateUser)} className="space-y-4">
+              <FormField
+                control={createForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nome completo" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@exemplo.com"
+              <FormField
+                control={createForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="email@exemplo.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Senha de acesso"
+              <FormField
+                control={createForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Senha</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Senha de acesso" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">Permissão</Label>
-              <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as Role)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(roleLabels).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleCreateUser} disabled={isSubmitting}>
-              {isSubmitting ? "Criando..." : "Criar Usuário"}
-            </Button>
-          </DialogFooter>
+              <FormField
+                control={createForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Permissão</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.entries(roleLabels).map(([key, label]) => (
+                          <SelectItem key={key} value={key}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Criando..." : "Criar Usuário"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

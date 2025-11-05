@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,16 +26,39 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+const supplierSchema = z.object({
+  name: z.string().trim().min(1, "Nome é obrigatório").max(200, "Nome deve ter no máximo 200 caracteres"),
+  contact: z.string().trim().max(200, "Contato deve ter no máximo 200 caracteres").optional(),
+  email: z.string().trim().email("Email inválido").max(255, "Email deve ter no máximo 255 caracteres").optional().or(z.literal("")),
+  phone: z.string().trim().max(20, "Telefone deve ter no máximo 20 caracteres").optional(),
+});
+
+type SupplierFormData = z.infer<typeof supplierSchema>;
 
 export function SuppliersSettings() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<any>(null);
-  const [name, setName] = useState("");
-  const [contact, setContact] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const queryClient = useQueryClient();
+
+  const form = useForm<SupplierFormData>({
+    resolver: zodResolver(supplierSchema),
+    defaultValues: {
+      name: "",
+      contact: "",
+      email: "",
+      phone: "",
+    },
+  });
 
   const { data: suppliers, isLoading } = useQuery({
     queryKey: ["suppliers"],
@@ -43,49 +69,51 @@ export function SuppliersSettings() {
     },
   });
 
-  const handleOpenDialog = (supplier?: any) => {
-    if (supplier) {
-      setEditingSupplier(supplier);
-      setName(supplier.name);
-      setContact(supplier.contact || "");
-      setEmail(supplier.email || "");
-      setPhone(supplier.phone || "");
+  useEffect(() => {
+    if (editingSupplier) {
+      form.reset({
+        name: editingSupplier.name,
+        contact: editingSupplier.contact || "",
+        email: editingSupplier.email || "",
+        phone: editingSupplier.phone || "",
+      });
     } else {
-      setEditingSupplier(null);
-      setName("");
-      setContact("");
-      setEmail("");
-      setPhone("");
+      form.reset({
+        name: "",
+        contact: "",
+        email: "",
+        phone: "",
+      });
     }
+  }, [editingSupplier, form]);
+
+  const handleOpenDialog = (supplier?: any) => {
+    setEditingSupplier(supplier);
     setDialogOpen(true);
   };
 
-  const handleSubmit = async () => {
-    if (!name.trim()) {
-      toast.error("Nome é obrigatório");
-      return;
-    }
-
+  const onSubmit = async (data: SupplierFormData) => {
     setIsSubmitting(true);
     try {
-      const data = {
-        name,
-        contact: contact || null,
-        email: email || null,
-        phone: phone || null,
+      const supplierData = {
+        name: data.name,
+        contact: data.contact || null,
+        email: data.email || null,
+        phone: data.phone || null,
       };
 
       if (editingSupplier) {
-        const { error } = await supabase.from("suppliers").update(data).eq("id", editingSupplier.id);
+        const { error } = await supabase.from("suppliers").update(supplierData).eq("id", editingSupplier.id);
         if (error) throw error;
         toast.success("Fornecedor atualizado");
       } else {
-        const { error } = await supabase.from("suppliers").insert(data);
+        const { error } = await supabase.from("suppliers").insert(supplierData);
         if (error) throw error;
         toast.success("Fornecedor criado");
       }
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       setDialogOpen(false);
+      form.reset();
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -177,53 +205,70 @@ export function SuppliersSettings() {
               {editingSupplier ? "Atualize as informações" : "Adicione um novo fornecedor"}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name">Nome *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Nome do fornecedor"
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nome do fornecedor" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div>
-              <Label htmlFor="contact">Pessoa de Contato</Label>
-              <Input
-                id="contact"
-                value={contact}
-                onChange={(e) => setContact(e.target.value)}
-                placeholder="João Silva"
+              <FormField
+                control={form.control}
+                name="contact"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pessoa de Contato</FormLabel>
+                    <FormControl>
+                      <Input placeholder="João Silva" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="contato@fornecedor.com"
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="contato@fornecedor.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div>
-              <Label htmlFor="phone">Telefone</Label>
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="(11) 98765-4321"
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telefone</FormLabel>
+                    <FormControl>
+                      <Input placeholder="(11) 98765-4321" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? "Salvando..." : editingSupplier ? "Atualizar" : "Criar"}
-            </Button>
-          </DialogFooter>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Salvando..." : editingSupplier ? "Atualizar" : "Criar"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </>

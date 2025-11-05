@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,16 +26,39 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+const locationSchema = z.object({
+  code: z.string().trim().min(1, "Código é obrigatório").max(50, "Código deve ter no máximo 50 caracteres"),
+  name: z.string().trim().min(1, "Nome é obrigatório").max(200, "Nome deve ter no máximo 200 caracteres"),
+  address: z.string().trim().max(500, "Endereço deve ter no máximo 500 caracteres").optional(),
+  region: z.string().trim().max(200, "Região deve ter no máximo 200 caracteres").optional(),
+});
+
+type LocationFormData = z.infer<typeof locationSchema>;
 
 export function LocationsSettings() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingLocation, setEditingLocation] = useState<any>(null);
-  const [code, setCode] = useState("");
-  const [name, setName] = useState("");
-  const [address, setAddress] = useState("");
-  const [region, setRegion] = useState("");
   const queryClient = useQueryClient();
+
+  const form = useForm<LocationFormData>({
+    resolver: zodResolver(locationSchema),
+    defaultValues: {
+      code: "",
+      name: "",
+      address: "",
+      region: "",
+    },
+  });
 
   const { data: locations, isLoading } = useQuery({
     queryKey: ["locations"],
@@ -43,49 +69,51 @@ export function LocationsSettings() {
     },
   });
 
-  const handleOpenDialog = (location?: any) => {
-    if (location) {
-      setEditingLocation(location);
-      setCode(location.code);
-      setName(location.name);
-      setAddress(location.address || "");
-      setRegion(location.region || "");
+  useEffect(() => {
+    if (editingLocation) {
+      form.reset({
+        code: editingLocation.code,
+        name: editingLocation.name,
+        address: editingLocation.address || "",
+        region: editingLocation.region || "",
+      });
     } else {
-      setEditingLocation(null);
-      setCode("");
-      setName("");
-      setAddress("");
-      setRegion("");
+      form.reset({
+        code: "",
+        name: "",
+        address: "",
+        region: "",
+      });
     }
+  }, [editingLocation, form]);
+
+  const handleOpenDialog = (location?: any) => {
+    setEditingLocation(location);
     setDialogOpen(true);
   };
 
-  const handleSubmit = async () => {
-    if (!code.trim() || !name.trim()) {
-      toast.error("Código e nome são obrigatórios");
-      return;
-    }
-
+  const onSubmit = async (data: LocationFormData) => {
     setIsSubmitting(true);
     try {
-      const data = {
-        code,
-        name,
-        address: address || null,
-        region: region || null,
+      const locationData = {
+        code: data.code,
+        name: data.name,
+        address: data.address || null,
+        region: data.region || null,
       };
 
       if (editingLocation) {
-        const { error } = await supabase.from("locations").update(data).eq("id", editingLocation.id);
+        const { error } = await supabase.from("locations").update(locationData).eq("id", editingLocation.id);
         if (error) throw error;
         toast.success("Local atualizado");
       } else {
-        const { error } = await supabase.from("locations").insert(data);
+        const { error } = await supabase.from("locations").insert(locationData);
         if (error) throw error;
         toast.success("Local criado");
       }
       queryClient.invalidateQueries({ queryKey: ["locations"] });
       setDialogOpen(false);
+      form.reset();
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -175,52 +203,70 @@ export function LocationsSettings() {
               {editingLocation ? "Atualize as informações" : "Adicione um novo local"}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="code">Código *</Label>
-              <Input
-                id="code"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="ALM-01"
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Código *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="ALM-01" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div>
-              <Label htmlFor="name">Nome *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Almoxarifado Central"
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Almoxarifado Central" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div>
-              <Label htmlFor="region">Região</Label>
-              <Input
-                id="region"
-                value={region}
-                onChange={(e) => setRegion(e.target.value)}
-                placeholder="Sede - São Paulo"
+              <FormField
+                control={form.control}
+                name="region"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Região</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Sede - São Paulo" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div>
-              <Label htmlFor="address">Endereço</Label>
-              <Input
-                id="address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Rua exemplo, 123"
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Endereço</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Rua exemplo, 123" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? "Salvando..." : editingLocation ? "Atualizar" : "Criar"}
-            </Button>
-          </DialogFooter>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Salvando..." : editingLocation ? "Atualizar" : "Criar"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </>
