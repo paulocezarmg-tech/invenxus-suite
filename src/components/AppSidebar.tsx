@@ -50,7 +50,7 @@ export function AppSidebar() {
           <img 
             src={stockmasterLogo} 
             alt="StockMaster CMS Logo" 
-            className={collapsed ? "h-8 w-8 object-contain" : "h-10 w-10 object-contain"}
+            className={collapsed ? "h-12 w-12 object-contain" : "h-16 w-auto object-contain"}
           />
           {!collapsed && (
             <div>
