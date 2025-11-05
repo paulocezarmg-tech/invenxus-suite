@@ -211,7 +211,7 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{kit ? "Editar Kit" : "Novo Kit"}</DialogTitle>
           <DialogDescription>
@@ -222,126 +222,128 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="sku"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>SKU</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+              <FormField
+                control={form.control}
+                name="sku"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>SKU</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Descrição</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descrição</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="active"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Ativo</FormLabel>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <FormLabel>Produtos do Kit</FormLabel>
-                <Button type="button" size="sm" onClick={addItem}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Adicionar Produto
-                </Button>
-              </div>
+              <FormField
+                control={form.control}
+                name="active"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Ativo</FormLabel>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
 
               <div className="space-y-2">
-                {kitItems.map((item, index) => (
-                  <div key={index} className="flex gap-2 items-start border p-3 rounded-lg">
-                    <div className="flex-1">
-                      <Select
-                        value={item.product_id}
-                        onValueChange={(value) => updateItem(index, "product_id", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um produto" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products?.map((product) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.name} ({product.sku})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="w-24">
-                      <Input
-                        type="number"
-                        min="1"
-                        step="0.01"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(index, "quantity", parseFloat(e.target.value))}
-                        placeholder="Qtd"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeItem(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+                <div className="flex items-center justify-between">
+                  <FormLabel>Produtos do Kit</FormLabel>
+                  <Button type="button" size="sm" onClick={addItem}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Adicionar Produto
+                  </Button>
+                </div>
 
-                {kitItems.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Nenhum produto adicionado. Clique em "Adicionar Produto" para começar.
-                  </p>
-                )}
+                <div className="space-y-2">
+                  {kitItems.map((item, index) => (
+                    <div key={index} className="flex gap-2 items-start border p-3 rounded-lg">
+                      <div className="flex-1">
+                        <Select
+                          value={item.product_id}
+                          onValueChange={(value) => updateItem(index, "product_id", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um produto" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products?.map((product) => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.name} ({product.sku})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="w-24">
+                        <Input
+                          type="number"
+                          min="1"
+                          step="0.01"
+                          value={item.quantity}
+                          onChange={(e) => updateItem(index, "quantity", parseFloat(e.target.value))}
+                          placeholder="Qtd"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeItem(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+
+                  {kitItems.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Nenhum produto adicionado. Clique em "Adicionar Produto" para começar.
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="mt-4 pt-4 border-t">
               <Button
                 type="button"
                 variant="outline"
