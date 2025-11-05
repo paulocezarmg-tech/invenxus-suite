@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -18,34 +18,72 @@ import { Loader2 } from "lucide-react";
 interface OrganizationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  organization?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
 }
 
-export function OrganizationDialog({ open, onOpenChange }: OrganizationDialogProps) {
+export function OrganizationDialog({ open, onOpenChange, organization }: OrganizationDialogProps) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [adminName, setAdminName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPhone, setAdminPhone] = useState("");
   const queryClient = useQueryClient();
+  const isEditing = !!organization;
+
+  // Load organization data when editing
+  useEffect(() => {
+    if (organization) {
+      setName(organization.name);
+      setSlug(organization.slug);
+    } else {
+      setName("");
+      setSlug("");
+      setAdminName("");
+      setAdminEmail("");
+      setAdminPhone("");
+    }
+  }, [organization]);
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("create-organization", {
-        body: {
-          organizationName: name,
-          organizationSlug: slug.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
-          adminName,
-          adminEmail,
-          adminPhone,
-        },
-      });
+      if (isEditing) {
+        // Update existing organization
+        const { error } = await supabase
+          .from("organizations")
+          .update({
+            name,
+            slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+          })
+          .eq("id", organization!.id);
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+        if (error) throw error;
+      } else {
+        // Create new organization with admin
+        const { data, error } = await supabase.functions.invoke("create-organization", {
+          body: {
+            organizationName: name,
+            organizationSlug: slug.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+            adminName,
+            adminEmail,
+            adminPhone,
+          },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["organizations"] });
-      toast.success("Organização e administrador criados com sucesso! Email enviado.");
+      toast.success(
+        isEditing 
+          ? "Organização atualizada com sucesso" 
+          : "Organização e administrador criados com sucesso! Email enviado."
+      );
       setName("");
       setSlug("");
       setAdminName("");
@@ -60,14 +98,25 @@ export function OrganizationDialog({ open, onOpenChange }: OrganizationDialogPro
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !slug || !adminName || !adminEmail) {
-      toast.error("Preencha todos os campos obrigatórios");
-      return;
+    
+    if (isEditing) {
+      // Only validate organization fields when editing
+      if (!name || !slug) {
+        toast.error("Preencha todos os campos obrigatórios");
+        return;
+      }
+    } else {
+      // Validate all fields when creating
+      if (!name || !slug || !adminName || !adminEmail) {
+        toast.error("Preencha todos os campos obrigatórios");
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) {
+        toast.error("Email inválido");
+        return;
+      }
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) {
-      toast.error("Email inválido");
-      return;
-    }
+    
     createMutation.mutate();
   };
 
@@ -75,9 +124,11 @@ export function OrganizationDialog({ open, onOpenChange }: OrganizationDialogPro
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nova Organização</DialogTitle>
+          <DialogTitle>{isEditing ? "Editar Organização" : "Nova Organização"}</DialogTitle>
           <DialogDescription>
-            Crie uma nova organização e cadastre o primeiro administrador
+            {isEditing 
+              ? "Atualize os dados da organização" 
+              : "Crie uma nova organização e cadastre o primeiro administrador"}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -104,39 +155,41 @@ export function OrganizationDialog({ open, onOpenChange }: OrganizationDialogPro
               </p>
             </div>
             
-            <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-3">Dados do Administrador</h4>
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="adminName">Nome do Administrador *</Label>
-                  <Input
-                    id="adminName"
-                    value={adminName}
-                    onChange={(e) => setAdminName(e.target.value)}
-                    placeholder="Ex: João Silva"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="adminEmail">Email do Administrador *</Label>
-                  <Input
-                    id="adminEmail"
-                    type="email"
-                    value={adminEmail}
-                    onChange={(e) => setAdminEmail(e.target.value)}
-                    placeholder="Ex: admin@empresaabc.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="adminPhone">Telefone</Label>
-                  <Input
-                    id="adminPhone"
-                    value={adminPhone}
-                    onChange={(e) => setAdminPhone(e.target.value)}
-                    placeholder="Ex: (11) 98765-4321"
-                  />
+            {!isEditing && (
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium mb-3">Dados do Administrador</h4>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="adminName">Nome do Administrador *</Label>
+                    <Input
+                      id="adminName"
+                      value={adminName}
+                      onChange={(e) => setAdminName(e.target.value)}
+                      placeholder="Ex: João Silva"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="adminEmail">Email do Administrador *</Label>
+                    <Input
+                      id="adminEmail"
+                      type="email"
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      placeholder="Ex: admin@empresaabc.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="adminPhone">Telefone</Label>
+                    <Input
+                      id="adminPhone"
+                      value={adminPhone}
+                      onChange={(e) => setAdminPhone(e.target.value)}
+                      placeholder="Ex: (11) 98765-4321"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
           <DialogFooter>
             <Button
@@ -150,7 +203,7 @@ export function OrganizationDialog({ open, onOpenChange }: OrganizationDialogPro
               {createMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Criar Organização
+              {isEditing ? "Salvar Alterações" : "Criar Organização"}
             </Button>
           </DialogFooter>
         </form>

@@ -3,17 +3,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Users, Building2 } from "lucide-react";
+import { Loader2, Plus, Users, Building2, Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { OrganizationDialog } from "@/components/admin/OrganizationDialog";
 import { OrganizationMembersDialog } from "@/components/admin/OrganizationMembersDialog";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function Admin() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
+  const [editingOrg, setEditingOrg] = useState<any>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [orgToDelete, setOrgToDelete] = useState<any>(null);
   const queryClient = useQueryClient();
 
   const { data: userRole, isLoading: roleLoading } = useQuery({
@@ -68,6 +81,26 @@ export default function Admin() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("organizations")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      toast.success("Organização excluída com sucesso");
+      setDeleteDialogOpen(false);
+      setOrgToDelete(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Erro ao excluir organização");
+    },
+  });
+
   if (roleLoading || orgsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -100,7 +133,10 @@ export default function Admin() {
             Gerencie todas as organizações do sistema
           </p>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
+        <Button onClick={() => {
+          setEditingOrg(null);
+          setDialogOpen(true);
+        }}>
           <Plus className="h-4 w-4 mr-2" />
           Nova Organização
         </Button>
@@ -142,6 +178,31 @@ export default function Admin() {
                 />
               </div>
 
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setEditingOrg(org);
+                    setDialogOpen(true);
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setOrgToDelete(org);
+                    setDeleteDialogOpen(true);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
+                </Button>
+              </div>
+
               <Button
                 variant="outline"
                 className="w-full"
@@ -158,12 +219,42 @@ export default function Admin() {
         ))}
       </div>
 
-      <OrganizationDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <OrganizationDialog 
+        open={dialogOpen} 
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) setEditingOrg(null);
+        }}
+        organization={editingOrg}
+      />
+      
       <OrganizationMembersDialog
         open={membersDialogOpen}
         onOpenChange={setMembersDialogOpen}
         organizationId={selectedOrg}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a organização <strong>{orgToDelete?.name}</strong>?
+              Esta ação não pode ser desfeita e todos os dados relacionados serão perdidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => orgToDelete && deleteMutation.mutate(orgToDelete.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
