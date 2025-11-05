@@ -63,7 +63,7 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-elevated">
         <CardHeader className="space-y-1 text-center">
-          <div className="flex items-center justify-center mb-4">
+          <div className="flex items-center justify-center mb-2">
             <img src={logo} alt="StockMaster Logo" className="h-28 w-28 object-contain" />
           </div>
           <CardTitle className="text-3xl font-bold">StockMaster CMS</CardTitle>
