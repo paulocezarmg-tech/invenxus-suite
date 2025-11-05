@@ -119,172 +119,26 @@ const AcceptInvite = () => {
     setLoading(true);
 
     try {
-      let userId: string | null = null;
-      let isNewUser = false;
-
-      // Try to create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: invite.email,
-        password: data.password,
-        options: {
-          data: {
-            name: data.name,
-          },
-        },
+      // Use the admin edge function to handle everything
+      const { data: result, error } = await supabase.functions.invoke('accept-invite', {
+        body: {
+          inviteId: inviteId,
+          name: data.name,
+          password: data.password,
+        }
       });
 
-      if (authError) {
-        // Check if user already exists
-        if (authError.message?.toLowerCase().includes('already registered') || 
-            authError.message?.toLowerCase().includes('email already exists')) {
-          // User already exists - update their password using admin function
-          const { data: updateResult, error: updateError } = await supabase.functions.invoke(
-            'accept-invite-existing-user',
-            {
-              body: {
-                email: invite.email,
-                password: data.password,
-                name: data.name,
-              }
-            }
-          );
-
-          if (updateError || !updateResult?.success) {
-            console.error('Error updating existing user:', updateError || updateResult?.error);
-            throw new Error(updateResult?.error || "Erro ao atualizar dados do usuário");
-          }
-
-          userId = updateResult.userId;
-          // User is not newly created, just updating
-          isNewUser = false;
-        } else {
-          throw new Error(getErrorMessage(authError));
-        }
-      } else {
-        if (!authData.user) {
-          throw new Error("Erro ao criar usuário");
-        }
-        userId = authData.user.id;
-        isNewUser = true;
+      if (error) {
+        console.error('Error accepting invite:', error);
+        throw new Error('Erro ao processar convite');
       }
 
-      // Check if organization_member exists
-      const { data: existingMember } = await supabase
-        .from("organization_members")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("organization_id", invite.organization_id)
-        .single();
-
-      // Create organization_member only if it doesn't exist
-      if (!existingMember) {
-        const { error: memberError } = await supabase
-          .from("organization_members")
-          .insert({
-            user_id: userId,
-            organization_id: invite.organization_id,
-          });
-
-        if (memberError) {
-          console.error("Organization member error:", memberError);
-          throw new Error("Erro ao vincular usuário à organização");
-        }
+      if (!result?.success) {
+        throw new Error(result?.error || 'Erro ao processar convite');
       }
-
-      // Check if profile exists
-      const { data: existingProfile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", userId)
-        .single();
-
-      // Create or update profile
-      if (!existingProfile) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .insert({
-            user_id: userId,
-            name: data.name,
-            organization_id: invite.organization_id,
-          });
-
-        if (profileError) {
-          console.error("Profile error:", profileError);
-          throw new Error("Erro ao criar perfil do usuário");
-        }
-      } else {
-        // Update profile with new name and ensure organization_id is set
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({
-            name: data.name,
-            organization_id: invite.organization_id,
-          })
-          .eq("user_id", userId);
-
-        if (profileError) {
-          console.error("Profile update error:", profileError);
-        }
-      }
-
-      // Check if role exists
-      const { data: existingRole } = await supabase
-        .from("user_roles")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("role", invite.role)
-        .single();
-
-      // Assign role only if it doesn't exist
-      if (!existingRole) {
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert({
-            user_id: userId,
-            role: invite.role,
-          });
-
-        if (roleError) {
-          console.error("Role error:", roleError);
-          throw new Error("Erro ao atribuir permissões ao usuário");
-        }
-      }
-
-      // Update invite status
-      const { error: inviteError } = await supabase
-        .from("invites")
-        .update({
-          status: "accepted",
-          accepted_at: new Date().toISOString(),
-        })
-        .eq("id", inviteId);
-
-      if (inviteError) {
-        console.error("Error updating invite:", inviteError);
-      }
-
-      // Notify admins about new user (only if it's a new user)
-      if (isNewUser) {
-        try {
-          await supabase.functions.invoke("notify-admins-new-user", {
-            body: {
-              userName: data.name,
-              userEmail: invite.email,
-              userRole: invite.role,
-            },
-          });
-        } catch (notifyError) {
-          // Don't fail the signup if notification fails
-          console.error("Error notifying admins:", notifyError);
-        }
-      }
-
-      // Sign out the user so they can log in properly
-      await supabase.auth.signOut();
 
       toast.success("Cadastro concluído com sucesso! Faça login para acessar o sistema.");
       
-      // Use setTimeout to ensure navigation happens after state updates
       setTimeout(() => {
         navigate("/auth");
       }, 100);
