@@ -50,16 +50,20 @@ export const InvitesSettings = () => {
   const { data: organizationId } = useOrganization();
 
   const { data: invites, isLoading } = useQuery({
-    queryKey: ["invites"],
+    queryKey: ["invites", organizationId],
     queryFn: async () => {
+      if (!organizationId) return [];
+      
       const { data, error } = await supabase
         .from("invites")
         .select("*")
+        .eq("organization_id", organizationId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data;
     },
+    enabled: !!organizationId,
   });
 
   const createInvite = useMutation({
