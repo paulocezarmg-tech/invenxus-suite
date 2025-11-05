@@ -8,7 +8,68 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* StockMaster CMS - Dark Corporate Theme */
+    /* StockMaster CMS - Light Theme */
+    --background: 0 0% 98%;          /* #FAFAFA */
+    --foreground: 217 19% 15%;       /* #1F2326 */
+
+    --card: 0 0% 100%;               /* #FFFFFF */
+    --card-foreground: 217 19% 15%;  /* #1F2326 */
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 217 19% 15%;
+
+    --primary: 162 66% 38%;          /* #21A179 - Verde vívido */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217 76% 44%;        /* #1155CC - Azul cobalto */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 17% 95%;
+    --muted-foreground: 217 19% 40%;
+
+    --accent: 253 92% 69%;           /* #7B61FF - Roxo */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 79% 55%;        /* #E03A3A - Vermelho */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 162 66% 38%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 217 19% 15%;
+    --sidebar-primary: 162 66% 38%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 17% 95%;
+    --sidebar-accent-foreground: 217 19% 15%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 162 66% 38%;
+
+    /* Custom tokens */
+    --success: 142 76% 36%;          /* #16A34A - Verde vibrante */
+    --warning: 38 92% 50%;           /* #F59E0B - Laranja */
+    --info: 217 76% 44%;             /* #1155CC - Azul */
+    --danger: 350 89% 60%;           /* #EF4444 - Vermelho/Rosa */
+    --cancelled: 330 81% 60%;        /* #EC4899 - Rosa vibrante */
+    
+    /* Status colors */
+    --status-paid: 142 76% 36%;      /* Verde - Pago */
+    --status-pending: 38 92% 50%;    /* Laranja - Aguardando */
+    --status-cancelled: 330 81% 60%; /* Rosa - Cancelado */
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(162 66% 38%) 0%, hsl(162 66% 48%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(210 17% 98%) 100%);
+    
+    /* Shadows */
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-elevated: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .dark {
     --background: 217 19% 7%;        /* #0F1213 */
     --foreground: 210 17% 91%;       /* #E6E7E8 */
 
@@ -37,8 +98,6 @@ All colors MUST be HSL.
     --input: 216 13% 15%;
     --ring: 162 66% 38%;
 
-    --radius: 0.75rem;
-
     --sidebar-background: 217 19% 7%;
     --sidebar-foreground: 210 17% 91%;
     --sidebar-primary: 162 66% 38%;
@@ -47,18 +106,6 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 210 17% 91%;
     --sidebar-border: 216 13% 15%;
     --sidebar-ring: 162 66% 38%;
-
-    /* Custom tokens */
-    --success: 142 76% 36%;          /* #16A34A - Verde vibrante */
-    --warning: 38 92% 50%;           /* #F59E0B - Laranja */
-    --info: 217 76% 44%;             /* #1155CC - Azul */
-    --danger: 350 89% 60%;           /* #EF4444 - Vermelho/Rosa */
-    --cancelled: 330 81% 60%;        /* #EC4899 - Rosa vibrante */
-    
-    /* Status colors */
-    --status-paid: 142 76% 36%;      /* Verde - Pago */
-    --status-pending: 38 92% 50%;    /* Laranja - Aguardando */
-    --status-cancelled: 330 81% 60%; /* Rosa - Cancelado */
     
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(162 66% 38%) 0%, hsl(162 66% 48%) 100%);
@@ -67,45 +114,6 @@ All colors MUST be HSL.
     /* Shadows */
     --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.4);
     --shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.5);
-  }
-
-  .dark {
-    --background: 217 19% 7%;
-    --foreground: 210 17% 91%;
-
-    --card: 216 13% 12%;
-    --card-foreground: 210 17% 91%;
-
-    --popover: 216 13% 12%;
-    --popover-foreground: 210 17% 91%;
-
-    --primary: 162 66% 38%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 217 76% 44%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 216 13% 12%;
-    --muted-foreground: 237 7% 66%;
-
-    --accent: 253 92% 69%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 79% 55%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 216 13% 15%;
-    --input: 216 13% 15%;
-    --ring: 162 66% 38%;
-
-    --sidebar-background: 217 19% 7%;
-    --sidebar-foreground: 210 17% 91%;
-    --sidebar-primary: 162 66% 38%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 216 13% 12%;
-    --sidebar-accent-foreground: 210 17% 91%;
-    --sidebar-border: 216 13% 15%;
-    --sidebar-ring: 162 66% 38%;
   }
 }
 
@@ -119,9 +127,6 @@ All colors MUST be HSL.
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
-  html {
-    @apply dark;
-  }
 }
 
 @layer utilities {
