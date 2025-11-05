@@ -13,22 +13,36 @@ const Dashboard = () => {
   const [dateTo, setDateTo] = useState<Date | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  // Check user role
+  // Check user role - get highest privilege role
   const { data: currentUser, isLoading: isLoadingRole } = useQuery({
     queryKey: ["current-user-dashboard"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const { data: roleData } = await supabase
+      const { data: rolesData } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user.id)
-        .single();
+        .eq("user_id", user.id);
 
-      if (roleData) {
-        console.log("Dashboard - User role:", roleData.role);
-        setUserRole(roleData.role);
+      if (rolesData && rolesData.length > 0) {
+        // Determine highest privilege role
+        const roleHierarchy = {
+          superadmin: 4,
+          admin: 3,
+          almoxarife: 2,
+          auditor: 1,
+          operador: 0
+        };
+        
+        const highestRole = rolesData.reduce((highest, current) => {
+          const currentLevel = roleHierarchy[current.role as keyof typeof roleHierarchy] || 0;
+          const highestLevel = roleHierarchy[highest as keyof typeof roleHierarchy] || 0;
+          return currentLevel > highestLevel ? current.role : highest;
+        }, rolesData[0].role);
+        
+        console.log("Dashboard - User highest role:", highestRole);
+        setUserRole(highestRole);
       }
       return user;
     },
