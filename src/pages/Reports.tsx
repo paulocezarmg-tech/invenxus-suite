@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { Download, FileText, Package, TrendingUp, Activity } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -11,13 +12,28 @@ import logo from "@/assets/stockmaster-logo.png";
 
 const Reports = () => {
   const [isExporting, setIsExporting] = useState(false);
+  const [dateFrom, setDateFrom] = useState<Date | null>(null);
+  const [dateTo, setDateTo] = useState<Date | null>(null);
+
+  const handleDateChange = (from: Date | null, to: Date | null) => {
+    setDateFrom(from);
+    setDateTo(to);
+  };
 
   const { data: stats } = useQuery({
-    queryKey: ["report-stats"],
+    queryKey: ["report-stats", dateFrom, dateTo],
     queryFn: async () => {
+      let movementsQuery = supabase.from("movements").select("id", { count: "exact" });
+      
+      if (dateFrom && dateTo) {
+        movementsQuery = movementsQuery
+          .gte("created_at", dateFrom.toISOString())
+          .lte("created_at", dateTo.toISOString());
+      }
+
       const [productsRes, movementsRes] = await Promise.all([
         supabase.from("products").select("id, cost, quantity", { count: "exact" }),
-        supabase.from("movements").select("id", { count: "exact" }),
+        movementsQuery,
       ]);
 
       // Get critical products
@@ -275,9 +291,12 @@ const Reports = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Relatórios</h1>
-        <p className="text-muted-foreground">Gerar e exportar relatórios do sistema</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Relatórios</h1>
+          <p className="text-muted-foreground">Gerar e exportar relatórios do sistema</p>
+        </div>
+        <DateRangeFilter onDateChange={handleDateChange} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

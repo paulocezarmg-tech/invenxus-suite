@@ -1,14 +1,24 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { RecentMovements } from "@/components/dashboard/RecentMovements";
 import { StockChart } from "@/components/dashboard/StockChart";
 import { CriticalStock } from "@/components/dashboard/CriticalStock";
+import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { Package, DollarSign, AlertTriangle, TrendingUp } from "lucide-react";
 
 const Dashboard = () => {
+  const [dateFrom, setDateFrom] = useState<Date | null>(null);
+  const [dateTo, setDateTo] = useState<Date | null>(null);
+
+  const handleDateChange = (from: Date | null, to: Date | null) => {
+    setDateFrom(from);
+    setDateTo(to);
+  };
+
   const { data: stats } = useQuery({
-    queryKey: ["dashboard-stats"],
+    queryKey: ["dashboard-stats", dateFrom, dateTo],
     queryFn: async () => {
       const { data: products, error: productsError } = await supabase
         .from("products")
@@ -16,10 +26,20 @@ const Dashboard = () => {
 
       if (productsError) throw productsError;
 
-      const { data: movements, error: movementsError } = await supabase
+      let movementsQuery = supabase
         .from("movements")
-        .select("type, created_at")
-        .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+        .select("type, created_at");
+
+      if (dateFrom && dateTo) {
+        movementsQuery = movementsQuery
+          .gte("created_at", dateFrom.toISOString())
+          .lte("created_at", dateTo.toISOString());
+      } else {
+        movementsQuery = movementsQuery
+          .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+      }
+
+      const { data: movements, error: movementsError } = await movementsQuery;
 
       if (movementsError) throw movementsError;
 
@@ -47,11 +67,14 @@ const Dashboard = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Visão geral do estoque e movimentações
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Visão geral do estoque e movimentações
+          </p>
+        </div>
+        <DateRangeFilter onDateChange={handleDateChange} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

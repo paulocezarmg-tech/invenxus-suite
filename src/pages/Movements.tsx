@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, Pencil, Trash2, Activity, TrendingUp, TrendingDown } from "lucide-react";
 import { MovementDialog } from "@/components/movements/MovementDialog";
+import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -22,7 +23,14 @@ const Movements = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedMovement, setSelectedMovement] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [dateFrom, setDateFrom] = useState<Date | null>(null);
+  const [dateTo, setDateTo] = useState<Date | null>(null);
   const queryClient = useQueryClient();
+
+  const handleDateChange = (from: Date | null, to: Date | null) => {
+    setDateFrom(from);
+    setDateTo(to);
+  };
 
   // Check user role
   const { data: currentUser } = useQuery({
@@ -45,11 +53,19 @@ const Movements = () => {
 
   // Stats query
   const { data: stats } = useQuery({
-    queryKey: ["movement-stats"],
+    queryKey: ["movement-stats", dateFrom, dateTo],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("movements")
         .select("type, quantity");
+
+      if (dateFrom && dateTo) {
+        query = query
+          .gte("created_at", dateFrom.toISOString())
+          .lte("created_at", dateTo.toISOString());
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       
@@ -63,9 +79,9 @@ const Movements = () => {
   });
 
   const { data: movements, isLoading } = useQuery({
-    queryKey: ["movements"],
+    queryKey: ["movements", dateFrom, dateTo],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("movements")
         .select(`
           *,
@@ -76,6 +92,14 @@ const Movements = () => {
         `)
         .order("created_at", { ascending: false })
         .limit(100);
+
+      if (dateFrom && dateTo) {
+        query = query
+          .gte("created_at", dateFrom.toISOString())
+          .lte("created_at", dateTo.toISOString());
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -131,16 +155,19 @@ const Movements = () => {
             Registrar entradas, saídas e transferências
           </p>
         </div>
-        <Button
-          className="gap-2"
-          onClick={() => {
-            setSelectedMovement(null);
-            setDialogOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4" />
-          Nova Movimentação
-        </Button>
+        <div className="flex gap-2">
+          <DateRangeFilter onDateChange={handleDateChange} />
+          <Button
+            className="gap-2"
+            onClick={() => {
+              setSelectedMovement(null);
+              setDialogOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Nova Movimentação
+          </Button>
+        </div>
       </div>
 
       {/* Metrics Cards */}
