@@ -168,6 +168,29 @@ const AcceptInvite = () => {
         isNewUser = true;
       }
 
+      // Check if organization_member exists
+      const { data: existingMember } = await supabase
+        .from("organization_members")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("organization_id", invite.organization_id)
+        .single();
+
+      // Create organization_member only if it doesn't exist
+      if (!existingMember) {
+        const { error: memberError } = await supabase
+          .from("organization_members")
+          .insert({
+            user_id: userId,
+            organization_id: invite.organization_id,
+          });
+
+        if (memberError) {
+          console.error("Organization member error:", memberError);
+          throw new Error("Erro ao vincular usuário à organização");
+        }
+      }
+
       // Check if profile exists
       const { data: existingProfile } = await supabase
         .from("profiles")
@@ -175,7 +198,7 @@ const AcceptInvite = () => {
         .eq("user_id", userId)
         .single();
 
-      // Create profile only if it doesn't exist
+      // Create or update profile
       if (!existingProfile) {
         const { error: profileError } = await supabase
           .from("profiles")
@@ -188,6 +211,19 @@ const AcceptInvite = () => {
         if (profileError) {
           console.error("Profile error:", profileError);
           throw new Error("Erro ao criar perfil do usuário");
+        }
+      } else {
+        // Update profile with new name and ensure organization_id is set
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            name: data.name,
+            organization_id: invite.organization_id,
+          })
+          .eq("user_id", userId);
+
+        if (profileError) {
+          console.error("Profile update error:", profileError);
         }
       }
 
