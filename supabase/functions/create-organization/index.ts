@@ -53,6 +53,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (orgError) {
       console.error("Error creating organization:", orgError);
+      
+      // Check for duplicate slug error
+      if (orgError.code === "23505" && orgError.message.includes("organizations_slug_key")) {
+        throw new Error("Já existe uma organização com este slug. Por favor, escolha outro identificador único.");
+      }
+      
       throw new Error(`Erro ao criar organização: ${orgError.message}`);
     }
 
@@ -71,8 +77,15 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (authError || !authData.user) {
       console.error("Error creating admin user:", authError);
+      
       // Rollback: delete organization
       await supabaseAdmin.from("organizations").delete().eq("id", organization.id);
+      
+      // Check for duplicate email error
+      if (authError?.message?.includes("already registered") || authError?.message?.includes("já existe")) {
+        throw new Error("Este email já está cadastrado no sistema. Use outro email para o administrador.");
+      }
+      
       throw new Error(`Erro ao criar usuário: ${authError?.message || "Usuário não criado"}`);
     }
 
