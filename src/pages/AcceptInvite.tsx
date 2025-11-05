@@ -144,15 +144,10 @@ const AcceptInvite = () => {
 
       if (inviteError) throw inviteError;
 
-      toast.success("Conta criada com sucesso!");
+      toast.success("Conta criada com sucesso! Faça login para acessar o sistema.");
       
-      // Auto login
-      await supabase.auth.signInWithPassword({
-        email: invite.email,
-        password: data.password,
-      });
-
-      navigate("/");
+      // Redirect to login page
+      navigate("/auth");
     } catch (error: any) {
       console.error("Signup error:", error);
       toast.error(error.message || "Erro ao criar conta");
