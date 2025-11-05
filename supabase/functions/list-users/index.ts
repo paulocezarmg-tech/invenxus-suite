@@ -45,21 +45,43 @@ serve(async (req) => {
     const userId = userRes.user.id;
     console.log("Checking permissions for user:", userId);
 
-    // Check if caller has admin or superadmin role
-    const { data: isAdmin, error: adminError } = await userClient.rpc("has_role", {
-      _user_id: userId,
-      _role: "admin",
-    });
-    console.log("isAdmin check:", { isAdmin, adminError });
+    // Get all roles for the user
+    const { data: rolesData, error: rolesError } = await userClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
 
-    const { data: isSuperadmin, error: superadminError } = await userClient.rpc("has_role", {
-      _user_id: userId,
-      _role: "superadmin",
-    });
-    console.log("isSuperadmin check:", { isSuperadmin, superadminError });
+    console.log("User roles:", { rolesData, rolesError });
 
-    if (!isAdmin && !isSuperadmin) {
-      console.error("User lacks admin/superadmin role:", { userId, isAdmin, isSuperadmin });
+    if (rolesError || !rolesData || rolesData.length === 0) {
+      console.error("Failed to get user roles or user has no roles:", { userId, rolesError });
+      return new Response("Forbidden", { status: 403, headers: corsHeaders });
+    }
+
+    // Define role hierarchy
+    const roleHierarchy: Record<string, number> = {
+      superadmin: 4,
+      admin: 3,
+      almoxarife: 2,
+      auditor: 1,
+      operador: 0
+    };
+
+    // Find highest privilege role
+    const highestRole = rolesData.reduce((highest, current) => {
+      const currentLevel = roleHierarchy[current.role] || 0;
+      const highestLevel = roleHierarchy[highest] || 0;
+      return currentLevel > highestLevel ? current.role : highest;
+    }, rolesData[0].role);
+
+    console.log("User highest role:", highestRole);
+
+    // Check if user has at least admin privileges
+    const userRoleLevel = roleHierarchy[highestRole] || 0;
+    const adminLevel = roleHierarchy['admin'];
+
+    if (userRoleLevel < adminLevel) {
+      console.error("User lacks admin/superadmin privileges:", { userId, highestRole, level: userRoleLevel });
       return new Response("Forbidden", { status: 403, headers: corsHeaders });
     }
 
