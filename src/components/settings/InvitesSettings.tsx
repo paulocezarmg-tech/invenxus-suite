@@ -65,13 +65,29 @@ export const InvitesSettings = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      const { error } = await supabase.from("invites").insert({
+      const { data: invite, error } = await supabase.from("invites").insert({
         email,
         role: role as any,
         created_by: user.id,
-      });
+      }).select().single();
 
       if (error) throw error;
+
+      // Send invite email
+      const { error: emailError } = await supabase.functions.invoke("send-invite-email", {
+        body: { 
+          email, 
+          role,
+          inviteId: invite.id 
+        }
+      });
+
+      if (emailError) {
+        console.error("Error sending email:", emailError);
+        throw new Error("Convite criado mas falha ao enviar email");
+      }
+
+      return invite;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invites"] });
@@ -105,15 +121,33 @@ export const InvitesSettings = () => {
 
   const resendInvite = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { data: invite, error } = await supabase
         .from("invites")
         .update({ 
           status: "pending",
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
         })
-        .eq("id", id);
+        .eq("id", id)
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Send invite email
+      const { error: emailError } = await supabase.functions.invoke("send-invite-email", {
+        body: { 
+          email: invite.email, 
+          role: invite.role,
+          inviteId: invite.id 
+        }
+      });
+
+      if (emailError) {
+        console.error("Error sending email:", emailError);
+        throw new Error("Convite atualizado mas falha ao enviar email");
+      }
+
+      return invite;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invites"] });
