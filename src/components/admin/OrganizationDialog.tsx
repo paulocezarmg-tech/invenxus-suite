@@ -23,24 +23,34 @@ interface OrganizationDialogProps {
 export function OrganizationDialog({ open, onOpenChange }: OrganizationDialogProps) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [adminName, setAdminName] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPhone, setAdminPhone] = useState("");
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("organizations")
-        .insert({
-          name,
-          slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
-        });
+      const { data, error } = await supabase.functions.invoke("create-organization", {
+        body: {
+          organizationName: name,
+          organizationSlug: slug.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+          adminName,
+          adminEmail,
+          adminPhone,
+        },
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["organizations"] });
-      toast.success("Organização criada com sucesso");
+      toast.success("Organização e administrador criados com sucesso! Email enviado.");
       setName("");
       setSlug("");
+      setAdminName("");
+      setAdminEmail("");
+      setAdminPhone("");
       onOpenChange(false);
     },
     onError: (error: any) => {
@@ -50,8 +60,12 @@ export function OrganizationDialog({ open, onOpenChange }: OrganizationDialogPro
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !slug) {
-      toast.error("Preencha todos os campos");
+    if (!name || !slug || !adminName || !adminEmail) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) {
+      toast.error("Email inválido");
       return;
     }
     createMutation.mutate();
@@ -63,13 +77,13 @@ export function OrganizationDialog({ open, onOpenChange }: OrganizationDialogPro
         <DialogHeader>
           <DialogTitle>Nova Organização</DialogTitle>
           <DialogDescription>
-            Crie uma nova organização para um cliente
+            Crie uma nova organização e cadastre o primeiro administrador
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nome da Organização</Label>
+              <Label htmlFor="name">Nome da Organização *</Label>
               <Input
                 id="name"
                 value={name}
@@ -78,7 +92,7 @@ export function OrganizationDialog({ open, onOpenChange }: OrganizationDialogPro
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="slug">Slug (identificador único)</Label>
+              <Label htmlFor="slug">Slug (identificador único) *</Label>
               <Input
                 id="slug"
                 value={slug}
@@ -88,6 +102,40 @@ export function OrganizationDialog({ open, onOpenChange }: OrganizationDialogPro
               <p className="text-xs text-muted-foreground">
                 Use apenas letras minúsculas, números e hífens
               </p>
+            </div>
+            
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-3">Dados do Administrador</h4>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="adminName">Nome do Administrador *</Label>
+                  <Input
+                    id="adminName"
+                    value={adminName}
+                    onChange={(e) => setAdminName(e.target.value)}
+                    placeholder="Ex: João Silva"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="adminEmail">Email do Administrador *</Label>
+                  <Input
+                    id="adminEmail"
+                    type="email"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    placeholder="Ex: admin@empresaabc.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="adminPhone">Telefone</Label>
+                  <Input
+                    id="adminPhone"
+                    value={adminPhone}
+                    onChange={(e) => setAdminPhone(e.target.value)}
+                    placeholder="Ex: (11) 98765-4321"
+                  />
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>
