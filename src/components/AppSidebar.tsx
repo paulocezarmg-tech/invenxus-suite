@@ -1,5 +1,6 @@
 import { Home, Package, TrendingUp, FileText, Settings, LogOut, Boxes, Warehouse } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
+import stockmasterLogo from "@/assets/stockmaster-logo.png";
 import {
   Sidebar,
   SidebarContent,
@@ -45,10 +46,12 @@ export function AppSidebar() {
   return (
     <Sidebar className="border-r border-border">
       <SidebarHeader className="border-b border-border p-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Package className="h-5 w-5 text-primary" />
-          </div>
+        <div className="flex items-center gap-3">
+          <img 
+            src={stockmasterLogo} 
+            alt="StockMaster CMS Logo" 
+            className={collapsed ? "h-8 w-8 object-contain" : "h-10 w-10 object-contain"}
+          />
           {!collapsed && (
             <div>
               <h2 className="font-semibold text-sm">StockMaster</h2>
