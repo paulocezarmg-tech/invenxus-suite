@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const kitSchema = z.object({
   sku: z.string().min(1, "SKU é obrigatório"),
@@ -58,6 +59,7 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [kitItems, setKitItems] = useState<KitItem[]>([]);
+  const { data: organizationId } = useOrganization();
 
   const form = useForm<KitFormData>({
     resolver: zodResolver(kitSchema),
@@ -169,6 +171,8 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
         toast.success("Kit atualizado com sucesso");
       } else {
         // Create new kit
+        if (!organizationId) throw new Error("Organization not found");
+        
         const { data: newKit, error: kitError } = await supabase
           .from("kits")
           .insert({
@@ -176,6 +180,7 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
             name: values.name,
             description: values.description,
             active: values.active,
+            organization_id: organizationId,
           })
           .select()
           .single();

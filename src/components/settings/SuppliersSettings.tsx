@@ -34,6 +34,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const supplierSchema = z.object({
   name: z.string().trim().min(1, "Nome é obrigatório").max(200, "Nome deve ter no máximo 200 caracteres"),
@@ -50,6 +51,7 @@ export function SuppliersSettings() {
   const [editingSupplier, setEditingSupplier] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { data: organizationId } = useOrganization();
 
   const form = useForm<SupplierFormData>({
     resolver: zodResolver(supplierSchema),
@@ -115,11 +117,14 @@ export function SuppliersSettings() {
   const onSubmit = async (data: SupplierFormData) => {
     setIsSubmitting(true);
     try {
+      if (!organizationId) throw new Error("Organization not found");
+      
       const supplierData = {
         name: data.name,
         contact: data.contact || null,
         email: data.email || null,
         phone: data.phone || null,
+        organization_id: organizationId,
       };
 
       if (editingSupplier) {

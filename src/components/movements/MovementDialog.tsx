@@ -31,6 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const movementSchema = z.object({
   type: z.enum(["IN", "OUT", "TRANSFER"]),
@@ -58,6 +59,7 @@ interface MovementDialogProps {
 export function MovementDialog({ open, onOpenChange, movement }: MovementDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
+  const { data: organizationId } = useOrganization();
 
   const { data: products } = useQuery({
     queryKey: ["products-list"],
@@ -145,6 +147,7 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
+      if (!organizationId) throw new Error("Organization not found");
 
       const movementData = {
         type: data.type,
@@ -156,6 +159,7 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
         reference: data.reference || null,
         note: data.note || null,
         created_by: user.id,
+        organization_id: organizationId,
       };
 
       if (movement) {

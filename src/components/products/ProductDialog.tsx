@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const productSchema = z.object({
   sku: z.string().min(1, "SKU é obrigatório").max(50),
@@ -57,6 +58,7 @@ interface ProductDialogProps {
 export function ProductDialog({ open, onOpenChange, product }: ProductDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
+  const { data: organizationId } = useOrganization();
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
@@ -147,6 +149,8 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
   const onSubmit = async (data: ProductFormData) => {
     setIsSubmitting(true);
     try {
+      if (!organizationId) throw new Error("Organization not found");
+      
       const productData = {
         sku: data.sku,
         barcode: data.barcode || null,
@@ -159,6 +163,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
         min_quantity: parseFloat(data.min_quantity),
         location_id: data.location_id || null,
         supplier_id: data.supplier_id || null,
+        organization_id: organizationId,
       };
 
       if (product) {

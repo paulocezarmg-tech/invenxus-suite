@@ -34,6 +34,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const locationSchema = z.object({
   code: z.string().trim().min(1, "Código é obrigatório").max(50, "Código deve ter no máximo 50 caracteres"),
@@ -50,6 +51,7 @@ export function LocationsSettings() {
   const [editingLocation, setEditingLocation] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { data: organizationId } = useOrganization();
 
   const form = useForm<LocationFormData>({
     resolver: zodResolver(locationSchema),
@@ -115,11 +117,14 @@ export function LocationsSettings() {
   const onSubmit = async (data: LocationFormData) => {
     setIsSubmitting(true);
     try {
+      if (!organizationId) throw new Error("Organization not found");
+      
       const locationData = {
         code: data.code,
         name: data.name,
         address: data.address || null,
         region: data.region || null,
+        organization_id: organizationId,
       };
 
       if (editingLocation) {

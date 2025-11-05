@@ -51,6 +51,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useOrganization } from "@/hooks/useOrganization";
 
 type Role = "superadmin" | "admin" | "almoxarife" | "operador" | "auditor";
 
@@ -98,6 +99,7 @@ export function UsersSettings() {
   const [editAvatarPreview, setEditAvatarPreview] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<Role[]>([]);
   const queryClient = useQueryClient();
+  const { data: organizationId } = useOrganization();
 
   const createForm = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
@@ -125,7 +127,7 @@ export function UsersSettings() {
       // Ensure current user's profile exists
       const { data: userRes } = await supabase.auth.getUser();
       const currentUser = userRes?.user;
-      if (currentUser) {
+      if (currentUser && organizationId) {
         const { data: existingProfile } = await supabase
           .from("profiles")
           .select("id")
@@ -138,6 +140,7 @@ export function UsersSettings() {
               (currentUser.user_metadata as any)?.name ||
               currentUser.email?.split("@")[0] ||
               "Usuário",
+            organization_id: organizationId,
           });
         }
       }
@@ -196,6 +199,8 @@ export function UsersSettings() {
   const handleCreateUser = async (data: CreateUserFormData) => {
     setIsSubmitting(true);
     try {
+      if (!organizationId) throw new Error("Organization not found");
+      
       const { data: authData, error: signUpError } = await supabase.auth.admin.createUser({
         email: data.email,
         password: data.password,
@@ -210,6 +215,7 @@ export function UsersSettings() {
       const { error: profileError } = await supabase.from("profiles").insert({
         user_id: authData.user.id,
         name: data.name,
+        organization_id: organizationId,
       });
 
       if (profileError) throw profileError;

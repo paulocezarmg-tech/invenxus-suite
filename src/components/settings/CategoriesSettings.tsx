@@ -34,6 +34,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useOrganization } from "@/hooks/useOrganization";
 
 const categorySchema = z.object({
   name: z.string().trim().min(1, "Nome é obrigatório").max(200, "Nome deve ter no máximo 200 caracteres"),
@@ -48,6 +49,7 @@ export function CategoriesSettings() {
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { data: organizationId } = useOrganization();
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
@@ -107,9 +109,12 @@ export function CategoriesSettings() {
   const onSubmit = async (data: CategoryFormData) => {
     setIsSubmitting(true);
     try {
+      if (!organizationId) throw new Error("Organization not found");
+      
       const categoryData = {
         name: data.name,
         description: data.description || null,
+        organization_id: organizationId,
       };
 
       if (editingCategory) {

@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { Mail, MoreVertical, Search, UserPlus, X, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useOrganization } from "@/hooks/useOrganization";
 
 export const InvitesSettings = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -46,6 +47,7 @@ export const InvitesSettings = () => {
   const [role, setRole] = useState<string>("operador");
   const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
+  const { data: organizationId } = useOrganization();
 
   const { data: invites, isLoading } = useQuery({
     queryKey: ["invites"],
@@ -64,11 +66,13 @@ export const InvitesSettings = () => {
     mutationFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
+      if (!organizationId) throw new Error("Organization not found");
 
       const { data: invite, error } = await supabase.from("invites").insert({
         email,
         role: role as any,
         created_by: user.id,
+        organization_id: organizationId,
       }).select().single();
 
       if (error) throw error;

@@ -179,6 +179,7 @@ const AcceptInvite = () => {
           .insert({
             user_id: userId,
             name: data.name,
+            organization_id: invite.organization_id,
           });
 
         if (profileError) {
