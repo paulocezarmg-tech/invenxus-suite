@@ -1,8 +1,14 @@
-# Welcome to your Lovable project
+# InvenXus Suite
+
+[![CI/CD Pipeline](https://github.com/paulocezarmg-tech/invenxus-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/paulocezarmg-tech/invenxus-suite/actions/workflows/ci.yml)
+[![Dependency Review](https://github.com/paulocezarmg-tech/invenxus-suite/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/paulocezarmg-tech/invenxus-suite/actions/workflows/dependency-review.yml)
+
+Sistema de gestão de estoque e inventário com controle de produtos, movimentações, kits e relatórios.
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/bc14b784-6c9b-45c1-ac42-1e31940e72be
+**GitHub**: https://github.com/paulocezarmg-tech/invenxus-suite
 
 ## How can I edit this code?
 
@@ -24,10 +30,10 @@ Follow these steps:
 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+git clone https://github.com/paulocezarmg-tech/invenxus-suite.git
 
 # Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+cd invenxus-suite
 
 # Step 3: Install the necessary dependencies.
 npm i
