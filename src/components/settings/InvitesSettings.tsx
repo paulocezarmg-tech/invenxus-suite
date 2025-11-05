@@ -91,7 +91,7 @@ export const InvitesSettings = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invites"] });
-      toast.success("Convite enviado com sucesso!");
+      toast.success(`Convite enviado com sucesso para ${email}!`);
       setIsDialogOpen(false);
       setEmail("");
       setRole("operador");
@@ -149,9 +149,9 @@ export const InvitesSettings = () => {
 
       return invite;
     },
-    onSuccess: () => {
+    onSuccess: (invite) => {
       queryClient.invalidateQueries({ queryKey: ["invites"] });
-      toast.success("Convite reenviado!");
+      toast.success(`Convite reenviado para ${invite.email}!`);
     },
     onError: (error: any) => {
       toast.error("Erro ao reenviar convite: " + error.message);
