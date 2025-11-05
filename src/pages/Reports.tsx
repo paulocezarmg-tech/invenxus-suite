@@ -335,7 +335,7 @@ const Reports = () => {
           <CardContent className="space-y-2">
             <Button onClick={exportInventoryPDF} disabled={isExporting} className="w-full gap-2">
               <FileText className="h-4 w-4" />
-              {isExporting ? "Exportando..." : "Exportar PDF (com logo)"}
+              {isExporting ? "Exportando..." : "Exportar em PDF"}
             </Button>
             <Button onClick={exportInventory} disabled={isExporting} variant="outline" className="w-full gap-2">
               <Download className="h-4 w-4" />
@@ -354,7 +354,7 @@ const Reports = () => {
           <CardContent className="space-y-2">
             <Button onClick={exportMovementsPDF} disabled={isExporting} className="w-full gap-2">
               <FileText className="h-4 w-4" />
-              {isExporting ? "Exportando..." : "Exportar PDF (com logo)"}
+              {isExporting ? "Exportando..." : "Exportar em PDF"}
             </Button>
             <Button onClick={exportMovements} disabled={isExporting} variant="outline" className="w-full gap-2">
               <Download className="h-4 w-4" />
