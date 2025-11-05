@@ -144,9 +144,21 @@ const AcceptInvite = () => {
 
       if (inviteError) throw inviteError;
 
-      toast.success("Conta criada com sucesso! Faça login para acessar o sistema.");
-      
-      // Redirect to login page
+      // Notify admins about new user
+      try {
+        await supabase.functions.invoke("notify-admins-new-user", {
+          body: {
+            userName: data.name,
+            userEmail: invite.email,
+            userRole: invite.role,
+          },
+        });
+      } catch (notifyError) {
+        // Don't fail the signup if notification fails
+        console.error("Error notifying admins:", notifyError);
+      }
+
+      toast.success("Conta criada com sucesso! Faça login para continuar.");
       navigate("/auth");
     } catch (error: any) {
       console.error("Signup error:", error);
