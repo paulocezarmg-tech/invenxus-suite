@@ -55,6 +55,38 @@ export default function Stock() {
     },
   });
 
+  // Listen for realtime changes to user_roles
+  useEffect(() => {
+    let channel: any;
+    
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+
+      channel = supabase
+        .channel('user-roles-stock')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'user_roles',
+            filter: `user_id=eq.${data.user.id}`
+          },
+          () => {
+            console.log('User roles changed, refetching...');
+            queryClient.invalidateQueries({ queryKey: ["current-user-stock"] });
+          }
+        )
+        .subscribe();
+    });
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [queryClient]);
+
   // Fetch products data
   const { data: products, isLoading } = useQuery({
     queryKey: ["stock-products"],

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,38 @@ const Products = () => {
       return user;
     },
   });
+
+  // Listen for realtime changes to user_roles
+  useEffect(() => {
+    let channel: any;
+    
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+
+      channel = supabase
+        .channel('user-roles-products')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'user_roles',
+            filter: `user_id=eq.${data.user.id}`
+          },
+          () => {
+            console.log('User roles changed, refetching...');
+            queryClient.invalidateQueries({ queryKey: ["current-user"] });
+          }
+        )
+        .subscribe();
+    });
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [queryClient]);
 
   // Stats query
   const { data: stats } = useQuery({

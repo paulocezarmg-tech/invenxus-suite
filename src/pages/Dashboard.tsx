@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { RecentMovements } from "@/components/dashboard/RecentMovements";
@@ -9,6 +9,7 @@ import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { Package, DollarSign, AlertTriangle, TrendingUp } from "lucide-react";
 
 const Dashboard = () => {
+  const queryClient = useQueryClient();
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
   const [dateTo, setDateTo] = useState<Date | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -47,6 +48,38 @@ const Dashboard = () => {
       return user;
     },
   });
+
+  // Listen for realtime changes to user_roles
+  useEffect(() => {
+    let channel: any;
+    
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+
+      channel = supabase
+        .channel('user-roles-dashboard')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'user_roles',
+            filter: `user_id=eq.${data.user.id}`
+          },
+          () => {
+            console.log('User roles changed, refetching...');
+            queryClient.invalidateQueries({ queryKey: ["current-user-dashboard"] });
+          }
+        )
+        .subscribe();
+    });
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [queryClient]);
 
   const handleDateChange = (from: Date | null, to: Date | null) => {
     setDateFrom(from);
