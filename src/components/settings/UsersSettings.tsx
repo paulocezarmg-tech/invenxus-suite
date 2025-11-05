@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, MoreVertical, Pencil, UserX, Trash2, Search } from "lucide-react";
+import { Plus, MoreVertical, Pencil, UserX, Trash2, Search, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -61,12 +61,20 @@ const roleColors: Record<Role, string> = {
 
 export function UsersSettings() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [selectedRole, setSelectedRole] = useState<Role>("operador");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editAvatar, setEditAvatar] = useState<File | null>(null);
+  const [editAvatarPreview, setEditAvatarPreview] = useState("");
   const queryClient = useQueryClient();
 
   const { data: users, isLoading } = useQuery({
@@ -99,6 +107,7 @@ export function UsersSettings() {
           user_id,
           name,
           avatar_url,
+          phone,
           created_at
         `);
 
@@ -210,6 +219,85 @@ export function UsersSettings() {
     }
   };
 
+  const handleEditUser = async () => {
+    if (!selectedUser) return;
+    
+    setIsSubmitting(true);
+    try {
+      // Upload avatar if changed
+      let avatarUrl = selectedUser.avatar_url;
+      if (editAvatar) {
+        const fileExt = editAvatar.name.split('.').pop();
+        const fileName = `${selectedUser.user_id}/${Math.random()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, editAvatar, { upsert: true });
+        
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+        
+        avatarUrl = publicUrl;
+      }
+
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          name: editName,
+          phone: editPhone,
+          avatar_url: avatarUrl,
+        })
+        .eq('user_id', selectedUser.user_id);
+
+      if (profileError) throw profileError;
+
+      // Update email if changed
+      if (editEmail !== selectedUser.email) {
+        const { error: emailError } = await supabase.auth.admin.updateUserById(
+          selectedUser.user_id,
+          { email: editEmail }
+        );
+        if (emailError) throw emailError;
+      }
+
+      // Update password if provided
+      if (editPassword) {
+        const { error: passwordError } = await supabase.auth.admin.updateUserById(
+          selectedUser.user_id,
+          { password: editPassword }
+        );
+        if (passwordError) throw passwordError;
+      }
+
+      toast.success("Usuário atualizado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["users-with-roles"] });
+      setEditDialogOpen(false);
+      setEditPassword("");
+      setEditAvatar(null);
+      setEditAvatarPreview("");
+    } catch (error: any) {
+      console.error("Error updating user:", error);
+      toast.error(error.message || "Erro ao atualizar usuário");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditAvatar(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -309,29 +397,14 @@ export function UsersSettings() {
                       <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem
                           onClick={() => {
-                            const input = prompt(
-                              `Escolha a permissão para ${user.name}:\n\n1. superadmin\n2. admin\n3. almoxarife\n4. operador\n5. auditor\n\nDica: você pode digitar o número (1-5) ou o nome.`
-                            );
-                            if (!input) return;
-                            const value = input.trim().toLowerCase();
-                            const map: Record<string, Role> = {
-                              "1": "superadmin",
-                              "2": "admin",
-                              "3": "almoxarife",
-                              "4": "operador",
-                              "5": "auditor",
-                              superadmin: "superadmin",
-                              admin: "admin",
-                              almoxarife: "almoxarife",
-                              operador: "operador",
-                              auditor: "auditor",
-                            };
-                            const role = map[value];
-                            if (!role) {
-                              toast.error("Entrada inválida. Digite 1-5 ou o nome da função.");
-                              return;
-                            }
-                            handleUpdateRole(user.user_id, role);
+                            setSelectedUser(user);
+                            setEditEmail(user.email || "");
+                            setEditName(user.name || "");
+                            setEditPhone(user.phone || "");
+                            setEditPassword("");
+                            setEditAvatar(null);
+                            setEditAvatarPreview(user.avatar_url || "");
+                            setEditDialogOpen(true);
                           }}
                           className="cursor-pointer"
                         >
@@ -365,6 +438,97 @@ export function UsersSettings() {
         </Table>
       </div>
 
+      {/* Edit User Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>
+              Atualize as informações do usuário
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="flex flex-col items-center gap-4">
+              <Avatar className="h-24 w-24">
+                <AvatarImage src={editAvatarPreview} />
+                <AvatarFallback className="bg-primary/10 text-primary text-2xl">
+                  {editName.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <Label htmlFor="avatar" className="cursor-pointer">
+                <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                  <Upload className="h-4 w-4" />
+                  Alterar foto
+                </div>
+                <Input
+                  id="avatar"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </Label>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Nome</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Nome do usuário"
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-email">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                placeholder="email@exemplo.com"
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-phone">Telefone</Label>
+              <Input
+                id="edit-phone"
+                type="tel"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="(00) 00000-0000"
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-password">Nova Senha (deixe em branco para não alterar)</Label>
+              <Input
+                id="edit-password"
+                type="password"
+                value={editPassword}
+                onChange={(e) => setEditPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleEditUser} disabled={isSubmitting}>
+              {isSubmitting ? "Salvando..." : "Salvar alterações"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
