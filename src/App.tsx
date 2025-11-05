@@ -13,6 +13,7 @@ import Settings from "./pages/Settings";
 import Stock from "./pages/Stock";
 import Auth from "./pages/Auth";
 import AcceptInvite from "./pages/AcceptInvite";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -79,6 +80,14 @@ const App = () => (
             element={
               <Layout>
                 <Settings />
+              </Layout>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <Layout>
+                <Admin />
               </Layout>
             }
           />

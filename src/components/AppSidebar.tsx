@@ -1,45 +1,67 @@
-import { Home, Package, TrendingUp, FileText, Settings, LogOut, Boxes, Warehouse } from "lucide-react";
+import { Home, Package, TrendingUp, FileText, Settings, LogOut, Boxes, Warehouse, Shield } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import stockmasterLogo from "@/assets/stockmaster-logo.png";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-const menuItems = [{
-  title: "Dashboard",
-  url: "/",
-  icon: Home
-}, {
-  title: "Produtos",
-  url: "/products",
-  icon: Package
-}, {
-  title: "Kits",
-  url: "/kits",
-  icon: Boxes
-}, {
-  title: "Movimentações",
-  url: "/movements",
-  icon: TrendingUp
-}, {
-  title: "Estoque",
-  url: "/stock",
-  icon: Warehouse
-}, {
-  title: "Relatórios",
-  url: "/reports",
-  icon: FileText
-}, {
-  title: "Configurações",
-  url: "/settings",
-  icon: Settings
-}];
+import { useQuery } from "@tanstack/react-query";
 export function AppSidebar() {
   const {
     state
   } = useSidebar();
   const navigate = useNavigate();
   const collapsed = state === "collapsed";
+
+  const { data: userRole } = useQuery({
+    queryKey: ["user-role"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      return data?.role;
+    },
+  });
+
+  const baseMenuItems = [{
+    title: "Dashboard",
+    url: "/",
+    icon: Home
+  }, {
+    title: "Produtos",
+    url: "/products",
+    icon: Package
+  }, {
+    title: "Kits",
+    url: "/kits",
+    icon: Boxes
+  }, {
+    title: "Movimentações",
+    url: "/movements",
+    icon: TrendingUp
+  }, {
+    title: "Estoque",
+    url: "/stock",
+    icon: Warehouse
+  }, {
+    title: "Relatórios",
+    url: "/reports",
+    icon: FileText
+  }, {
+    title: "Configurações",
+    url: "/settings",
+    icon: Settings
+  }];
+
+  const menuItems = userRole === "superadmin" 
+    ? [...baseMenuItems, { title: "Administração", url: "/admin", icon: Shield }]
+    : baseMenuItems;
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
