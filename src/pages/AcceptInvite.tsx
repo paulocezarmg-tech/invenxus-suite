@@ -137,23 +137,26 @@ const AcceptInvite = () => {
         // Check if user already exists
         if (authError.message?.toLowerCase().includes('already registered') || 
             authError.message?.toLowerCase().includes('email already exists')) {
-          // Try to sign in to get the user ID
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email: invite.email,
-            password: data.password,
-          });
+          // User already exists - update their password using admin function
+          const { data: updateResult, error: updateError } = await supabase.functions.invoke(
+            'accept-invite-existing-user',
+            {
+              body: {
+                email: invite.email,
+                password: data.password,
+                name: data.name,
+              }
+            }
+          );
 
-          if (signInError) {
-            throw new Error("Este email já está cadastrado com uma senha diferente. Use a recuperação de senha se necessário.");
+          if (updateError || !updateResult?.success) {
+            console.error('Error updating existing user:', updateError || updateResult?.error);
+            throw new Error(updateResult?.error || "Erro ao atualizar dados do usuário");
           }
 
-          if (!signInData.user) {
-            throw new Error("Erro ao verificar usuário existente");
-          }
-
-          userId = signInData.user.id;
-          // Sign out immediately as we'll let them login properly later
-          await supabase.auth.signOut();
+          userId = updateResult.userId;
+          // User is not newly created, just updating
+          isNewUser = false;
         } else {
           throw new Error(getErrorMessage(authError));
         }
