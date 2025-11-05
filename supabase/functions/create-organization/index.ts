@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -32,13 +31,19 @@ const handler = async (req: Request): Promise<Response> => {
       adminPhone,
     }: CreateOrganizationRequest = await req.json();
 
-    console.log("Creating organization:", organizationName, "with admin:", adminEmail);
+    console.log("Creating organization:", organizationName, "with admin invite for:", adminEmail);
 
-    // Create admin Supabase client with service role
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Generate temporary password
-    const temporaryPassword = `${organizationSlug}${Math.random().toString(36).substring(2, 10)}`;
+    // Get the current user (superadmin creating the organization)
+    const authHeader = req.headers.get("authorization");
+    const token = authHeader?.replace("Bearer ", "");
+    
+    const { data: { user: currentUser } } = await supabaseAdmin.auth.getUser(token!);
+    
+    if (!currentUser) {
+      throw new Error("Usuário não autenticado");
+    }
 
     // 1. Create the organization
     const { data: organization, error: orgError } = await supabaseAdmin
@@ -54,7 +59,6 @@ const handler = async (req: Request): Promise<Response> => {
     if (orgError) {
       console.error("Error creating organization:", orgError);
       
-      // Check for duplicate slug error
       if (orgError.code === "23505" && orgError.message.includes("organizations_slug_key")) {
         throw new Error("Já existe uma organização com este slug. Por favor, escolha outro identificador único.");
       }
@@ -64,137 +68,54 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Organization created:", organization.id);
 
-    // 2. Create the admin user
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: adminEmail,
-      password: temporaryPassword,
-      email_confirm: true,
-      user_metadata: {
-        name: adminName,
-        phone: adminPhone,
-      },
-    });
+    // 2. Create an invite for the admin user
+    const { data: invite, error: inviteError } = await supabaseAdmin
+      .from("invites")
+      .insert({
+        email: adminEmail,
+        role: "admin",
+        organization_id: organization.id,
+        created_by: currentUser.id,
+        status: "pending",
+      })
+      .select()
+      .single();
 
-    if (authError || !authData.user) {
-      console.error("Error creating admin user:", authError);
-      
+    if (inviteError) {
+      console.error("Error creating invite:", inviteError);
       // Rollback: delete organization
       await supabaseAdmin.from("organizations").delete().eq("id", organization.id);
-      
-      // Check for duplicate email error
-      if (authError?.message?.includes("already registered") || authError?.message?.includes("já existe")) {
-        throw new Error("Este email já está cadastrado no sistema. Use outro email para o administrador.");
-      }
-      
-      throw new Error(`Erro ao criar usuário: ${authError?.message || "Usuário não criado"}`);
+      throw new Error(`Erro ao criar convite: ${inviteError.message}`);
     }
 
-    console.log("Admin user created:", authData.user.id);
+    console.log("Invite created:", invite.id);
 
-    // 3. Create organization member
-    const { error: memberError } = await supabaseAdmin
-      .from("organization_members")
-      .insert({
-        organization_id: organization.id,
-        user_id: authData.user.id,
-      });
+    // 3. Get the app URL from the request origin
+    const origin = req.headers.get("origin") || SUPABASE_URL.replace(/\.supabase\.co$/, '.lovableproject.com');
 
-    if (memberError) {
-      console.error("Error creating organization member:", memberError);
-      throw new Error(`Erro ao associar usuário à organização: ${memberError.message}`);
-    }
-
-    // 4. Create user role as admin
-    const { error: roleError } = await supabaseAdmin
-      .from("user_roles")
-      .insert({
-        user_id: authData.user.id,
+    // 4. Send the invite email
+    const { error: emailError } = await supabaseAdmin.functions.invoke("send-invite-email", {
+      body: {
+        email: adminEmail,
         role: "admin",
-      });
-
-    if (roleError) {
-      console.error("Error creating user role:", roleError);
-      throw new Error(`Erro ao criar role de admin: ${roleError.message}`);
-    }
-
-    // 5. Create profile
-    const { error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .insert({
-        user_id: authData.user.id,
-        name: adminName,
-        phone: adminPhone || null,
-        organization_id: organization.id,
-      });
-
-    if (profileError) {
-      console.error("Error creating profile:", profileError);
-      throw new Error(`Erro ao criar perfil: ${profileError.message}`);
-    }
-
-    console.log("User setup complete, sending email...");
-
-    // 6. Send email with credentials
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
+        inviteId: invite.id,
+        appUrl: origin,
       },
-      body: JSON.stringify({
-        from: "StockMaster <noreply@stockmastercms.com>",
-        to: [adminEmail],
-        subject: "Bem-vindo ao StockMaster CMS - Suas credenciais de acesso",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #333;">Bem-vindo ao StockMaster CMS!</h1>
-            <p style="color: #666; font-size: 16px;">
-              Olá ${adminName},
-            </p>
-            <p style="color: #666; font-size: 16px;">
-              Uma conta de administrador foi criada para você na organização <strong>${organizationName}</strong>.
-            </p>
-            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h2 style="color: #333; margin-top: 0;">Suas credenciais de acesso:</h2>
-              <p style="color: #666; margin: 10px 0;">
-                <strong>Email:</strong> ${adminEmail}
-              </p>
-              <p style="color: #666; margin: 10px 0;">
-                <strong>Senha temporária:</strong> <code style="background: #fff; padding: 5px 10px; border-radius: 4px;">${temporaryPassword}</code>
-              </p>
-            </div>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${SUPABASE_URL.replace(/\.supabase\.co$/, '.lovableproject.com')}" 
-                 style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                Acessar Plataforma
-              </a>
-            </div>
-            <p style="color: #999; font-size: 14px; margin-top: 30px;">
-              <strong>Importante:</strong> Recomendamos que você altere sua senha após o primeiro acesso.
-            </p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-            <p style="color: #999; font-size: 12px;">
-              Este é um email automático. Por favor, não responda.
-            </p>
-          </div>
-        `,
-      }),
     });
 
-    if (!emailResponse.ok) {
-      const error = await emailResponse.text();
-      console.error("Error sending email:", error);
-      // Don't fail the entire operation if email fails
-      console.warn("Organization and user created successfully, but email failed to send");
+    if (emailError) {
+      console.error("Error sending invite email:", emailError);
+      console.warn("Organization and invite created successfully, but email failed to send");
     } else {
-      console.log("Email sent successfully");
+      console.log("Invite email sent successfully");
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         organizationId: organization.id,
-        userId: authData.user.id 
+        inviteId: invite.id,
+        message: "Organização criada! Email de convite enviado para o administrador."
       }),
       {
         status: 200,
