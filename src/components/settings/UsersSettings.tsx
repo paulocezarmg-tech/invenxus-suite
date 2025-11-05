@@ -280,6 +280,11 @@ export function UsersSettings() {
     
     setIsSubmitting(true);
     try {
+      // Get current user to check if editing own profile
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const isEditingSelf = currentUser?.id === selectedUser.user_id;
+      const isChangingOwnPassword = isEditingSelf && data.password;
+
       // Upload avatar if changed
       let avatarUrl = selectedUser.avatar_url;
       if (editAvatar) {
@@ -325,6 +330,20 @@ export function UsersSettings() {
 
         if (updateError) throw updateError;
         if (updateData?.error) throw new Error(updateData.error);
+
+        // If user changed their own password, re-authenticate with new password
+        if (isChangingOwnPassword && data.password) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: data.email,
+            password: data.password,
+          });
+
+          if (signInError) {
+            toast.error("Senha alterada, mas falha ao fazer login novamente. Por favor, faça login manualmente.");
+            await supabase.auth.signOut();
+            return;
+          }
+        }
       }
 
       toast.success("Usuário atualizado com sucesso!");
