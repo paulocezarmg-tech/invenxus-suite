@@ -141,7 +141,7 @@ const Products = () => {
       </div>
 
       {/* Metrics Cards */}
-      <div className={`grid gap-4 ${userRole === "operador" ? "md:grid-cols-3" : "md:grid-cols-2 lg:grid-cols-4"}`}>
+      <div className={`grid gap-4 ${(userRole === "admin" || userRole === "superadmin") ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3"}`}>
         <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total de Produtos</CardTitle>
@@ -172,7 +172,7 @@ const Products = () => {
           </CardContent>
         </Card>
 
-        {userRole !== "operador" && (
+        {(userRole === "admin" || userRole === "superadmin") && (
           <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Valor Total</CardTitle>
@@ -209,7 +209,7 @@ const Products = () => {
               <TableHead>Quantidade</TableHead>
               <TableHead>Estoque Mín.</TableHead>
               <TableHead>Local</TableHead>
-              {userRole !== "operador" && <TableHead>Custo</TableHead>}
+              {(userRole === "admin" || userRole === "superadmin") && <TableHead>Custo</TableHead>}
               <TableHead>Status</TableHead>
               {userRole === "superadmin" && <TableHead className="w-[100px]">Ações</TableHead>}
             </TableRow>
@@ -239,7 +239,7 @@ const Products = () => {
                   <TableCell className="font-medium">{product.quantity}</TableCell>
                   <TableCell>{product.min_quantity}</TableCell>
                   <TableCell>{product.locations?.name || "N/A"}</TableCell>
-                  {userRole !== "operador" && (
+                  {(userRole === "admin" || userRole === "superadmin") && (
                     <TableCell>R$ {Number(product.cost).toFixed(2)}</TableCell>
                   )}
                   <TableCell>

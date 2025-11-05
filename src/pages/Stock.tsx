@@ -208,7 +208,7 @@ export default function Stock() {
                     <TableHead className="text-center">Quantidade</TableHead>
                     <TableHead className="text-center">Qtd. Mínima</TableHead>
                     <TableHead>Status</TableHead>
-                    {userRole !== "operador" && (
+                    {(userRole === "admin" || userRole === "superadmin") && (
                       <>
                         <TableHead className="text-right">Valor Unitário</TableHead>
                         <TableHead className="text-right">Valor Total</TableHead>
@@ -233,7 +233,7 @@ export default function Stock() {
                         <TableCell>
                           {getStockBadge(Number(product.quantity), Number(product.min_quantity))}
                         </TableCell>
-                        {userRole !== "operador" && (
+                        {(userRole === "admin" || userRole === "superadmin") && (
                           <>
                             <TableCell className="text-right">
                               {new Intl.NumberFormat("pt-BR", {
@@ -253,7 +253,7 @@ export default function Stock() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={userRole !== "operador" ? 9 : 7} className="text-center text-muted-foreground">
+                      <TableCell colSpan={(userRole === "admin" || userRole === "superadmin") ? 9 : 7} className="text-center text-muted-foreground">
                         Nenhum produto encontrado
                       </TableCell>
                     </TableRow>
