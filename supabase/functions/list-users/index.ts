@@ -38,22 +38,28 @@ serve(async (req) => {
 
     const { data: userRes, error: getUserError } = await userClient.auth.getUser();
     if (getUserError || !userRes?.user) {
+      console.error("Failed to get user:", getUserError);
       return new Response("Unauthorized", { status: 401, headers: corsHeaders });
     }
 
     const userId = userRes.user.id;
+    console.log("Checking permissions for user:", userId);
 
     // Check if caller has admin or superadmin role
-    const { data: isAdmin } = await userClient.rpc("has_role", {
+    const { data: isAdmin, error: adminError } = await userClient.rpc("has_role", {
       _user_id: userId,
       _role: "admin",
     });
-    const { data: isSuperadmin } = await userClient.rpc("has_role", {
+    console.log("isAdmin check:", { isAdmin, adminError });
+
+    const { data: isSuperadmin, error: superadminError } = await userClient.rpc("has_role", {
       _user_id: userId,
       _role: "superadmin",
     });
+    console.log("isSuperadmin check:", { isSuperadmin, superadminError });
 
     if (!isAdmin && !isSuperadmin) {
+      console.error("User lacks admin/superadmin role:", { userId, isAdmin, isSuperadmin });
       return new Response("Forbidden", { status: 403, headers: corsHeaders });
     }
 
