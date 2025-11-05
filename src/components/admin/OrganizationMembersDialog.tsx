@@ -10,8 +10,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, Mail, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface OrganizationMembersDialogProps {
   open: boolean;
@@ -38,6 +40,22 @@ export function OrganizationMembersDialog({
 
       if (error) throw error;
       return data;
+    },
+    enabled: !!organizationId,
+  });
+
+  const { data: pendingInvites } = useQuery({
+    queryKey: ["pending-invites", organizationId],
+    queryFn: async () => {
+      if (!organizationId) return [];
+      const { data, error } = await supabase
+        .from("invites")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .eq("status", "pending");
+
+      if (error) throw error;
+      return data || [];
     },
     enabled: !!organizationId,
   });
@@ -82,6 +100,46 @@ export function OrganizationMembersDialog({
     enabled: !!organizationId,
   });
 
+  const resendInviteMutation = useMutation({
+    mutationFn: async (inviteId: string) => {
+      const { data: invite, error } = await supabase
+        .from("invites")
+        .update({ 
+          status: "pending",
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        })
+        .eq("id", inviteId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Send invite email
+      const { error: emailError } = await supabase.functions.invoke("send-invite-email", {
+        body: { 
+          email: invite.email, 
+          role: invite.role,
+          inviteId: invite.id,
+          appUrl: window.location.origin
+        }
+      });
+
+      if (emailError) {
+        console.error("Error sending email:", emailError);
+        throw new Error("Convite atualizado mas falha ao enviar email");
+      }
+
+      return invite;
+    },
+    onSuccess: (invite) => {
+      queryClient.invalidateQueries({ queryKey: ["pending-invites", organizationId] });
+      toast.success(`Convite reenviado para ${invite.email}!`);
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao reenviar convite: " + error.message);
+    },
+  });
+
   const removeMemberMutation = useMutation({
     mutationFn: async (memberId: string) => {
       const { error } = await supabase
@@ -111,45 +169,89 @@ export function OrganizationMembersDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 max-h-96 overflow-y-auto">
+          {/* Pending Invites Section */}
+          {pendingInvites && pendingInvites.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 px-2">
+                <Mail className="h-4 w-4 text-warning" />
+                <h3 className="text-sm font-semibold text-warning">Convites Pendentes</h3>
+              </div>
+              {pendingInvites.map((invite) => (
+                <div
+                  key={invite.id}
+                  className="flex items-center justify-between p-4 border border-warning/30 rounded-lg bg-warning/5"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium">{invite.email}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="bg-warning/20 text-warning border-warning/30">
+                        {invite.role}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        Expira {formatDistanceToNow(new Date(invite.expires_at), {
+                          addSuffix: true,
+                          locale: ptBR,
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => resendInviteMutation.mutate(invite.id)}
+                    disabled={resendInviteMutation.isPending}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Reenviar
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Active Members Section */}
           {isLoading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : members && members.length > 0 ? (
-            members.map((member) => (
-              <div
-                key={member.id}
-                className="flex items-center justify-between p-4 border rounded-lg"
-              >
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src={member.profile?.avatar_url || ""} />
-                    <AvatarFallback>
-                      {member.profile?.name?.charAt(0) || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">{member.profile?.name || "Usuário"}</p>
-                    <Badge variant="outline" className="mt-1">
-                      {member.role}
-                    </Badge>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeMemberMutation.mutate(member.id)}
-                  disabled={removeMemberMutation.isPending}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold px-2">Membros Ativos</h3>
+              {members.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between p-4 border rounded-lg"
                 >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
-            ))
-          ) : (
+                  <div className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage src={member.profile?.avatar_url || ""} />
+                      <AvatarFallback>
+                        {member.profile?.name?.charAt(0) || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{member.profile?.name || "Usuário"}</p>
+                      <Badge variant="outline" className="mt-1">
+                        {member.role}
+                      </Badge>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeMemberMutation.mutate(member.id)}
+                    disabled={removeMemberMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : !pendingInvites?.length ? (
             <p className="text-center text-muted-foreground py-8">
-              Nenhum membro encontrado
+              Nenhum membro ou convite encontrado
             </p>
-          )}
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
