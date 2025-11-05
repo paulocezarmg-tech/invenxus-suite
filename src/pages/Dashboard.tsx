@@ -14,7 +14,7 @@ const Dashboard = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   // Check user role
-  const { data: currentUser } = useQuery({
+  const { data: currentUser, isLoading: isLoadingRole } = useQuery({
     queryKey: ["current-user-dashboard"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -85,6 +85,14 @@ const Dashboard = () => {
       };
     },
   });
+
+  if (isLoadingRole) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">Carregando...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">

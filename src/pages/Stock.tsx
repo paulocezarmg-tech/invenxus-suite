@@ -21,7 +21,7 @@ export default function Stock() {
   const queryClient = useQueryClient();
 
   // Check user role
-  const { data: currentUser } = useQuery({
+  const { data: currentUser, isLoading: isLoadingRole } = useQuery({
     queryKey: ["current-user-stock"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -105,6 +105,14 @@ export default function Stock() {
     }
     return <Badge variant="default" className="bg-green-500/10 text-green-700 dark:text-green-400">Normal</Badge>;
   };
+
+  if (isLoadingRole) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">Carregando...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

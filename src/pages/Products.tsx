@@ -25,7 +25,7 @@ const Products = () => {
   const queryClient = useQueryClient();
 
   // Check user role
-  const { data: currentUser } = useQuery({
+  const { data: currentUser, isLoading: isLoadingRole } = useQuery({
     queryKey: ["current-user"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -110,6 +110,14 @@ const Products = () => {
       toast.error(error.message || "Erro ao excluir produto");
     }
   };
+
+  if (isLoadingRole) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">Carregando...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
