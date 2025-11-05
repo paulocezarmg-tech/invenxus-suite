@@ -14,7 +14,7 @@ const Settings = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   // Check user role
-  const { data: currentUser } = useQuery({
+  const { data: currentUser, isLoading } = useQuery({
     queryKey: ["current-user-settings"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -32,7 +32,16 @@ const Settings = () => {
     },
   });
 
-  const defaultTab = userRole === "operador" ? "profile" : "users";
+  // Always default to profile to avoid permission errors
+  const defaultTab = "profile";
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">Carregando...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
