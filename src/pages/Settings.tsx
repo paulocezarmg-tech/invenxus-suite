@@ -26,7 +26,23 @@ const Settings = () => {
         .eq("user_id", user.id);
       
       if (roles && roles.length > 0) {
-        setUserRole(roles[0].role);
+        // Priority order: superadmin > admin > almoxarife > auditor > operador
+        const rolePriority: Record<string, number> = {
+          superadmin: 5,
+          admin: 4,
+          almoxarife: 3,
+          auditor: 2,
+          operador: 1,
+        };
+
+        // Get the highest priority role
+        const highestRole = roles.reduce((highest, current) => {
+          const currentPriority = rolePriority[current.role] || 0;
+          const highestPriority = rolePriority[highest.role] || 0;
+          return currentPriority > highestPriority ? current : highest;
+        });
+
+        setUserRole(highestRole.role);
       }
       return user;
     },

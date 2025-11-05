@@ -38,11 +38,28 @@ export default function Admin() {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user.id)
-        .single();
+        .eq("user_id", user.id);
 
       if (error) throw error;
-      return data.role;
+      if (!data || data.length === 0) return null;
+
+      // Priority order: superadmin > admin > almoxarife > auditor > operador
+      const rolePriority: Record<string, number> = {
+        superadmin: 5,
+        admin: 4,
+        almoxarife: 3,
+        auditor: 2,
+        operador: 1,
+      };
+
+      // Get the highest priority role
+      const highestRole = data.reduce((highest, current) => {
+        const currentPriority = rolePriority[current.role] || 0;
+        const highestPriority = rolePriority[highest.role] || 0;
+        return currentPriority > highestPriority ? current : highest;
+      });
+
+      return highestRole.role;
     },
   });
 
