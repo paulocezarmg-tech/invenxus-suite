@@ -108,7 +108,7 @@ const Dashboard = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {userRole && userRole !== "operador" && (
+        {userRole !== "operador" && (
           <KPICard
             title="Valor Total em Estoque"
             value={new Intl.NumberFormat("pt-BR", {
