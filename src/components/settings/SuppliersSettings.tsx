@@ -283,7 +283,25 @@ export function SuppliersSettings() {
                   <FormItem>
                     <FormLabel>Telefone</FormLabel>
                     <FormControl>
-                      <Input placeholder="(11) 98765-4321" {...field} />
+                      <Input 
+                        placeholder="(11) 98765-4321" 
+                        {...field}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '');
+                          let formatted = '';
+                          if (value.length > 0) {
+                            formatted = '(' + value.substring(0, 2);
+                            if (value.length > 2) {
+                              formatted += ')' + value.substring(2, 7);
+                            }
+                            if (value.length > 7) {
+                              formatted += '-' + value.substring(7, 11);
+                            }
+                          }
+                          field.onChange(formatted);
+                        }}
+                        maxLength={14}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
