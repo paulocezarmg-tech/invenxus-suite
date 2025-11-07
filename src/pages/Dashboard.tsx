@@ -8,10 +8,16 @@ import { CriticalStock } from "@/components/dashboard/CriticalStock";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { Package, DollarSign, AlertTriangle, TrendingUp } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
-import { motion } from "framer-motion"; // ✅ Import correto no topo
+import { motion } from "framer-motion";
+
+// Tipagem para perfil do usuário
+interface UserProfile {
+  name: string;
+  gender?: "M" | "F";
+}
 
 // 🔹 Função para retornar saudação e emoji conforme horário
-function getGreeting() {
+function getGreeting(): { text: string; emoji: string } {
   const hour = new Date().getHours();
   if (hour < 12) return { text: "Bom dia", emoji: "☀️" };
   if (hour < 18) return { text: "Boa tarde", emoji: "🌇" };
@@ -19,14 +25,13 @@ function getGreeting() {
 }
 
 // 🔹 Função para ajustar nome e gênero
-function formatUserName(name = "", gender = "M") {
+function formatUserName(name = "", gender: "M" | "F" = "M") {
   const formattedName =
     name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   const greetingEnding = gender === "F" ? "Seja bem-vinda" : "Seja bem-vindo";
   return { formattedName, greetingEnding };
 }
 
-// 🔹 Componente principal do Dashboard
 const Dashboard = () => {
   const queryClient = useQueryClient();
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
@@ -34,8 +39,8 @@ const Dashboard = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const { data: organizationId } = useOrganization();
 
-  // 🔸 Buscar perfil do usuário (nome e gênero)
-  const { data: userProfile } = useQuery({
+  // Buscar perfil do usuário
+  const { data: userProfile } = useQuery<UserProfile | null>({
     queryKey: ["user-profile"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -45,23 +50,24 @@ const Dashboard = () => {
         .select("name, gender")
         .eq("user_id", user.id)
         .single();
-      return profile;
+      return profile as UserProfile;
     },
   });
 
-  // 🔸 Buscar o papel (role) do usuário
+  // Buscar o papel (role) do usuário
   const { isLoading: isLoadingRole } = useQuery({
     queryKey: ["current-user-dashboard"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
+
       const { data: rolesData } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id);
 
       if (rolesData && rolesData.length > 0) {
-        const roleHierarchy = {
+        const roleHierarchy: Record<string, number> = {
           superadmin: 4,
           admin: 3,
           almoxarife: 2,
@@ -82,7 +88,7 @@ const Dashboard = () => {
     },
   });
 
-  // 🔸 Atualizar caso o papel do usuário mude
+  // Atualizar caso o papel do usuário mude
   useEffect(() => {
     let channel: any;
     supabase.auth.getUser().then(({ data }) => {
@@ -107,19 +113,17 @@ const Dashboard = () => {
         .subscribe();
     });
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
+      if (channel) supabase.removeChannel(channel);
     };
   }, [queryClient]);
 
-  // 🔸 Filtro de data
+  // Filtro de data
   const handleDateChange = (from: Date | null, to: Date | null) => {
     setDateFrom(from);
     setDateTo(to);
   };
 
-  // 🔸 Buscar dados do dashboard
+  // Buscar dados do dashboard
   const { data: stats } = useQuery({
     queryKey: ["dashboard-stats", dateFrom, dateTo, organizationId],
     queryFn: async () => {
@@ -186,7 +190,7 @@ const Dashboard = () => {
     );
   }
 
-  // 🔹 Saudação personalizada
+  // Saudação personalizada
   const { text, emoji } = getGreeting();
   const { formattedName, greetingEnding } = formatUserName(
     userProfile?.name || "Usuário",
@@ -201,7 +205,7 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold">Dashboard</h1>
           </div>
 
-          {/* 👇 Saudação animada */}
+          {/* Saudação animada */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
