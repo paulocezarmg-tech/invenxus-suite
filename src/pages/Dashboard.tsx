@@ -16,6 +16,31 @@ const Dashboard = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const { data: organizationId } = useOrganization();
 
+  // Get user profile for greeting
+  const { data: userProfile } = useQuery({
+    queryKey: ["user-profile"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("user_id", user.id)
+        .single();
+
+      return profile;
+    },
+  });
+
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Bom dia";
+    if (hour >= 12 && hour < 18) return "Boa tarde";
+    return "Boa noite";
+  };
+
   // Check user role - get highest privilege role
   const { data: currentUser, isLoading: isLoadingRole } = useQuery({
     queryKey: ["current-user-dashboard"],
@@ -153,7 +178,14 @@ const Dashboard = () => {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+          </div>
+          {userProfile?.name && (
+            <p className="text-lg font-medium mb-1">
+              {getGreeting()}, {userProfile.name}! Seja bem-vindo 👋
+            </p>
+          )}
           <p className="text-muted-foreground">
             Visão geral do estoque e movimentações
           </p>
