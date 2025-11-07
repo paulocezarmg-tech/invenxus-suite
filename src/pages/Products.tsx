@@ -93,6 +93,30 @@ const Products = () => {
     };
   }, [queryClient]);
 
+  // Listen for realtime changes to products
+  useEffect(() => {
+    const channel = supabase
+      .channel('products-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products'
+        },
+        () => {
+          console.log('Products changed, refetching...');
+          queryClient.invalidateQueries({ queryKey: ["products"] });
+          queryClient.invalidateQueries({ queryKey: ["product-stats"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   // Stats query
   const { data: stats } = useQuery({
     queryKey: ["product-stats", organizationId],
