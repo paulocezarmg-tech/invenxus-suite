@@ -161,8 +161,53 @@ const Dashboard = () => {
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl font-bold">Dashboard</h1>
           </div>
-          {userProfile?.name && <p className="mb-1 text-xl font-semibold">Bom dia, Paulo Cezar! Seja bem-vindo 👋{getGreeting()}, {userProfile.name}! Seja bem-vindo 👋
-            </p>}
+          import { motion } from "framer-motion"; // 👈 Adicione no topo do arquivo
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12)
+    return { text: "Bom dia", emoji: "☀️" };
+  if (hour < 18)
+    return { text: "Boa tarde", emoji: "🌇" };
+  return { text: "Boa noite", emoji: "🌙" };
+}
+
+function formatUserName(name = "", gender = "M") {
+  const formattedName =
+    name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  const greetingEnding = gender === "F" ? "Seja bem-vinda" : "Seja bem-vindo";
+  return { formattedName, greetingEnding };
+}
+
+export default function Dashboard({ userProfile }) {
+  const { text, emoji } = getGreeting();
+  const { formattedName, greetingEnding } = formatUserName(
+    userProfile.name,
+    userProfile.gender
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+      className="text-center"
+    >
+      <p className="mb-1 text-2xl font-semibold">
+        {text}, {formattedName}! {greetingEnding} {emoji}
+      </p>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8, duration: 0.6 }}
+        className="text-gray-400 text-sm"
+      >
+        Esperamos que seu dia seja incrível 🚀
+      </motion.p>
+    </motion.div>
+  );
+}
+
           <p className="text-muted-foreground">
             Visão geral do estoque e movimentações
           </p>
