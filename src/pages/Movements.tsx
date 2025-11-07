@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -155,6 +155,27 @@ const Movements = () => {
       toast.error(error.message || "Erro ao excluir movimentação");
     }
   };
+
+  useEffect(() => {
+    if (!organizationId) return;
+    const channel = supabase
+      .channel("movements-realtime")
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'movements' },
+        () => {
+          // Refresh movement list, stats and product quantities in cache
+          queryClient.invalidateQueries({ queryKey: ["movements"] });
+          queryClient.invalidateQueries({ queryKey: ["movement-stats"] });
+          queryClient.invalidateQueries({ queryKey: ["products"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [organizationId, queryClient]);
 
   return (
     <div className="p-6 space-y-6">
