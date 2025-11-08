@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import logo from "@/assets/stockmaster-logo.png";
+import warehouseBg from "@/assets/warehouse-background.avif";
 
 const loginSchema = z.object({
   email: z.string().trim().email("Email inválido"),
@@ -60,8 +61,19 @@ const Auth = () => {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-elevated">
+    <div className="min-h-screen flex items-center justify-center p-4 relative">
+      <div 
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: `url(${warehouseBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+      </div>
+      <Card className="w-full max-w-md shadow-elevated relative z-10">
         <CardHeader className="space-y-1 text-center">
           <div className="flex items-center justify-center mb-2">
             <img src={logo} alt="StockMaster Logo" className="h-28 w-28 object-contain" />
