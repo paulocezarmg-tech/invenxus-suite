@@ -161,7 +161,7 @@ const Dashboard = () => {
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl font-bold">Dashboard</h1>
           </div>
-          {userProfile?.name && <p className="mb-1 text-xl font-semibold">Bom dia, Paulo Cezar! {getGreeting()}, {userProfile.name}! Seja bem-vindo 👋
+          {userProfile?.name && <p className="mb-1 text-xl font-semibold">{getGreeting()}, {userProfile.name}! 👋
             </p>}
           <p className="text-muted-foreground">
             Visão geral do estoque e movimentações
