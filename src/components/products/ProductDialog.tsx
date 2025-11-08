@@ -150,6 +150,36 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
     setIsSubmitting(true);
     try {
       if (!organizationId) throw new Error("Organization not found");
+
+      // Validate SKU uniqueness
+      const { data: existingSku } = await supabase
+        .from("products")
+        .select("id")
+        .eq("sku", data.sku)
+        .eq("organization_id", organizationId)
+        .neq("id", product?.id || "00000000-0000-0000-0000-000000000000");
+
+      if (existingSku && existingSku.length > 0) {
+        toast.error("SKU já existe. Por favor, use um SKU diferente.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate barcode uniqueness if provided
+      if (data.barcode) {
+        const { data: existingBarcode } = await supabase
+          .from("products")
+          .select("id")
+          .eq("barcode", data.barcode)
+          .eq("organization_id", organizationId)
+          .neq("id", product?.id || "00000000-0000-0000-0000-000000000000");
+
+        if (existingBarcode && existingBarcode.length > 0) {
+          toast.error("Código de barras já existe. Por favor, use um código diferente.");
+          setIsSubmitting(false);
+          return;
+        }
+      }
       
       const productData = {
         sku: data.sku,

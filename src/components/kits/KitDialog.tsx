@@ -149,7 +149,21 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
 
     try {
       if (kit) {
-        // Update existing kit
+        // Validate SKU uniqueness
+        const { data: existingSku } = await supabase
+          .from("kits")
+          .select("id")
+          .eq("sku", values.sku)
+          .eq("organization_id", organizationId)
+          .neq("id", kit.id);
+
+        if (existingSku && existingSku.length > 0) {
+          toast.error("SKU já existe. Por favor, use um SKU diferente.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Update existing kit - using a more robust approach
         const { error: kitError } = await supabase
           .from("kits")
           .update({
@@ -162,20 +176,73 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
 
         if (kitError) throw kitError;
 
-        // Delete old items
-        await supabase.from("kit_items").delete().eq("kit_id", kit.id);
-
-        // Insert new items
-        const { error: itemsError } = await supabase
+        // Fetch existing items to compare
+        const { data: existingItems } = await supabase
           .from("kit_items")
-          .insert(kitItems.map(item => ({ ...item, kit_id: kit.id })));
+          .select("id, product_id, quantity")
+          .eq("kit_id", kit.id);
 
-        if (itemsError) throw itemsError;
+        // Delete items that are no longer in the list
+        const itemsToDelete = existingItems?.filter(
+          (existing) =>
+            !kitItems.some((item) => item.product_id === existing.product_id)
+        ) || [];
+
+        if (itemsToDelete.length > 0) {
+          const { error: deleteError } = await supabase
+            .from("kit_items")
+            .delete()
+            .in(
+              "id",
+              itemsToDelete.map((item) => item.id)
+            );
+
+          if (deleteError) throw deleteError;
+        }
+
+        // Update or insert items
+        for (const item of kitItems) {
+          const existingItem = existingItems?.find(
+            (ei) => ei.product_id === item.product_id
+          );
+
+          if (existingItem) {
+            // Update quantity if changed
+            if (existingItem.quantity !== item.quantity) {
+              const { error: updateError } = await supabase
+                .from("kit_items")
+                .update({ quantity: item.quantity })
+                .eq("id", existingItem.id);
+
+              if (updateError) throw updateError;
+            }
+          } else {
+            // Insert new item
+            const { error: insertError } = await supabase
+              .from("kit_items")
+              .insert({ ...item, kit_id: kit.id });
+
+            if (insertError) throw insertError;
+          }
+        }
 
         toast.success("Kit atualizado com sucesso");
       } else {
         // Create new kit
         if (!organizationId) throw new Error("Organization not found");
+
+        // Validate SKU uniqueness for new kit
+        const { data: existingSku } = await supabase
+          .from("kits")
+          .select("id")
+          .eq("sku", values.sku)
+          .eq("organization_id", organizationId);
+
+        if (existingSku && existingSku.length > 0) {
+          toast.error("SKU já existe. Por favor, use um SKU diferente.");
+          setIsSubmitting(false);
+          return;
+        }
         
         const { data: newKit, error: kitError } = await supabase
           .from("kits")

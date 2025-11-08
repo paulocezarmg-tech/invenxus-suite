@@ -149,11 +149,39 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
       if (!user) throw new Error("Usuário não autenticado");
       if (!organizationId) throw new Error("Organization not found");
 
+      const quantity = parseFloat(data.quantity);
+
+      // Validate sufficient stock for OUT movements (only for products, not kits)
+      if (data.type === "OUT" && data.item_type === "product" && data.product_id) {
+        const { data: productData, error: productError } = await supabase
+          .from("products")
+          .select("quantity, name")
+          .eq("id", data.product_id)
+          .single();
+
+        if (productError) throw productError;
+
+        if (!productData) {
+          toast.error("Produto não encontrado");
+          setIsSubmitting(false);
+          return;
+        }
+
+        const currentQuantity = Number(productData.quantity);
+        if (currentQuantity < quantity) {
+          toast.error(
+            `Estoque insuficiente! Disponível: ${currentQuantity}, Solicitado: ${quantity}`
+          );
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const movementData = {
         type: data.type,
         product_id: data.item_type === "product" ? data.product_id : null,
         kit_id: data.item_type === "kit" ? data.kit_id : null,
-        quantity: parseFloat(data.quantity),
+        quantity: quantity,
         from_location_id: data.from_location_id || null,
         to_location_id: data.to_location_id || null,
         reference: data.reference || null,
