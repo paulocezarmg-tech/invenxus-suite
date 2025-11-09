@@ -204,44 +204,44 @@ const Movements = () => {
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total de Movimentações</CardTitle>
-            <Activity className="h-5 w-5 text-primary" />
+          <CardHeader className="flex flex-row items-center justify-between py-2 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Total de Movimentações</CardTitle>
+            <Activity className="h-4 w-4 md:h-5 md:w-5 text-primary" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats?.total || 0}</div>
+          <CardContent className="py-2 md:py-3">
+            <div className="text-xl md:text-3xl font-bold">{stats?.total || 0}</div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Entradas</CardTitle>
-            <TrendingUp className="h-5 w-5 text-success" />
+          <CardHeader className="flex flex-row items-center justify-between py-2 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Entradas</CardTitle>
+            <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-success" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-success">{stats?.entries || 0}</div>
+          <CardContent className="py-2 md:py-3">
+            <div className="text-xl md:text-3xl font-bold text-success">{stats?.entries || 0}</div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Saídas</CardTitle>
-            <TrendingDown className="h-5 w-5 text-danger" />
+          <CardHeader className="flex flex-row items-center justify-between py-2 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Saídas</CardTitle>
+            <TrendingDown className="h-4 w-4 md:h-5 md:w-5 text-danger" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-danger">{stats?.exits || 0}</div>
+          <CardContent className="py-2 md:py-3">
+            <div className="text-xl md:text-3xl font-bold text-danger">{stats?.exits || 0}</div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Transferências</CardTitle>
-            <ArrowRightLeft className="h-5 w-5 text-primary" />
+          <CardHeader className="flex flex-row items-center justify-between py-2 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Transferências</CardTitle>
+            <ArrowRightLeft className="h-4 w-4 md:h-5 md:w-5 text-primary" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-primary">{stats?.transfers || 0}</div>
+          <CardContent className="py-2 md:py-3">
+            <div className="text-xl md:text-3xl font-bold text-primary">{stats?.transfers || 0}</div>
           </CardContent>
         </Card>
       </div>
