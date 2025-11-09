@@ -68,7 +68,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Organization created:", organization.id);
 
-    // 2. Create an invite for the admin user
+    // 2. Cancel any existing pending invites for this email
+    await supabaseAdmin
+      .from("invites")
+      .update({ status: "expired" })
+      .eq("email", adminEmail)
+      .eq("status", "pending");
+
+    // 3. Create an invite for the admin user
     const { data: invite, error: inviteError } = await supabaseAdmin
       .from("invites")
       .insert({
@@ -90,10 +97,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Invite created:", invite.id);
 
-    // 3. Get the app URL from the request origin
+    // 4. Get the app URL from the request origin
     const origin = req.headers.get("origin") || SUPABASE_URL.replace(/\.supabase\.co$/, '.lovableproject.com');
 
-    // 4. Send the invite email
+    // 5. Send the invite email
     const { error: emailError } = await supabaseAdmin.functions.invoke("send-invite-email", {
       body: {
         email: adminEmail,
