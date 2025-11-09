@@ -178,31 +178,31 @@ const Movements = () => {
   }, [organizationId, queryClient]);
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Movimentações</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold">Movimentações</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Registrar entradas, saídas e transferências
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
           <DateRangeFilter onDateChange={handleDateChange} />
           <Button
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto"
             onClick={() => {
               setSelectedMovement(null);
               setDialogOpen(true);
             }}
           >
             <Plus className="h-4 w-4" />
-            Nova Movimentação
+            <span className="sm:inline">Nova Movimentação</span>
           </Button>
         </div>
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total de Movimentações</CardTitle>
@@ -245,7 +245,8 @@ const Movements = () => {
       </div>
 
       <div className="rounded-lg border border-border bg-card/50 shadow-card overflow-hidden">
-        <Table>
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Data/Hora</TableHead>
@@ -331,6 +332,7 @@ const Movements = () => {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       <MovementDialog
