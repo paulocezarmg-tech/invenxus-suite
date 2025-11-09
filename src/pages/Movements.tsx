@@ -196,9 +196,8 @@ const Movements = () => {
             }}
           >
             <Plus className="h-4 w-4" />
-            <span className="hidden xs:inline sm:hidden">Nova</span>
             <span className="hidden sm:inline">Nova Movimentação</span>
-            <span className="inline xs:hidden">Lançar</span>
+            <span className="inline sm:hidden">Lançar</span>
           </Button>
         </div>
       </div>
