@@ -16,6 +16,7 @@ import Auth from "./pages/Auth";
 import AcceptInvite from "./pages/AcceptInvite";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import LandingPage from "./pages/LandingPage";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
         <Routes>
+          <Route path="/landing" element={<LandingPage />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/accept-invite" element={<AcceptInvite />} />
           <Route
