@@ -316,7 +316,7 @@ const Reports = () => {
       // Add table
       autoTable(doc, {
         startY: 48,
-        head: [["Data", "Tipo", "Produto", "SKU", "Qtd", "Origem", "Destino", "Ref", "Obs"]],
+        head: [["Data e Hora", "Tipo", "Produto", "Qtd", "Origem", "Destino", "Ref", "Obs"]],
         body: data.map((m: any) => [
           new Date(m.created_at).toLocaleString("pt-BR", { 
             day: '2-digit', 
@@ -327,7 +327,6 @@ const Reports = () => {
           }),
           m.type === "IN" ? "Entrada" : m.type === "OUT" ? "Saída" : "Transferência",
           m.products?.name || m.kits?.name || "-",
-          m.products?.sku || m.kits?.sku || "-",
           m.quantity,
           m.from_location?.name || "-",
           m.to_location?.name || "-",
@@ -336,29 +335,31 @@ const Reports = () => {
         ]),
         styles: { 
           fontSize: 8,
-          cellPadding: 2.5,
+          cellPadding: 3,
           lineColor: [226, 232, 240],
           lineWidth: 0.1,
+          valign: 'middle',
+          halign: 'left',
         },
         headStyles: { 
           fillColor: [59, 130, 246],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
           halign: 'center',
+          valign: 'middle',
         },
         alternateRowStyles: {
           fillColor: [248, 250, 252],
         },
         columnStyles: {
-          0: { cellWidth: 32, fontSize: 7 },
-          1: { halign: 'center', cellWidth: 22 },
-          2: { cellWidth: 50 },
-          3: { cellWidth: 20 },
-          4: { halign: 'center', cellWidth: 15 },
-          5: { cellWidth: 28 },
-          6: { cellWidth: 28 },
-          7: { cellWidth: 20 },
-          8: { cellWidth: 40 },
+          0: { cellWidth: 35, fontSize: 7 },
+          1: { halign: 'center', cellWidth: 25 },
+          2: { cellWidth: 60, halign: 'left' },
+          3: { halign: 'center', cellWidth: 15 },
+          4: { cellWidth: 30 },
+          5: { cellWidth: 30 },
+          6: { cellWidth: 25 },
+          7: { cellWidth: 45 },
         },
         didDrawCell: (data) => {
           // Color code for movement types
@@ -447,12 +448,11 @@ const Reports = () => {
         ["Relatório de Movimentações"],
         [`Gerado em: ${currentDate}`],
         [""],
-        ["Data", "Tipo", "Produto", "SKU", "Quantidade", "Origem", "Destino", "Referência", "Observação"],
+        ["Data e Hora", "Tipo", "Produto", "Quantidade", "Origem", "Destino", "Referência", "Observação"],
         ...data.map((m: any) => [
           new Date(m.created_at).toLocaleString("pt-BR"),
           m.type === "IN" ? "Entrada" : m.type === "OUT" ? "Saída" : "Transferência",
           m.products?.name || m.kits?.name || "",
-          m.products?.sku || m.kits?.sku || "",
           m.quantity,
           m.from_location?.name || "",
           m.to_location?.name || "",
