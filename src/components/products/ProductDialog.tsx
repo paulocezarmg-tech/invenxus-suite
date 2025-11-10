@@ -41,7 +41,7 @@ const productSchema = z.object({
   description: z.string().optional(),
   category_id: z.string().optional(),
   unit: z.string().min(1, "Unidade é obrigatória"),
-  cost: z.string().min(0, "Custo deve ser positivo"),
+  cost: z.string().optional(),
   min_quantity: z.string().min(0, "Quantidade mínima deve ser positiva"),
   location_id: z.string().optional(),
   supplier_id: z.string().optional(),
@@ -109,7 +109,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
           description: "",
           category_id: "",
           unit: "UN",
-          cost: "0",
+          cost: "",
           min_quantity: "0",
           location_id: "",
           supplier_id: "",
@@ -138,7 +138,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
         description: "",
         category_id: "",
         unit: "UN",
-        cost: "0",
+        cost: "",
         min_quantity: "0",
         location_id: "",
         supplier_id: "",
@@ -188,7 +188,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
         description: data.description || null,
         category_id: data.category_id || null,
         unit: data.unit,
-        cost: parseFloat(data.cost),
+        cost: data.cost ? parseFloat(data.cost) : 0,
         quantity: product ? parseFloat(String(product.quantity)) : 0,
         min_quantity: parseFloat(data.min_quantity),
         location_id: data.location_id || null,
@@ -347,9 +347,9 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
                 name="cost"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Custo (R$) *</FormLabel>
+                    <FormLabel>Custo (R$)</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" min="0" {...field} />
+                      <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
