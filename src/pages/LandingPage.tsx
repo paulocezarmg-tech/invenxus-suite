@@ -47,10 +47,10 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-[#0b0b0b] text-white font-['Poppins',sans-serif]">
       {/* Background Effect */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/20 via-[#0b0b0b] to-[#0b0b0b] pointer-events-none" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/10 via-[#1a1a1a] to-[#0b0b0b] pointer-events-none" />
       
       {/* Header */}
-      <header className="fixed top-0 w-full bg-[#0b0b0b]/95 backdrop-blur-sm z-50 border-b border-emerald-500/10">
+      <header className="fixed top-0 w-full bg-[#0f0f0f]/95 backdrop-blur-sm z-50 border-b border-emerald-500/20">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -134,7 +134,7 @@ const LandingPage = () => {
                 alt="Gestão de Estoque Digital" 
                 className="rounded-lg shadow-2xl border border-emerald-500/20"
               />
-              <Card className="absolute -bottom-6 -left-6 bg-[#0b0b0b]/95 border-emerald-500/20 backdrop-blur-sm">
+              <Card className="absolute -bottom-6 -left-6 bg-[#1a1a1a]/95 border-emerald-500/30 backdrop-blur-sm">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 bg-[#00d48e] rounded-full animate-pulse" />
@@ -159,37 +159,37 @@ const LandingPage = () => {
           </h2>
           
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="bg-[#0b0b0b]/50 border-emerald-500/20 hover:border-[#00d48e] transition-all hover:shadow-[0_0_30px_rgba(0,212,142,0.2)] group">
+            <Card className="bg-[#1a1a1a]/80 border-emerald-500/30 hover:border-[#00d48e] transition-all hover:shadow-[0_0_30px_rgba(0,212,142,0.3)] group">
               <CardContent className="p-8 space-y-4">
-                <div className="w-16 h-16 bg-[#00d48e]/10 rounded-lg flex items-center justify-center group-hover:bg-[#00d48e]/20 transition-colors">
+                <div className="w-16 h-16 bg-[#00d48e]/20 rounded-lg flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors">
                   <Package className="w-8 h-8 text-[#00d48e]" />
                 </div>
                 <h3 className="text-2xl font-bold">Gestão Completa</h3>
-                <p className="text-gray-400">
+                <p className="text-gray-300">
                   Cadastro de produtos, kits, entradas e saídas com histórico detalhado de todas as movimentações.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#0b0b0b]/50 border-emerald-500/20 hover:border-[#00d48e] transition-all hover:shadow-[0_0_30px_rgba(0,212,142,0.2)] group">
+            <Card className="bg-[#1a1a1a]/80 border-emerald-500/30 hover:border-[#00d48e] transition-all hover:shadow-[0_0_30px_rgba(0,212,142,0.3)] group">
               <CardContent className="p-8 space-y-4">
-                <div className="w-16 h-16 bg-[#00d48e]/10 rounded-lg flex items-center justify-center group-hover:bg-[#00d48e]/20 transition-colors">
+                <div className="w-16 h-16 bg-[#00d48e]/20 rounded-lg flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors">
                   <Bell className="w-8 h-8 text-[#00d48e]" />
                 </div>
                 <h3 className="text-2xl font-bold">Alertas Inteligentes</h3>
-                <p className="text-gray-400">
+                <p className="text-gray-300">
                   Notificações automáticas sobre estoque baixo, vencimentos próximos e pontos de reposição.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#0b0b0b]/50 border-emerald-500/20 hover:border-[#00d48e] transition-all hover:shadow-[0_0_30px_rgba(0,212,142,0.2)] group">
+            <Card className="bg-[#1a1a1a]/80 border-emerald-500/30 hover:border-[#00d48e] transition-all hover:shadow-[0_0_30px_rgba(0,212,142,0.3)] group">
               <CardContent className="p-8 space-y-4">
-                <div className="w-16 h-16 bg-[#00d48e]/10 rounded-lg flex items-center justify-center group-hover:bg-[#00d48e]/20 transition-colors">
+                <div className="w-16 h-16 bg-[#00d48e]/20 rounded-lg flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors">
                   <BarChart3 className="w-8 h-8 text-[#00d48e]" />
                 </div>
                 <h3 className="text-2xl font-bold">Relatórios e Insights</h3>
-                <p className="text-gray-400">
+                <p className="text-gray-300">
                   Dashboards intuitivos, exportação em CSV e PDF, análises de performance e tendências.
                 </p>
               </CardContent>
@@ -206,49 +206,49 @@ const LandingPage = () => {
           </h2>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="bg-[#0b0b0b]/50 border-emerald-500/20 hover:border-[#00d48e] transition-all hover:scale-105 group">
+            <Card className="bg-[#1a1a1a]/80 border-emerald-500/30 hover:border-[#00d48e] transition-all hover:scale-105 group">
               <CardContent className="p-6 text-center space-y-4">
-                <div className="w-20 h-20 mx-auto bg-[#00d48e]/10 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/20 transition-colors">
+                <div className="w-20 h-20 mx-auto bg-[#00d48e]/20 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors">
                   <ShoppingCart className="w-10 h-10 text-[#00d48e]" />
                 </div>
                 <h3 className="text-xl font-bold">E-commerce</h3>
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-300 text-sm">
                   Sincronize seu estoque online e offline em tempo real
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#0b0b0b]/50 border-emerald-500/20 hover:border-[#00d48e] transition-all hover:scale-105 group">
+            <Card className="bg-[#1a1a1a]/80 border-emerald-500/30 hover:border-[#00d48e] transition-all hover:scale-105 group">
               <CardContent className="p-6 text-center space-y-4">
-                <div className="w-20 h-20 mx-auto bg-[#00d48e]/10 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/20 transition-colors">
+                <div className="w-20 h-20 mx-auto bg-[#00d48e]/20 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors">
                   <Truck className="w-10 h-10 text-[#00d48e]" />
                 </div>
                 <h3 className="text-xl font-bold">Distribuidoras</h3>
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-300 text-sm">
                   Controle de múltiplos depósitos e rastreamento de entregas
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#0b0b0b]/50 border-emerald-500/20 hover:border-[#00d48e] transition-all hover:scale-105 group">
+            <Card className="bg-[#1a1a1a]/80 border-emerald-500/30 hover:border-[#00d48e] transition-all hover:scale-105 group">
               <CardContent className="p-6 text-center space-y-4">
-                <div className="w-20 h-20 mx-auto bg-[#00d48e]/10 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/20 transition-colors">
+                <div className="w-20 h-20 mx-auto bg-[#00d48e]/20 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors">
                   <Building2 className="w-10 h-10 text-[#00d48e]" />
                 </div>
                 <h3 className="text-xl font-bold">Indústrias</h3>
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-300 text-sm">
                   Gestão de matéria-prima, produção e produtos acabados
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#0b0b0b]/50 border-emerald-500/20 hover:border-[#00d48e] transition-all hover:scale-105 group">
+            <Card className="bg-[#1a1a1a]/80 border-emerald-500/30 hover:border-[#00d48e] transition-all hover:scale-105 group">
               <CardContent className="p-6 text-center space-y-4">
-                <div className="w-20 h-20 mx-auto bg-[#00d48e]/10 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/20 transition-colors">
+                <div className="w-20 h-20 mx-auto bg-[#00d48e]/20 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors">
                   <Users className="w-10 h-10 text-[#00d48e]" />
                 </div>
                 <h3 className="text-xl font-bold">Representantes</h3>
-                <p className="text-gray-400 text-sm">
+                <p className="text-gray-300 text-sm">
                   Catálogo de produtos e controle de pedidos em campo
                 </p>
               </CardContent>
@@ -267,7 +267,7 @@ const LandingPage = () => {
             <p className="text-gray-400 text-lg">Tudo que você precisa para gerenciar seu estoque</p>
           </div>
 
-          <Card className="bg-[#0b0b0b]/80 border-[#00d48e] shadow-[0_0_50px_rgba(0,212,142,0.2)]">
+          <Card className="bg-[#1a1a1a]/90 border-[#00d48e] shadow-[0_0_50px_rgba(0,212,142,0.2)]">
             <CardContent className="p-8 md:p-12">
               <div className="text-center mb-8">
                 <div className="text-5xl md:text-7xl font-bold text-[#00d48e] mb-2">R$89,90</div>
