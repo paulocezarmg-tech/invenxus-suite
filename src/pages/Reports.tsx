@@ -155,27 +155,37 @@ const Reports = () => {
       if (error) throw error;
 
       const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.width;
       
-      // Add logo
-      const imgWidth = 30;
-      const imgHeight = 30;
-      doc.addImage(logo, "PNG", 14, 10, imgWidth, imgHeight);
+      // Header with logo and info
+      doc.addImage(logo, "PNG", 14, 12, 25, 25);
       
-      // Add title
-      doc.setFontSize(20);
+      doc.setFontSize(22);
       doc.setFont("helvetica", "bold");
-      doc.text("StockMaster CMS", 50, 20);
+      doc.setTextColor(30, 58, 138); // Blue
+      doc.text("StockMaster CMS", 45, 20);
       
-      doc.setFontSize(16);
-      doc.text("Relatório de Inventário", 50, 30);
+      doc.setFontSize(14);
+      doc.setTextColor(71, 85, 105); // Gray
+      doc.text("Relatório de Inventário", 45, 28);
       
-      doc.setFontSize(10);
+      // Info box
+      doc.setDrawColor(226, 232, 240);
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(45, 32, pageWidth - 59, 10, 2, 2, 'FD');
+      
+      doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
-      doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 50, 37);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`, 48, 38);
+      doc.text(`Total de Produtos: ${data.length}`, pageWidth - 55, 38);
+
+      // Calculate totals
+      const totalValue = data.reduce((sum: number, p: any) => sum + Number(p.cost) * Number(p.quantity), 0);
 
       // Add table
       autoTable(doc, {
-        startY: 50,
+        startY: 48,
         head: [["SKU", "Nome", "Cód. Barras", "Qtd", "Qtd Min", "Custo", "Un", "Categoria", "Local", "Fornecedor"]],
         body: data.map((p: any) => [
           p.sku,
@@ -189,9 +199,62 @@ const Reports = () => {
           p.locations?.name || "-",
           p.suppliers?.name || "-",
         ]),
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [59, 130, 246] },
+        styles: { 
+          fontSize: 8,
+          cellPadding: 3,
+          lineColor: [226, 232, 240],
+          lineWidth: 0.1,
+        },
+        headStyles: { 
+          fillColor: [59, 130, 246],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: 'center',
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252],
+        },
+        columnStyles: {
+          0: { cellWidth: 18 },
+          1: { cellWidth: 35 },
+          2: { cellWidth: 20 },
+          3: { halign: 'center', cellWidth: 12 },
+          4: { halign: 'center', cellWidth: 12 },
+          5: { halign: 'right', cellWidth: 18 },
+          6: { halign: 'center', cellWidth: 10 },
+          7: { cellWidth: 22 },
+          8: { cellWidth: 22 },
+          9: { cellWidth: 22 },
+        },
+        didDrawPage: (data) => {
+          // Footer
+          const pageCount = (doc as any).internal.getNumberOfPages();
+          doc.setFontSize(8);
+          doc.setTextColor(148, 163, 184);
+          doc.text(
+            `Página ${data.pageNumber} de ${pageCount}`,
+            pageWidth / 2,
+            doc.internal.pageSize.height - 10,
+            { align: 'center' }
+          );
+        },
       });
+
+      // Add summary at the end
+      const finalY = (doc as any).lastAutoTable.finalY + 10;
+      doc.setDrawColor(226, 232, 240);
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(14, finalY, pageWidth - 28, 18, 2, 2, 'FD');
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30, 58, 138);
+      doc.text("Resumo do Inventário", 18, finalY + 7);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Total de Produtos: ${data.length}`, 18, finalY + 14);
+      doc.text(`Valor Total em Estoque: R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, pageWidth / 2, finalY + 14);
 
       doc.save(`inventario_${new Date().toISOString().split("T")[0]}.pdf`);
       toast.success("Relatório PDF exportado com sucesso");
@@ -219,32 +282,50 @@ const Reports = () => {
 
       if (error) throw error;
 
-      const doc = new jsPDF();
+      const doc = new jsPDF('landscape');
+      const pageWidth = doc.internal.pageSize.width;
       
-      // Add logo
-      const imgWidth = 30;
-      const imgHeight = 30;
-      doc.addImage(logo, "PNG", 14, 10, imgWidth, imgHeight);
+      // Header with logo and info
+      doc.addImage(logo, "PNG", 14, 12, 25, 25);
       
-      // Add title
-      doc.setFontSize(20);
+      doc.setFontSize(22);
       doc.setFont("helvetica", "bold");
-      doc.text("StockMaster CMS", 50, 20);
+      doc.setTextColor(30, 58, 138); // Blue
+      doc.text("StockMaster CMS", 45, 20);
       
-      doc.setFontSize(16);
-      doc.text("Relatório de Movimentações", 50, 30);
+      doc.setFontSize(14);
+      doc.setTextColor(71, 85, 105); // Gray
+      doc.text("Relatório de Movimentações", 45, 28);
       
-      doc.setFontSize(10);
+      // Info box
+      doc.setDrawColor(226, 232, 240);
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(45, 32, pageWidth - 59, 10, 2, 2, 'FD');
+      
+      doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
-      doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 50, 37);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`, 48, 38);
+      doc.text(`Total de Movimentações: ${data.length}`, pageWidth - 75, 38);
+
+      // Calculate totals by type
+      const totalIn = data.filter((m: any) => m.type === "IN").length;
+      const totalOut = data.filter((m: any) => m.type === "OUT").length;
+      const totalTransfer = data.filter((m: any) => m.type === "TRANSFER").length;
 
       // Add table
       autoTable(doc, {
-        startY: 50,
+        startY: 48,
         head: [["Data", "Tipo", "Produto", "SKU", "Qtd", "Origem", "Destino", "Ref", "Obs"]],
         body: data.map((m: any) => [
-          new Date(m.created_at).toLocaleString("pt-BR"),
-          m.type === "IN" ? "Entrada" : m.type === "OUT" ? "Saída" : "Transfer",
+          new Date(m.created_at).toLocaleString("pt-BR", { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          m.type === "IN" ? "Entrada" : m.type === "OUT" ? "Saída" : "Transferência",
           m.products?.name || m.kits?.name || "-",
           m.products?.sku || m.kits?.sku || "-",
           m.quantity,
@@ -253,9 +334,86 @@ const Reports = () => {
           m.reference || "-",
           m.note || "-",
         ]),
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [59, 130, 246] },
+        styles: { 
+          fontSize: 8,
+          cellPadding: 2.5,
+          lineColor: [226, 232, 240],
+          lineWidth: 0.1,
+        },
+        headStyles: { 
+          fillColor: [59, 130, 246],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: 'center',
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252],
+        },
+        columnStyles: {
+          0: { cellWidth: 32, fontSize: 7 },
+          1: { halign: 'center', cellWidth: 22 },
+          2: { cellWidth: 50 },
+          3: { cellWidth: 20 },
+          4: { halign: 'center', cellWidth: 15 },
+          5: { cellWidth: 28 },
+          6: { cellWidth: 28 },
+          7: { cellWidth: 20 },
+          8: { cellWidth: 40 },
+        },
+        didDrawCell: (data) => {
+          // Color code for movement types
+          if (data.section === 'body' && data.column.index === 1) {
+            const cellValue = data.cell.raw as string;
+            if (cellValue === "Entrada") {
+              doc.setFillColor(220, 252, 231); // Green
+              doc.setTextColor(22, 163, 74);
+            } else if (cellValue === "Saída") {
+              doc.setFillColor(254, 226, 226); // Red
+              doc.setTextColor(220, 38, 38);
+            } else if (cellValue === "Transferência") {
+              doc.setFillColor(219, 234, 254); // Blue
+              doc.setTextColor(59, 130, 246);
+            }
+            doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+            doc.text(cellValue, data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2, {
+              align: 'center',
+              baseline: 'middle'
+            });
+          }
+        },
+        didDrawPage: (data) => {
+          // Footer
+          const pageCount = (doc as any).internal.getNumberOfPages();
+          doc.setFontSize(8);
+          doc.setTextColor(148, 163, 184);
+          doc.text(
+            `Página ${data.pageNumber} de ${pageCount}`,
+            pageWidth / 2,
+            doc.internal.pageSize.height - 10,
+            { align: 'center' }
+          );
+        },
       });
+
+      // Add summary at the end
+      const finalY = (doc as any).lastAutoTable.finalY + 10;
+      if (finalY < doc.internal.pageSize.height - 30) {
+        doc.setDrawColor(226, 232, 240);
+        doc.setFillColor(248, 250, 252);
+        doc.roundedRect(14, finalY, pageWidth - 28, 18, 2, 2, 'FD');
+        
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 58, 138);
+        doc.text("Resumo das Movimentações", 18, finalY + 7);
+        
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(71, 85, 105);
+        doc.text(`Total: ${data.length}`, 18, finalY + 14);
+        doc.text(`Entradas: ${totalIn}`, pageWidth / 4, finalY + 14);
+        doc.text(`Saídas: ${totalOut}`, pageWidth / 2, finalY + 14);
+        doc.text(`Transferências: ${totalTransfer}`, (pageWidth / 4) * 3, finalY + 14);
+      }
 
       doc.save(`movimentacoes_${new Date().toISOString().split("T")[0]}.pdf`);
       toast.success("Relatório PDF exportado com sucesso");
