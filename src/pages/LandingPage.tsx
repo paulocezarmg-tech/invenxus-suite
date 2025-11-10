@@ -45,12 +45,12 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0b0b] text-white font-['Poppins',sans-serif]">
+    <div className="min-h-screen bg-[#111111] text-[#e6eef2] font-['Poppins',sans-serif]">
       {/* Background Effect */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/10 via-[#1a1a1a] to-[#0b0b0b] pointer-events-none" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/5 via-transparent to-transparent pointer-events-none" />
       
       {/* Header */}
-      <header className="fixed top-0 w-full bg-[#0f0f0f]/95 backdrop-blur-sm z-50 border-b border-emerald-500/20">
+      <header className="fixed top-0 w-full bg-[#111111]/95 backdrop-blur-md z-50 border-b border-emerald-500/30 shadow-lg shadow-black/20">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -116,7 +116,7 @@ const LandingPage = () => {
               <h2 className="text-2xl md:text-4xl font-semibold">
                 Reduza perdas | Escale suas vendas
               </h2>
-              <p className="text-lg text-gray-300">
+              <p className="text-lg text-[#e6eef2]/90">
                 Reduza perdas, ganhe agilidade e mantenha o controle total das suas operações com o StockMaster CMS — o sistema que transforma o gerenciamento de estoque em algo simples e inteligente.
               </p>
               <Button 
@@ -129,19 +129,21 @@ const LandingPage = () => {
             </div>
 
             <div className="relative">
-              <img 
-                src={gestaoEstoqueImg} 
-                alt="Gestão de Estoque Digital" 
-                className="rounded-lg shadow-2xl border border-emerald-500/20"
-              />
-              <Card className="absolute -bottom-6 -left-6 bg-[#1a1a1a]/95 border-emerald-500/30 backdrop-blur-sm">
+              <div className="rounded-lg overflow-hidden shadow-2xl shadow-emerald-500/10 border border-emerald-500/30">
+                <img 
+                  src={gestaoEstoqueImg} 
+                  alt="Gestão de Estoque Digital" 
+                  className="w-full h-auto"
+                />
+              </div>
+              <Card className="absolute -bottom-6 -left-6 bg-[#1a1a1a]/98 border-emerald-500/40 backdrop-blur-md shadow-xl shadow-black/30">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-[#00d48e] rounded-full animate-pulse" />
+                    <div className="w-3 h-3 bg-[#00d48e] rounded-full animate-pulse shadow-lg shadow-emerald-500/50" />
                     <div>
-                      <p className="text-sm text-gray-400">Estoque Atual</p>
+                      <p className="text-sm text-[#e6eef2]/70">Estoque Atual</p>
                       <p className="text-2xl font-bold text-[#00d48e]">1.256 itens</p>
-                      <p className="text-xs text-gray-500">cadastrados</p>
+                      <p className="text-xs text-[#e6eef2]/60">cadastrados</p>
                     </div>
                   </div>
                 </CardContent>
@@ -152,44 +154,44 @@ const LandingPage = () => {
       </section>
 
       {/* Funcionalidades */}
-      <section id="funcionalidades" className="py-20 px-4 bg-gradient-to-b from-transparent to-emerald-950/10">
+      <section id="funcionalidades" className="py-20 px-4 relative">
         <div className="container mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-center mb-16">
             Funcionalidades <span className="text-[#00d48e]">Poderosas</span>
           </h2>
           
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="bg-[#1a1a1a]/80 border-emerald-500/30 hover:border-[#00d48e] transition-all hover:shadow-[0_0_30px_rgba(0,212,142,0.3)] group">
+            <Card className="bg-[#1a1a1a]/95 border-emerald-500/40 hover:border-[#00d48e] transition-all hover:shadow-[0_0_30px_rgba(0,212,142,0.4)] group shadow-lg shadow-black/20">
               <CardContent className="p-8 space-y-4">
-                <div className="w-16 h-16 bg-[#00d48e]/20 rounded-lg flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors">
+                <div className="w-16 h-16 bg-[#00d48e]/20 rounded-lg flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors shadow-inner">
                   <Package className="w-8 h-8 text-[#00d48e]" />
                 </div>
-                <h3 className="text-2xl font-bold">Gestão Completa</h3>
-                <p className="text-gray-300">
+                <h3 className="text-2xl font-bold text-[#e6eef2]">Gestão Completa</h3>
+                <p className="text-[#e6eef2]/80 leading-relaxed">
                   Cadastro de produtos, kits, entradas e saídas com histórico detalhado de todas as movimentações.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#1a1a1a]/80 border-emerald-500/30 hover:border-[#00d48e] transition-all hover:shadow-[0_0_30px_rgba(0,212,142,0.3)] group">
+            <Card className="bg-[#1a1a1a]/95 border-emerald-500/40 hover:border-[#00d48e] transition-all hover:shadow-[0_0_30px_rgba(0,212,142,0.4)] group shadow-lg shadow-black/20">
               <CardContent className="p-8 space-y-4">
-                <div className="w-16 h-16 bg-[#00d48e]/20 rounded-lg flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors">
+                <div className="w-16 h-16 bg-[#00d48e]/20 rounded-lg flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors shadow-inner">
                   <Bell className="w-8 h-8 text-[#00d48e]" />
                 </div>
-                <h3 className="text-2xl font-bold">Alertas Inteligentes</h3>
-                <p className="text-gray-300">
+                <h3 className="text-2xl font-bold text-[#e6eef2]">Alertas Inteligentes</h3>
+                <p className="text-[#e6eef2]/80 leading-relaxed">
                   Notificações automáticas sobre estoque baixo, vencimentos próximos e pontos de reposição.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#1a1a1a]/80 border-emerald-500/30 hover:border-[#00d48e] transition-all hover:shadow-[0_0_30px_rgba(0,212,142,0.3)] group">
+            <Card className="bg-[#1a1a1a]/95 border-emerald-500/40 hover:border-[#00d48e] transition-all hover:shadow-[0_0_30px_rgba(0,212,142,0.4)] group shadow-lg shadow-black/20">
               <CardContent className="p-8 space-y-4">
-                <div className="w-16 h-16 bg-[#00d48e]/20 rounded-lg flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors">
+                <div className="w-16 h-16 bg-[#00d48e]/20 rounded-lg flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors shadow-inner">
                   <BarChart3 className="w-8 h-8 text-[#00d48e]" />
                 </div>
-                <h3 className="text-2xl font-bold">Relatórios e Insights</h3>
-                <p className="text-gray-300">
+                <h3 className="text-2xl font-bold text-[#e6eef2]">Relatórios e Insights</h3>
+                <p className="text-[#e6eef2]/80 leading-relaxed">
                   Dashboards intuitivos, exportação em CSV e PDF, análises de performance e tendências.
                 </p>
               </CardContent>
@@ -206,49 +208,49 @@ const LandingPage = () => {
           </h2>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="bg-[#1a1a1a]/80 border-emerald-500/30 hover:border-[#00d48e] transition-all hover:scale-105 group">
+            <Card className="bg-[#1a1a1a]/95 border-emerald-500/40 hover:border-[#00d48e] transition-all hover:scale-105 group shadow-lg shadow-black/20">
               <CardContent className="p-6 text-center space-y-4">
-                <div className="w-20 h-20 mx-auto bg-[#00d48e]/20 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors">
+                <div className="w-20 h-20 mx-auto bg-[#00d48e]/20 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors shadow-inner">
                   <ShoppingCart className="w-10 h-10 text-[#00d48e]" />
                 </div>
-                <h3 className="text-xl font-bold">E-commerce</h3>
-                <p className="text-gray-300 text-sm">
+                <h3 className="text-xl font-bold text-[#e6eef2]">E-commerce</h3>
+                <p className="text-[#e6eef2]/80 text-sm leading-relaxed">
                   Sincronize seu estoque online e offline em tempo real
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#1a1a1a]/80 border-emerald-500/30 hover:border-[#00d48e] transition-all hover:scale-105 group">
+            <Card className="bg-[#1a1a1a]/95 border-emerald-500/40 hover:border-[#00d48e] transition-all hover:scale-105 group shadow-lg shadow-black/20">
               <CardContent className="p-6 text-center space-y-4">
-                <div className="w-20 h-20 mx-auto bg-[#00d48e]/20 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors">
+                <div className="w-20 h-20 mx-auto bg-[#00d48e]/20 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors shadow-inner">
                   <Truck className="w-10 h-10 text-[#00d48e]" />
                 </div>
-                <h3 className="text-xl font-bold">Distribuidoras</h3>
-                <p className="text-gray-300 text-sm">
+                <h3 className="text-xl font-bold text-[#e6eef2]">Distribuidoras</h3>
+                <p className="text-[#e6eef2]/80 text-sm leading-relaxed">
                   Controle de múltiplos depósitos e rastreamento de entregas
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#1a1a1a]/80 border-emerald-500/30 hover:border-[#00d48e] transition-all hover:scale-105 group">
+            <Card className="bg-[#1a1a1a]/95 border-emerald-500/40 hover:border-[#00d48e] transition-all hover:scale-105 group shadow-lg shadow-black/20">
               <CardContent className="p-6 text-center space-y-4">
-                <div className="w-20 h-20 mx-auto bg-[#00d48e]/20 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors">
+                <div className="w-20 h-20 mx-auto bg-[#00d48e]/20 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors shadow-inner">
                   <Building2 className="w-10 h-10 text-[#00d48e]" />
                 </div>
-                <h3 className="text-xl font-bold">Indústrias</h3>
-                <p className="text-gray-300 text-sm">
+                <h3 className="text-xl font-bold text-[#e6eef2]">Indústrias</h3>
+                <p className="text-[#e6eef2]/80 text-sm leading-relaxed">
                   Gestão de matéria-prima, produção e produtos acabados
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-[#1a1a1a]/80 border-emerald-500/30 hover:border-[#00d48e] transition-all hover:scale-105 group">
+            <Card className="bg-[#1a1a1a]/95 border-emerald-500/40 hover:border-[#00d48e] transition-all hover:scale-105 group shadow-lg shadow-black/20">
               <CardContent className="p-6 text-center space-y-4">
-                <div className="w-20 h-20 mx-auto bg-[#00d48e]/20 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors">
+                <div className="w-20 h-20 mx-auto bg-[#00d48e]/20 rounded-full flex items-center justify-center group-hover:bg-[#00d48e]/30 transition-colors shadow-inner">
                   <Users className="w-10 h-10 text-[#00d48e]" />
                 </div>
-                <h3 className="text-xl font-bold">Representantes</h3>
-                <p className="text-gray-300 text-sm">
+                <h3 className="text-xl font-bold text-[#e6eef2]">Representantes</h3>
+                <p className="text-[#e6eef2]/80 text-sm leading-relaxed">
                   Catálogo de produtos e controle de pedidos em campo
                 </p>
               </CardContent>
@@ -258,46 +260,46 @@ const LandingPage = () => {
       </section>
 
       {/* Plano Premium */}
-      <section id="plano" className="py-20 px-4 bg-gradient-to-b from-emerald-950/10 to-transparent">
+      <section id="plano" className="py-20 px-4 relative">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
               Plano <span className="text-[#00d48e]">Premium</span>
             </h2>
-            <p className="text-gray-400 text-lg">Tudo que você precisa para gerenciar seu estoque</p>
+            <p className="text-[#e6eef2]/70 text-lg">Tudo que você precisa para gerenciar seu estoque</p>
           </div>
 
-          <Card className="bg-[#1a1a1a]/90 border-[#00d48e] shadow-[0_0_50px_rgba(0,212,142,0.2)]">
+          <Card className="bg-[#1a1a1a]/95 border-[#00d48e] shadow-[0_0_50px_rgba(0,212,142,0.3)] shadow-lg">
             <CardContent className="p-8 md:p-12">
               <div className="text-center mb-8">
                 <div className="text-5xl md:text-7xl font-bold text-[#00d48e] mb-2">R$89,90</div>
-                <div className="text-gray-400 text-xl">/mês</div>
+                <div className="text-[#e6eef2]/70 text-xl">/mês</div>
               </div>
 
               <div className="space-y-4 mb-8">
                 <div className="flex items-start gap-3">
                   <Check className="w-6 h-6 text-[#00d48e] flex-shrink-0 mt-1" />
-                  <span className="text-lg">Relatórios e alertas automáticos</span>
+                  <span className="text-lg text-[#e6eef2]/90">Relatórios e alertas automáticos</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="w-6 h-6 text-[#00d48e] flex-shrink-0 mt-1" />
-                  <span className="text-lg">Exportação de dados em CSV e PDF</span>
+                  <span className="text-lg text-[#e6eef2]/90">Exportação de dados em CSV e PDF</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="w-6 h-6 text-[#00d48e] flex-shrink-0 mt-1" />
-                  <span className="text-lg">Multiusuário com controle de permissões</span>
+                  <span className="text-lg text-[#e6eef2]/90">Multiusuário com controle de permissões</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="w-6 h-6 text-[#00d48e] flex-shrink-0 mt-1" />
-                  <span className="text-lg">Integração com plataformas de e-commerce</span>
+                  <span className="text-lg text-[#e6eef2]/90">Integração com plataformas de e-commerce</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="w-6 h-6 text-[#00d48e] flex-shrink-0 mt-1" />
-                  <span className="text-lg">Suporte prioritário via WhatsApp</span>
+                  <span className="text-lg text-[#e6eef2]/90">Suporte prioritário via WhatsApp</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="w-6 h-6 text-[#00d48e] flex-shrink-0 mt-1" />
-                  <span className="text-lg">Atualizações e melhorias contínuas</span>
+                  <span className="text-lg text-[#e6eef2]/90">Atualizações e melhorias contínuas</span>
                 </div>
               </div>
 
@@ -315,10 +317,10 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer id="contato" className="py-8 px-4 border-t border-emerald-500/10">
+      <footer id="contato" className="py-8 px-4 border-t border-emerald-500/30">
         <div className="container mx-auto text-center">
-          <p className="text-gray-400">
-            © 2025 StockMaster CMS — Desenvolvido por <span className="text-[#00d48e]">Paulo Cézar</span>
+          <p className="text-[#e6eef2]/70">
+            © 2025 StockMaster CMS — Desenvolvido por <span className="text-[#00d48e] font-semibold">Paulo Cézar</span>
           </p>
         </div>
       </footer>
