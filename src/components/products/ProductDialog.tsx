@@ -35,7 +35,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useOrganization } from "@/hooks/useOrganization";
 
 const productSchema = z.object({
-  sku: z.string().min(1, "SKU é obrigatório").max(50),
+  sku: z.string().optional(),
   barcode: z.string().optional(),
   name: z.string().min(1, "Nome é obrigatório").max(200),
   description: z.string().optional(),
@@ -151,11 +151,19 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
     try {
       if (!organizationId) throw new Error("Organization not found");
 
+      // Generate SKU if not provided
+      let sku = data.sku?.trim() || "";
+      if (!sku) {
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        sku = `SKU-${timestamp}-${random}`;
+      }
+
       // Validate SKU uniqueness
       const { data: existingSku } = await supabase
         .from("products")
         .select("id")
-        .eq("sku", data.sku)
+        .eq("sku", sku)
         .eq("organization_id", organizationId)
         .neq("id", product?.id || "00000000-0000-0000-0000-000000000000");
 
@@ -182,7 +190,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
       }
       
       const productData = {
-        sku: data.sku,
+        sku: sku,
         barcode: data.barcode || null,
         name: data.name,
         description: data.description || null,
@@ -238,9 +246,9 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
                 name="sku"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>SKU *</FormLabel>
+                    <FormLabel>SKU</FormLabel>
                     <FormControl>
-                      <Input placeholder="SKU-001" {...field} />
+                      <Input placeholder="Deixe vazio para gerar automaticamente" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
