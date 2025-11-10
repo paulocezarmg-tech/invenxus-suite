@@ -171,11 +171,11 @@ const Products = () => {
 
   const getStockBadge = (quantity: number, minQuantity: number) => {
     if (quantity === 0) {
-      return <Badge className="bg-danger text-white">Sem Estoque</Badge>;
+      return <Badge variant="danger">Sem Estoque</Badge>;
     } else if (quantity <= minQuantity) {
-      return <Badge className="bg-warning text-white">Crítico</Badge>;
+      return <Badge variant="warning">Crítico</Badge>;
     } else {
-      return <Badge className="bg-success text-white">Normal</Badge>;
+      return <Badge variant="success">Normal</Badge>;
     }
   };
 
