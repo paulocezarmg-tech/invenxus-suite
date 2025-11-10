@@ -281,18 +281,18 @@ const Products = () => {
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-card/50 shadow-card overflow-hidden">
-        <Table>
+      <div className="rounded-lg border border-border bg-card/50 shadow-card overflow-x-auto">
+        <Table className="table-fixed">
           <TableHeader>
             <TableRow>
-              <TableHead>SKU</TableHead>
-              <TableHead>Nome</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Quantidade</TableHead>
-              <TableHead>Estoque Mín.</TableHead>
-              <TableHead>Local</TableHead>
-              {userRole && userRole !== "operador" && <TableHead>Custo</TableHead>}
-              <TableHead>Status</TableHead>
+              <TableHead className="w-[120px]">SKU</TableHead>
+              <TableHead className="min-w-[180px]">Nome</TableHead>
+              <TableHead className="w-[120px]">Categoria</TableHead>
+              <TableHead className="w-[90px]">Qtd.</TableHead>
+              <TableHead className="w-[90px]">Mín.</TableHead>
+              <TableHead className="w-[130px]">Local</TableHead>
+              {userRole && userRole !== "operador" && <TableHead className="w-[100px]">Custo</TableHead>}
+              <TableHead className="w-[110px]">Status</TableHead>
               {userRole === "superadmin" && <TableHead className="w-[100px]">Ações</TableHead>}
             </TableRow>
           </TableHeader>
@@ -306,23 +306,37 @@ const Products = () => {
             ) : products && products.length > 0 ? (
               products.map((product: any) => (
                 <TableRow key={product.id}>
-                  <TableCell className="font-mono">{product.sku}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    <div className="truncate max-w-[120px]" title={product.sku}>
+                      {product.sku}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{product.name}</div>
+                      <div className="font-medium text-sm truncate max-w-[200px]" title={product.name}>
+                        {product.name}
+                      </div>
                       {product.barcode && (
-                        <div className="text-xs text-muted-foreground font-mono">
+                        <div className="text-xs text-muted-foreground font-mono truncate max-w-[200px]" title={product.barcode}>
                           {product.barcode}
                         </div>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>{product.categories?.name || "N/A"}</TableCell>
-                  <TableCell className="font-medium">{product.quantity}</TableCell>
-                  <TableCell>{product.min_quantity}</TableCell>
-                  <TableCell>{product.locations?.name || "N/A"}</TableCell>
+                  <TableCell className="text-sm">
+                    <div className="truncate max-w-[120px]" title={product.categories?.name}>
+                      {product.categories?.name || "N/A"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium text-sm">{product.quantity}</TableCell>
+                  <TableCell className="text-sm">{product.min_quantity}</TableCell>
+                  <TableCell className="text-sm">
+                    <div className="truncate max-w-[130px]" title={product.locations?.name}>
+                      {product.locations?.name || "N/A"}
+                    </div>
+                  </TableCell>
                   {userRole && userRole !== "operador" && (
-                    <TableCell>R$ {Number(product.cost).toFixed(2)}</TableCell>
+                    <TableCell className="text-sm whitespace-nowrap">R$ {Number(product.cost).toFixed(2)}</TableCell>
                   )}
                   <TableCell>
                     {getStockBadge(Number(product.quantity), Number(product.min_quantity))}
