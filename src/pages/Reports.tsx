@@ -212,6 +212,7 @@ const Reports = () => {
         reference,
         note,
         products (sku, name),
+        kits (sku, name),
         from_location:locations!movements_from_location_id_fkey (name),
         to_location:locations!movements_to_location_id_fkey (name)
       `).order("created_at", { ascending: false });
@@ -244,8 +245,8 @@ const Reports = () => {
         body: data.map((m: any) => [
           new Date(m.created_at).toLocaleString("pt-BR"),
           m.type === "IN" ? "Entrada" : m.type === "OUT" ? "Saída" : "Transfer",
-          m.products?.name || "-",
-          m.products?.sku || "-",
+          m.products?.name || m.kits?.name || "-",
+          m.products?.sku || m.kits?.sku || "-",
           m.quantity,
           m.from_location?.name || "-",
           m.to_location?.name || "-",
@@ -275,6 +276,7 @@ const Reports = () => {
         reference,
         note,
         products (sku, name),
+        kits (sku, name),
         from_location:locations!movements_from_location_id_fkey (name),
         to_location:locations!movements_to_location_id_fkey (name)
       `).order("created_at", { ascending: false });
@@ -291,8 +293,8 @@ const Reports = () => {
         ...data.map((m: any) => [
           new Date(m.created_at).toLocaleString("pt-BR"),
           m.type === "IN" ? "Entrada" : m.type === "OUT" ? "Saída" : "Transferência",
-          m.products?.name || "",
-          m.products?.sku || "",
+          m.products?.name || m.kits?.name || "",
+          m.products?.sku || m.kits?.sku || "",
           m.quantity,
           m.from_location?.name || "",
           m.to_location?.name || "",
