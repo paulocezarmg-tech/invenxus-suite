@@ -368,14 +368,15 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
                             <SelectValue placeholder="Selecione" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="z-50">
                           <SelectItem value="UN">Unidade</SelectItem>
                           <SelectItem value="KG">Quilograma</SelectItem>
                           <SelectItem value="L">Litro</SelectItem>
                           <SelectItem value="M">Metro</SelectItem>
                           <SelectItem value="CX">Caixa</SelectItem>
-                          <SelectItem value="CUSTOM">
-                            <span className="text-primary font-medium">+ Adicionar outra...</span>
+                          <div className="border-t border-border my-1" />
+                          <SelectItem value="CUSTOM" className="text-primary font-medium">
+                            + Adicionar outra...
                           </SelectItem>
                         </SelectContent>
                       </Select>
