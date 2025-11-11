@@ -43,20 +43,34 @@ serve(async (req) => {
       );
     }
 
-    // Buscar emails dos admins da organização
-    const { data: admins, error: adminsError } = await supabaseClient
+    // Buscar membros da organização
+    const { data: members, error: membersError } = await supabaseClient
       .from("organization_members")
-      .select(`
-        user_id,
-        user_roles!inner (role),
-        profiles!inner (name)
-      `)
+      .select("user_id")
       .eq("organization_id", organization_id);
 
-    if (adminsError) throw adminsError;
+    if (membersError) throw membersError;
+
+    if (!members || members.length === 0) {
+      console.log("Nenhum membro encontrado na organização");
+      return new Response(
+        JSON.stringify({ success: true, alertas_enviados: 0 }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Buscar apenas admins dentre os membros
+    const memberIds = members.map((m) => m.user_id);
+    const { data: adminRoles, error: rolesError } = await supabaseClient
+      .from("user_roles")
+      .select("user_id")
+      .in("user_id", memberIds)
+      .in("role", ["admin", "superadmin"]);
+
+    if (rolesError) throw rolesError;
 
     // Buscar emails dos admins no auth.users
-    const adminUserIds = admins?.map((a) => a.user_id) || [];
+    const adminUserIds = adminRoles?.map((a) => a.user_id) || [];
     const { data: authUsers, error: authError } = await supabaseClient.auth.admin.listUsers();
 
     if (authError) throw authError;
