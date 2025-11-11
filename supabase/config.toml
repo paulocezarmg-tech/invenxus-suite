@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.accept-invite]
 verify_jwt = false
+
+[functions.migrate-movements-to-financeiro]
+verify_jwt = true

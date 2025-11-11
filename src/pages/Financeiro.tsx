@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, DollarSign, TrendingUp, TrendingDown, Percent, Pencil, Trash2 } from "lucide-react";
 import { FinanceiroDialog } from "@/components/financeiro/FinanceiroDialog";
+import { MigrateButton } from "@/components/financeiro/MigrateButton";
 import { formatCurrency } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -128,10 +129,13 @@ export default function Financeiro() {
           <h1 className="text-3xl font-bold">Painel de Lucro Real</h1>
           <p className="text-muted-foreground">Controle completo de custos e lucratividade</p>
         </div>
-        <Button onClick={() => { setSelectedMovement(null); setIsDialogOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Movimentação
-        </Button>
+        <div className="flex gap-2">
+          <MigrateButton />
+          <Button onClick={() => { setSelectedMovement(null); setIsDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Movimentação
+          </Button>
+        </div>
       </div>
 
       {/* Cards de Métricas */}
