@@ -85,6 +85,9 @@ serve(async (req) => {
         <td style="padding: 12px; text-align: center; color: ${Number(p.dias_restantes) <= 3 ? "#ef4444" : "#f59e0b"}; font-weight: bold;">
           ${Math.floor(Number(p.dias_restantes))} dias
         </td>
+        <td style="padding: 12px; text-align: center; color: #dc2626; font-weight: bold;">
+          ${Number(p.perda_financeira || 0) > 0 ? `R$ ${Number(p.perda_financeira).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
+        </td>
       </tr>
     `
       )
@@ -127,6 +130,7 @@ serve(async (req) => {
                 <th style="padding: 12px; text-align: center; color: #ffffff; font-weight: 600; font-size: 14px;">Estoque</th>
                 <th style="padding: 12px; text-align: center; color: #ffffff; font-weight: 600; font-size: 14px;">Média/Dia</th>
                 <th style="padding: 12px; text-align: center; color: #ffffff; font-weight: 600; font-size: 14px;">Dias Restantes</th>
+                <th style="padding: 12px; text-align: center; color: #ffffff; font-weight: 600; font-size: 14px;">Perda Estimada</th>
               </tr>
             </thead>
             <tbody>

@@ -512,6 +512,7 @@ export type Database = {
           id: string
           media_vendas_diaria: number
           organization_id: string
+          perda_financeira: number | null
           produto_id: string
           recomendacao: string | null
           updated_at: string
@@ -524,6 +525,7 @@ export type Database = {
           id?: string
           media_vendas_diaria?: number
           organization_id: string
+          perda_financeira?: number | null
           produto_id: string
           recomendacao?: string | null
           updated_at?: string
@@ -536,6 +538,7 @@ export type Database = {
           id?: string
           media_vendas_diaria?: number
           organization_id?: string
+          perda_financeira?: number | null
           produto_id?: string
           recomendacao?: string | null
           updated_at?: string

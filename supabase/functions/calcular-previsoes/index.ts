@@ -29,7 +29,7 @@ serve(async (req) => {
     // Buscar todos os produtos da organização
     const { data: produtos, error: produtosError } = await supabaseClient
       .from("products")
-      .select("id, name, quantity, min_quantity, organization_id")
+      .select("id, name, quantity, min_quantity, organization_id, preco_venda, cost")
       .eq("organization_id", organization_id)
       .eq("active", true);
 
@@ -43,8 +43,8 @@ serve(async (req) => {
     data30DiasAtras.setDate(data30DiasAtras.getDate() - 30);
 
     for (const produto of produtos || []) {
-      // Buscar TODAS as movimentações de saída do produto
-      const { data: movimentos, error: movimentosError } = await supabaseClient
+      // Buscar movimentações DIRETAS de saída do produto
+      const { data: movimentosDiretos, error: movimentosError } = await supabaseClient
         .from("movements")
         .select("quantity, created_at")
         .eq("product_id", produto.id)
@@ -52,9 +52,55 @@ serve(async (req) => {
         .order("created_at", { ascending: true });
 
       if (movimentosError) {
-        console.error(`Erro ao buscar movimentos do produto ${produto.id}:`, movimentosError);
+        console.error(`Erro ao buscar movimentos diretos do produto ${produto.id}:`, movimentosError);
         continue;
       }
+
+      // Buscar movimentações INDIRETAS via kits
+      const { data: movimentosKits, error: kitsError } = await supabaseClient
+        .from("movements")
+        .select(`
+          quantity,
+          created_at,
+          kit_id,
+          kits!inner(id)
+        `)
+        .eq("type", "OUT")
+        .not("kit_id", "is", null);
+
+      if (kitsError) {
+        console.error(`Erro ao buscar movimentos de kits:`, kitsError);
+      }
+
+      // Buscar itens do kit que contém este produto
+      const { data: kitItems, error: kitItemsError } = await supabaseClient
+        .from("kit_items")
+        .select("kit_id, quantity")
+        .eq("product_id", produto.id);
+
+      if (kitItemsError) {
+        console.error(`Erro ao buscar kit_items do produto ${produto.id}:`, kitItemsError);
+      }
+
+      // Combinar movimentos diretos e indiretos
+      const movimentos = [...(movimentosDiretos || [])];
+
+      // Adicionar movimentos indiretos (via kits)
+      if (movimentosKits && kitItems) {
+        for (const movKit of movimentosKits) {
+          const kitItem = kitItems.find(ki => ki.kit_id === movKit.kit_id);
+          if (kitItem) {
+            // Multiplicar a quantidade do movimento pela quantidade do produto no kit
+            movimentos.push({
+              quantity: Number(movKit.quantity) * Number(kitItem.quantity),
+              created_at: movKit.created_at
+            });
+          }
+        }
+      }
+
+      // Ordenar todos os movimentos por data
+      movimentos.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
       // Calcular média de vendas diárias
       let totalVendas = 0;
@@ -97,30 +143,44 @@ serve(async (req) => {
       console.log(`Produto ${produto.name}: ${movimentos?.length || 0} movimentações, Total vendas: ${totalVendas}, Período: ${diasPeriodo} dias, Média: ${mediaVendasDiaria.toFixed(2)}/dia`);
 
       let diasRestantes = null;
+      let perdaFinanceira = 0;
       let recomendacao = "Sem movimentações de saída registradas. Não é possível calcular previsão.";
+
+      // Calcular preço de venda e custo
+      const precoVenda = Number(produto.preco_venda || 0);
+      const precoCusto = Number(produto.cost || 0);
+      const lucroUnitario = precoVenda - precoCusto;
 
       if (movimentos && movimentos.length === 0) {
         recomendacao = `O produto ${produto.name} ainda não possui movimentações de saída. Comece a registrar saídas para gerar previsões automáticas.`;
       } else if (mediaVendasDiaria > 0) {
         diasRestantes = estoqueAtual / mediaVendasDiaria;
 
+        // Calcular perda financeira se dias restantes < 10
+        if (diasRestantes < 10) {
+          perdaFinanceira = mediaVendasDiaria * precoVenda * diasRestantes;
+        }
+
         // Calcular data estimada de reabastecimento
         const dataReposicao = new Date(dataHoje);
         dataReposicao.setDate(dataReposicao.getDate() + Math.floor(diasRestantes));
         const dataReposicaoFormatada = dataReposicao.toLocaleDateString("pt-BR");
 
-        // Usar IA para gerar recomendação
-        const prompt = `Você é uma assistente de gestão de estoque inteligente.
-Analise os dados abaixo e gere uma recomendação breve e objetiva para o gestor.
+        // Usar IA para gerar recomendação com análise financeira
+        const prompt = `Você é uma assistente de gestão de estoque e finanças inteligente.
+Analise os dados abaixo e gere uma recomendação breve e objetiva.
 
 Dados:
 - Produto: ${produto.name}
 - Estoque atual: ${estoqueAtual.toFixed(2)} unidades
-- Média diária de saída: ${mediaVendasDiaria.toFixed(2)} unidades
-- Dias restantes estimados: ${diasRestantes.toFixed(0)} dias
+- Média de vendas diária: ${mediaVendasDiaria.toFixed(2)} unidades
+- Dias restantes: ${diasRestantes.toFixed(0)} dias
+- Preço de venda: R$ ${precoVenda.toFixed(2)}
+- Lucro unitário: R$ ${lucroUnitario.toFixed(2)}
+- Perda financeira estimada: R$ ${perdaFinanceira.toFixed(2)}
 
-Gere uma resposta curta e direta no formato:
-"Seu produto [NOME] tem [X] unidades restantes e uma média de [Y] saídas por dia. Prevemos que o estoque acabará em [Z] dias. Recomendamos reabastecer até [DATA]."
+Gere uma resposta breve no formato:
+"O produto ${produto.name} está com ${estoqueAtual.toFixed(0)} unidades e uma média de ${mediaVendasDiaria.toFixed(1)} saídas por dia. Prevemos que o estoque acabará em ${diasRestantes.toFixed(0)} dias (${dataReposicaoFormatada}). ${perdaFinanceira > 0 ? `A falta deste produto pode representar uma perda de aproximadamente R$ ${perdaFinanceira.toFixed(2)}.` : ''} Recomendamos reabastecer o quanto antes."
 
 Seja conciso e objetivo.`;
 
@@ -158,6 +218,7 @@ Seja conciso e objetivo.`;
         estoque_atual: estoqueAtual,
         media_vendas_diaria: mediaVendasDiaria,
         dias_restantes: diasRestantes,
+        perda_financeira: perdaFinanceira,
         data_previsao: new Date().toISOString(),
         recomendacao: recomendacao,
         organization_id: produto.organization_id,
