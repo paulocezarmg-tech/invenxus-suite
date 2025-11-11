@@ -17,19 +17,30 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const { type = 'products' } = await req.json();
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log('Starting migration of movements to financeiro...');
+    console.log(`Starting migration of ${type} movements to financeiro...`);
 
-    // Get all IN and OUT movements
-    const { data: movements, error: movementsError } = await supabaseClient
+    // Get all IN and OUT movements filtered by type
+    let query = supabaseClient
       .from('movements')
       .select('*')
       .in('type', ['IN', 'OUT'])
       .order('created_at', { ascending: true });
+
+    // Filter by product or kit
+    if (type === 'products') {
+      query = query.not('product_id', 'is', null);
+    } else if (type === 'kits') {
+      query = query.not('kit_id', 'is', null);
+    }
+
+    const { data: movements, error: movementsError } = await query;
 
     if (movementsError) {
       console.error('Error fetching movements:', movementsError);
@@ -131,7 +142,7 @@ Deno.serve(async (req) => {
             tipo: movement.type === "IN" ? "entrada" : "saida",
             data: new Date(movement.created_at).toISOString().split('T')[0],
             descricao: `${movement.type === "IN" ? "Entrada" : "Saída"} - ${itemName}${movement.reference ? ` (${movement.reference})` : ""} - Migração`,
-            produto_id: movement.product_id || movement.kit_id,
+            produto_id: null, // Don't use foreign key - just store description
             quantidade: quantity,
             custo_total: custoTotal,
             preco_venda: precoVenda,
