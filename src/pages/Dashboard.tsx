@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { RecentMovements } from "@/components/dashboard/RecentMovements";
 import { StockChart } from "@/components/dashboard/StockChart";
+import { SalesVsPurchasesChart } from "@/components/dashboard/SalesVsPurchasesChart";
 import { CriticalStock } from "@/components/dashboard/CriticalStock";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { Package, DollarSign, AlertTriangle, TrendingUp, TrendingDown, Clock } from "lucide-react";
@@ -270,6 +271,11 @@ const Dashboard = () => {
         <StockChart />
         <CriticalStock />
       </div>
+
+      {/* Financial Charts - Only for admin and superadmin */}
+      {userRole && ['admin', 'superadmin'].includes(userRole) && (
+        <SalesVsPurchasesChart />
+      )}
 
       <RecentMovements />
     </div>;
