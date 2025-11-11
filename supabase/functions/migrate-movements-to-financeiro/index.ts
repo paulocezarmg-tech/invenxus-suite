@@ -55,14 +55,15 @@ Deno.serve(async (req) => {
 
     for (const movement of movements || []) {
       try {
-        // Check if already migrated (check if there's a financeiro record with same date, type, and quantity)
+        // Check if already migrated by checking description pattern
+        const migrationDescription = movement.type === 'IN' ? 'Entrada - ' : 'Saída - ';
         const { data: existing } = await supabaseClient
           .from('financeiro')
           .select('id')
           .eq('data', new Date(movement.created_at).toISOString().split('T')[0])
           .eq('tipo', movement.type === 'IN' ? 'entrada' : 'saida')
           .eq('quantidade', movement.quantity)
-          .eq('produto_id', movement.product_id || movement.kit_id)
+          .ilike('descricao', `${migrationDescription}%Migração`)
           .maybeSingle();
 
         if (existing) {
@@ -162,7 +163,7 @@ Deno.serve(async (req) => {
             console.error(`Error inserting financeiro for movement ${movement.id}:`, insertError);
             errorCount++;
           } else {
-            console.log(`Successfully migrated movement ${movement.id}`);
+            console.log(`Successfully migrated ${movement.type} movement ${movement.id} - ${itemName} (Qty: ${quantity}, Valor: ${valorTotal})`);
             successCount++;
           }
         } else {
