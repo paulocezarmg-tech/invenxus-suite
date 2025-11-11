@@ -32,6 +32,8 @@ Deno.serve(async (req) => {
       .select('*')
       .in('type', ['IN', 'OUT'])
       .order('created_at', { ascending: true });
+    
+    console.log('Query will fetch both IN and OUT movements');
 
     // Filter by product or kit
     if (type === 'products') {
@@ -48,12 +50,18 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Found ${movements?.length || 0} movements to migrate`);
+    
+    // Log breakdown of movement types
+    const inCount = movements?.filter(m => m.type === 'IN').length || 0;
+    const outCount = movements?.filter(m => m.type === 'OUT').length || 0;
+    console.log(`Breakdown: ${inCount} IN movements, ${outCount} OUT movements`);
 
     let successCount = 0;
     let skipCount = 0;
     let errorCount = 0;
 
     for (const movement of movements || []) {
+      console.log(`Processing movement ${movement.id} - Type: ${movement.type}, Quantity: ${movement.quantity}`);
       try {
         // Check if already migrated by checking description pattern
         const migrationDescription = movement.type === 'IN' ? 'Entrada - ' : 'Saída - ';
@@ -138,6 +146,8 @@ Deno.serve(async (req) => {
           const margemPercentual = movement.type === "OUT" && precoVenda > 0 
             ? ((precoVenda - custoUnitario) / precoVenda) * 100 
             : 0;
+          
+          console.log(`Movement ${movement.id}: Type=${movement.type}, Custo=${custoUnitario}, Qty=${quantity}, CustoTotal=${custoTotal}, Valor=${valorTotal}`);
 
           const financeiroData = {
             tipo: movement.type === "IN" ? "entrada" : "saida",
