@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, TrendingDown, Package, RefreshCw, Mail, Loader2, BarChart3 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertCircle, TrendingDown, Package, RefreshCw, Mail, Loader2, BarChart3, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -15,6 +16,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 export default function PrevisaoEstoque() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSendingAlerts, setIsSendingAlerts] = useState(false);
+  const [selectedPrevisao, setSelectedPrevisao] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
 
@@ -127,6 +130,11 @@ export default function PrevisaoEstoque() {
     if (diasNum <= 7) return <Badge className="bg-orange-500">{diasNum} dias</Badge>;
     if (diasNum <= 30) return <Badge className="bg-yellow-500">{diasNum} dias</Badge>;
     return <Badge variant="secondary">{diasNum} dias</Badge>;
+  };
+
+  const handleViewRecomendacao = (previsao: any) => {
+    setSelectedPrevisao(previsao);
+    setIsDialogOpen(true);
   };
 
   if (isLoading) {
@@ -390,9 +398,19 @@ export default function PrevisaoEstoque() {
                       )}
                     </TableCell>
                     <TableCell className="max-w-md">
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {previsao.recomendacao}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-muted-foreground line-clamp-2 flex-1">
+                          {previsao.recomendacao}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewRecomendacao(previsao)}
+                          className="shrink-0"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">
                       {format(new Date(previsao.data_previsao), "dd/MM/yyyy HH:mm", { locale: ptBR })}
@@ -404,6 +422,86 @@ export default function PrevisaoEstoque() {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog de Recomendação Completa */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Package className="h-5 w-5 text-primary" />
+              Recomendação da IA - {selectedPrevisao?.products?.name}
+            </DialogTitle>
+            <DialogDescription>
+              SKU: {selectedPrevisao?.products?.sku} | Última atualização: {selectedPrevisao?.data_previsao && format(new Date(selectedPrevisao.data_previsao), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 mt-4">
+            {/* Indicadores */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Estoque Atual</p>
+                <p className="text-lg font-bold">{Number(selectedPrevisao?.estoque_atual || 0).toFixed(2)} {selectedPrevisao?.products?.unit || "UN"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Média Diária</p>
+                <p className="text-lg font-bold">{Number(selectedPrevisao?.media_vendas_diaria || 0).toFixed(2)}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Dias Restantes</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-lg font-bold">{selectedPrevisao?.dias_restantes ? Math.floor(selectedPrevisao.dias_restantes) : '-'}</p>
+                  {selectedPrevisao?.dias_restantes && getDiasBadge(selectedPrevisao.dias_restantes)}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Perda Estimada</p>
+                <p className="text-lg font-bold text-destructive">
+                  {selectedPrevisao?.perda_financeira && Number(selectedPrevisao.perda_financeira) > 0
+                    ? `R$ ${Number(selectedPrevisao.perda_financeira).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                    : '-'
+                  }
+                </p>
+              </div>
+            </div>
+
+            {/* Recomendação Completa */}
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertCircle className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold text-base">Análise da Inteligência Artificial</h3>
+              </div>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                {selectedPrevisao?.recomendacao || "Nenhuma recomendação disponível."}
+              </p>
+            </div>
+
+            {/* Status Visual */}
+            {selectedPrevisao?.dias_restantes && (
+              <div className={`rounded-lg p-4 border-l-4 ${
+                selectedPrevisao.dias_restantes <= 3 
+                  ? 'bg-red-500/10 border-red-500' 
+                  : selectedPrevisao.dias_restantes <= 7 
+                  ? 'bg-orange-500/10 border-orange-500' 
+                  : selectedPrevisao.dias_restantes <= 15
+                  ? 'bg-yellow-500/10 border-yellow-500'
+                  : 'bg-green-500/10 border-green-500'
+              }`}>
+                <p className="text-sm font-medium">
+                  {selectedPrevisao.dias_restantes <= 3 
+                    ? '🔴 Status Crítico: Ação imediata necessária!' 
+                    : selectedPrevisao.dias_restantes <= 7 
+                    ? '🟠 Status de Alerta: Reabastecimento urgente recomendado' 
+                    : selectedPrevisao.dias_restantes <= 15
+                    ? '🟡 Status de Atenção: Planeje o reabastecimento em breve'
+                    : '🟢 Status Normal: Estoque controlado'
+                  }
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
