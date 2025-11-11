@@ -50,6 +50,11 @@ const movementSchema = z.object({
 
 type MovementFormData = z.infer<typeof movementSchema>;
 
+interface CustoAdicional {
+  descricao: string;
+  valor: number;
+}
+
 interface MovementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -200,11 +205,101 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
       } else {
         const { error } = await supabase.from("movements").insert(movementData);
         if (error) throw error;
+
+        // Create financial record for IN and OUT movements
+        if (data.type === "IN" || data.type === "OUT") {
+          let itemData = null;
+          let itemName = "";
+          let custoUnitario = 0;
+          let precoVenda = 0;
+
+          if (data.item_type === "product" && data.product_id) {
+            const { data: product } = await supabase
+              .from("products")
+              .select("name, custo_unitario, preco_venda")
+              .eq("id", data.product_id)
+              .single();
+            
+            if (product) {
+              itemData = product;
+              itemName = product.name;
+              custoUnitario = Number(product.custo_unitario) || 0;
+              precoVenda = Number(product.preco_venda) || 0;
+            }
+          } else if (data.item_type === "kit" && data.kit_id) {
+            const { data: kit } = await supabase
+              .from("kits")
+              .select(`
+                name,
+                preco_venda,
+                custos_adicionais,
+                kit_items (
+                  quantity,
+                  products (custo_unitario)
+                )
+              `)
+              .eq("id", data.kit_id)
+              .single();
+            
+            if (kit) {
+              itemData = kit;
+              itemName = kit.name;
+              precoVenda = Number(kit.preco_venda) || 0;
+
+              // Calculate kit cost from components
+              let kitCost = 0;
+              if (kit.kit_items) {
+                for (const item of kit.kit_items) {
+                  const productCost = Number(item.products?.custo_unitario) || 0;
+                  kitCost += productCost * Number(item.quantity);
+                }
+              }
+
+              // Add additional costs
+              if (kit.custos_adicionais && Array.isArray(kit.custos_adicionais)) {
+                for (const custo of kit.custos_adicionais as unknown as CustoAdicional[]) {
+                  kitCost += Number(custo.valor) || 0;
+                }
+              }
+
+              custoUnitario = kitCost;
+            }
+          }
+
+          if (itemData) {
+            const custoTotal = custoUnitario * quantity;
+            const valorTotal = data.type === "OUT" ? precoVenda * quantity : custoTotal;
+            const lucroLiquido = data.type === "OUT" ? (precoVenda - custoUnitario) * quantity : 0;
+            const margemPercentual = data.type === "OUT" && precoVenda > 0 
+              ? ((precoVenda - custoUnitario) / precoVenda) * 100 
+              : 0;
+
+            const financeiroData = {
+              tipo: data.type === "IN" ? "entrada" : "saida",
+              data: new Date().toISOString().split('T')[0],
+              descricao: `${data.type === "IN" ? "Entrada" : "Saída"} - ${itemName}${data.reference ? ` (${data.reference})` : ""}`,
+              produto_id: data.item_type === "product" ? data.product_id : data.kit_id,
+              quantidade: quantity,
+              custo_total: custoTotal,
+              preco_venda: precoVenda,
+              valor: valorTotal,
+              lucro_liquido: lucroLiquido,
+              margem_percentual: margemPercentual,
+              custos_adicionais: [],
+              user_id: user.id,
+              organization_id: organizationId,
+            };
+
+            await supabase.from("financeiro").insert(financeiroData);
+          }
+        }
+
         toast.success("Movimentação registrada com sucesso");
       }
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["movements"] });
       queryClient.invalidateQueries({ queryKey: ["critical-products"] });
+      queryClient.invalidateQueries({ queryKey: ["financeiro"] });
       onOpenChange(false);
       form.reset();
     } catch (error: any) {
