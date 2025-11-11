@@ -19,6 +19,13 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useOrganization } from "@/hooks/useOrganization";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Movements = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -26,6 +33,7 @@ const Movements = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
   const [dateTo, setDateTo] = useState<Date | null>(null);
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
 
@@ -85,7 +93,7 @@ const Movements = () => {
   });
 
   const { data: movements, isLoading } = useQuery({
-    queryKey: ["movements", dateFrom, dateTo, organizationId],
+    queryKey: ["movements", dateFrom, dateTo, typeFilter, organizationId],
     queryFn: async () => {
       if (!organizationId) return [];
       
@@ -106,6 +114,10 @@ const Movements = () => {
         query = query
           .gte("created_at", dateFrom.toISOString())
           .lte("created_at", dateTo.toISOString());
+      }
+
+      if (typeFilter !== "all") {
+        query = query.eq("type", typeFilter as "IN" | "OUT" | "TRANSFER");
       }
 
       const { data, error } = await query;
@@ -188,6 +200,17 @@ const Movements = () => {
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
           <DateRangeFilter onDateChange={handleDateChange} />
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              <SelectItem value="IN">Entradas</SelectItem>
+              <SelectItem value="OUT">Saídas</SelectItem>
+              <SelectItem value="TRANSFER">Transferências</SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             className="gap-2 w-full sm:w-auto"
             onClick={() => {
