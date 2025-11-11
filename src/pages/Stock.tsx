@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Package, AlertTriangle, CheckCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useOrganization } from "@/hooks/useOrganization";
+import { formatNumber } from "@/lib/formatters";
 
 export default function Stock() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -255,11 +256,11 @@ export default function Stock() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>SKU</TableHead>
+                    <TableHead className="w-[80px]">SKU</TableHead>
                     <TableHead>Produto</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead>Localização</TableHead>
-                    <TableHead className="text-center">Quantidade</TableHead>
+                    <TableHead className="text-center bg-muted/30 font-semibold">Quantidade</TableHead>
                     <TableHead className="text-center">Qtd. Mínima</TableHead>
                     <TableHead>Status</TableHead>
                     {userRole && userRole !== "operador" && (
@@ -275,14 +276,14 @@ export default function Stock() {
                     filteredProducts.map((product) => (
                       <TableRow key={product.id}>
                         <TableCell className="font-medium">{product.sku}</TableCell>
-                        <TableCell>{product.name}</TableCell>
-                        <TableCell>{product.category?.name || "-"}</TableCell>
-                        <TableCell>{product.location?.name || "-"}</TableCell>
-                        <TableCell className="text-center font-semibold">
-                          {Number(product.quantity)} {product.unit}
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell className="text-muted-foreground">{product.category?.name || "-"}</TableCell>
+                        <TableCell className="text-muted-foreground">{product.location?.name || "-"}</TableCell>
+                        <TableCell className="text-center font-bold text-lg bg-muted/20 tabular-nums">
+                          {formatNumber(Number(product.quantity))} {product.unit}
                         </TableCell>
-                        <TableCell className="text-center text-muted-foreground">
-                          {Number(product.min_quantity)} {product.unit}
+                        <TableCell className="text-center text-muted-foreground tabular-nums">
+                          {formatNumber(Number(product.min_quantity))} {product.unit}
                         </TableCell>
                         <TableCell>
                           {getStockBadge(Number(product.quantity), Number(product.min_quantity))}
