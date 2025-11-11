@@ -57,6 +57,8 @@ interface ProductDialogProps {
 
 export function ProductDialog({ open, onOpenChange, product }: ProductDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCustomUnit, setIsCustomUnit] = useState(false);
+  const [customUnit, setCustomUnit] = useState("");
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
 
@@ -144,6 +146,8 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
         supplier_id: "",
       });
     }
+    setIsCustomUnit(false);
+    setCustomUnit("");
   }, [product, form]);
 
   const onSubmit = async (data: ProductFormData) => {
@@ -347,20 +351,66 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Unidade *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="UN">Unidade</SelectItem>
-                        <SelectItem value="KG">Quilograma</SelectItem>
-                        <SelectItem value="L">Litro</SelectItem>
-                        <SelectItem value="M">Metro</SelectItem>
-                        <SelectItem value="CX">Caixa</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {!isCustomUnit ? (
+                      <Select 
+                        onValueChange={(value) => {
+                          if (value === "CUSTOM") {
+                            setIsCustomUnit(true);
+                            setCustomUnit("");
+                          } else {
+                            field.onChange(value);
+                          }
+                        }} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="UN">Unidade</SelectItem>
+                          <SelectItem value="KG">Quilograma</SelectItem>
+                          <SelectItem value="L">Litro</SelectItem>
+                          <SelectItem value="M">Metro</SelectItem>
+                          <SelectItem value="CX">Caixa</SelectItem>
+                          <SelectItem value="CUSTOM">
+                            <span className="text-primary font-medium">+ Adicionar outra...</span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <FormControl>
+                            <Input
+                              placeholder="Ex: PCT, DZ, etc"
+                              value={customUnit}
+                              onChange={(e) => {
+                                const value = e.target.value.toUpperCase();
+                                setCustomUnit(value);
+                                field.onChange(value);
+                              }}
+                              maxLength={10}
+                            />
+                          </FormControl>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setIsCustomUnit(false);
+                              setCustomUnit("");
+                              field.onChange("UN");
+                            }}
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Digite a sigla da unidade (máximo 10 caracteres)
+                        </p>
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
