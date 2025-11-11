@@ -34,12 +34,14 @@ import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useOrganization } from "@/hooks/useOrganization";
+import { formatCurrency } from "@/lib/formatters";
 
 const kitSchema = z.object({
   sku: z.string().min(1, "SKU é obrigatório"),
   name: z.string().min(1, "Nome é obrigatório"),
   description: z.string().optional(),
   active: z.boolean().default(true),
+  preco_venda: z.string().optional(),
 });
 
 type KitFormData = z.infer<typeof kitSchema>;
@@ -47,6 +49,11 @@ type KitFormData = z.infer<typeof kitSchema>;
 interface KitItem {
   product_id: string;
   quantity: number;
+}
+
+interface CustoAdicional {
+  descricao: string;
+  valor: number;
 }
 
 interface KitDialogProps {
@@ -59,6 +66,7 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [kitItems, setKitItems] = useState<KitItem[]>([]);
+  const [custosAdicionais, setCustosAdicionais] = useState<CustoAdicional[]>([]);
   const { data: organizationId } = useOrganization();
 
   const form = useForm<KitFormData>({
@@ -68,18 +76,19 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
       name: "",
       description: "",
       active: true,
+      preco_venda: "",
     },
   });
 
-  // Fetch products for dropdown
+  // Fetch products for dropdown with costs
   const { data: products } = useQuery({
-    queryKey: ["products", organizationId],
+    queryKey: ["products-with-cost", organizationId],
     queryFn: async () => {
       if (!organizationId) return [];
       
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, sku")
+        .select("id, name, sku, custo_unitario")
         .eq("organization_id", organizationId)
         .eq("active", true)
         .order("name");
@@ -89,6 +98,19 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
     enabled: !!organizationId,
   });
 
+  // Calcular custo total do kit
+  const custoTotalKit = kitItems.reduce((sum, item) => {
+    const product = products?.find(p => p.id === item.product_id);
+    const custoUnitario = product?.custo_unitario || 0;
+    return sum + (custoUnitario * item.quantity);
+  }, 0);
+
+  const custoAdicionaisTotal = custosAdicionais.reduce((sum, c) => sum + c.valor, 0);
+  const custoTotal = custoTotalKit + custoAdicionaisTotal;
+  const precoVenda = parseFloat(form.watch("preco_venda") || "0");
+  const lucroEstimado = precoVenda - custoTotal;
+  const margemLucro = precoVenda > 0 ? (lucroEstimado / precoVenda) * 100 : 0;
+
   // Fetch kit items if editing
   useEffect(() => {
     if (kit) {
@@ -97,6 +119,7 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
         name: kit.name,
         description: kit.description || "",
         active: kit.active,
+        preco_venda: kit.preco_venda?.toString() || "",
       });
 
       // Fetch kit items
@@ -109,14 +132,18 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
             setKitItems(data);
           }
         });
+      
+      setCustosAdicionais(kit.custos_adicionais || []);
     } else {
       form.reset({
         sku: "",
         name: "",
         description: "",
         active: true,
+        preco_venda: "",
       });
       setKitItems([]);
+      setCustosAdicionais([]);
     }
   }, [kit, form]);
 
@@ -148,6 +175,15 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
     setIsSubmitting(true);
 
     try {
+      const kitData = {
+        sku: values.sku,
+        name: values.name,
+        description: values.description,
+        active: values.active,
+        preco_venda: values.preco_venda ? parseFloat(values.preco_venda) : 0,
+        custos_adicionais: custosAdicionais as any,
+      };
+
       if (kit) {
         // Validate SKU uniqueness
         const { data: existingSku } = await supabase
@@ -163,15 +199,10 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
           return;
         }
 
-        // Update existing kit - using a more robust approach
+        // Update existing kit
         const { error: kitError } = await supabase
           .from("kits")
-          .update({
-            sku: values.sku,
-            name: values.name,
-            description: values.description,
-            active: values.active,
-          })
+          .update(kitData)
           .eq("id", kit.id);
 
         if (kitError) throw kitError;
@@ -247,10 +278,7 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
         const { data: newKit, error: kitError } = await supabase
           .from("kits")
           .insert({
-            sku: values.sku,
-            name: values.name,
-            description: values.description,
-            active: values.active,
+            ...kitData,
             organization_id: organizationId,
           })
           .select()
@@ -269,9 +297,11 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
       }
 
       queryClient.invalidateQueries({ queryKey: ["kits"] });
+      queryClient.invalidateQueries({ queryKey: ["kits-with-cost"] });
       onOpenChange(false);
       form.reset();
       setKitItems([]);
+      setCustosAdicionais([]);
     } catch (error) {
       console.error("Error saving kit:", error);
       toast.error("Erro ao salvar kit");
@@ -282,7 +312,7 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{kit ? "Editar Kit" : "Novo Kit"}</DialogTitle>
           <DialogDescription>
@@ -295,33 +325,35 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
             <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-              <FormField
-                control={form.control}
-                name="sku"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>SKU</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="sku"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>SKU</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}
@@ -365,45 +397,55 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
                 </div>
 
                 <div className="space-y-2">
-                  {kitItems.map((item, index) => (
-                    <div key={index} className="flex gap-2 items-start border p-3 rounded-lg">
-                      <div className="flex-1">
-                        <Select
-                          value={item.product_id}
-                          onValueChange={(value) => updateItem(index, "product_id", value)}
+                  {kitItems.map((item, index) => {
+                    const product = products?.find(p => p.id === item.product_id);
+                    const custoItem = product ? (product.custo_unitario || 0) * item.quantity : 0;
+                    
+                    return (
+                      <div key={index} className="flex gap-2 items-start border p-3 rounded-lg">
+                        <div className="flex-1">
+                          <Select
+                            value={item.product_id}
+                            onValueChange={(value) => updateItem(index, "product_id", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um produto" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {products?.map((product) => (
+                                <SelectItem key={product.id} value={product.id}>
+                                  {product.name} ({product.sku})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {product && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Custo: {formatCurrency(custoItem)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="w-24">
+                          <Input
+                            type="number"
+                            min="1"
+                            step="0.01"
+                            value={item.quantity}
+                            onChange={(e) => updateItem(index, "quantity", parseFloat(e.target.value))}
+                            placeholder="Qtd"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeItem(index)}
                         >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um produto" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {products?.map((product) => (
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name} ({product.sku})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <div className="w-24">
-                        <Input
-                          type="number"
-                          min="1"
-                          step="0.01"
-                          value={item.quantity}
-                          onChange={(e) => updateItem(index, "quantity", parseFloat(e.target.value))}
-                          placeholder="Qtd"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeItem(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {kitItems.length === 0 && (
                     <p className="text-sm text-muted-foreground text-center py-4">
@@ -412,6 +454,126 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
                   )}
                 </div>
               </div>
+
+              <FormField
+                control={form.control}
+                name="preco_venda"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preço de Venda</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                          R$
+                        </span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0,00"
+                          className="pl-10"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-2">
+                <FormLabel>Custos Adicionais</FormLabel>
+                <p className="text-xs text-muted-foreground">
+                  Frete, impostos, taxas, etc.
+                </p>
+                <div className="space-y-2">
+                  {custosAdicionais.map((custo, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        placeholder="Descrição (ex: Frete, Imposto)"
+                        value={custo.descricao}
+                        onChange={(e) => {
+                          const novos = [...custosAdicionais];
+                          novos[index].descricao = e.target.value;
+                          setCustosAdicionais(novos);
+                        }}
+                        className="flex-1"
+                      />
+                      <div className="relative w-32">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                          R$
+                        </span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0,00"
+                          value={custo.valor}
+                          onChange={(e) => {
+                            const novos = [...custosAdicionais];
+                            novos[index].valor = parseFloat(e.target.value) || 0;
+                            setCustosAdicionais(novos);
+                          }}
+                          className="pl-10"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const novos = custosAdicionais.filter((_, i) => i !== index);
+                          setCustosAdicionais(novos);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCustosAdicionais([...custosAdicionais, { descricao: "", valor: 0 }])}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Custo
+                  </Button>
+                </div>
+              </div>
+
+              {/* Prévia dos Cálculos */}
+              {kitItems.length > 0 && (
+                <div className="p-4 rounded-lg border bg-muted/30 space-y-2">
+                  <div className="font-semibold text-sm text-muted-foreground mb-2">Prévia do Kit:</div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Custo dos produtos:</span>
+                    <span className="font-medium">{formatCurrency(custoTotalKit)}</span>
+                  </div>
+                  {custoAdicionaisTotal > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Custos adicionais:</span>
+                      <span className="font-medium text-destructive">+{formatCurrency(custoAdicionaisTotal)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm pt-2 border-t">
+                    <span className="font-semibold">Custo Total:</span>
+                    <span className="font-bold text-destructive">{formatCurrency(custoTotal)}</span>
+                  </div>
+                  {precoVenda > 0 && (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="font-semibold">Preço de Venda:</span>
+                        <span className="font-bold text-primary">{formatCurrency(precoVenda)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm pt-2 border-t">
+                        <span className="font-semibold">Lucro Estimado:</span>
+                        <span className={`font-bold ${lucroEstimado >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {formatCurrency(lucroEstimado)} ({margemLucro.toFixed(1)}%)
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             <DialogFooter className="mt-4 pt-4 border-t">

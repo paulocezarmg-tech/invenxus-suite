@@ -11,7 +11,7 @@ export const formatCurrency = (value: number): string => {
 };
 
 /**
- * Format number to Brazilian locale
+ * Format number to Brazilian locale with thousands separator
  */
 export const formatNumber = (value: number): string => {
   return new Intl.NumberFormat("pt-BR").format(value);

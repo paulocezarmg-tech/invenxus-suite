@@ -284,6 +284,7 @@ export type Database = {
           id: string
           name: string
           organization_id: string
+          preco_venda: number | null
           sku: string
           updated_at: string
         }
@@ -295,6 +296,7 @@ export type Database = {
           id?: string
           name: string
           organization_id: string
+          preco_venda?: number | null
           sku: string
           updated_at?: string
         }
@@ -306,6 +308,7 @@ export type Database = {
           id?: string
           name?: string
           organization_id?: string
+          preco_venda?: number | null
           sku?: string
           updated_at?: string
         }
