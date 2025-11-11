@@ -76,6 +76,19 @@ export default function Financeiro() {
     },
   });
 
+  const { data: kits } = useQuery({
+    queryKey: ["kits-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("kits")
+        .select("id, name, sku")
+        .eq("active", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Calcular métricas de lucro real
   const totalFaturamento = movements?.reduce((sum, m) => {
     if (m.tipo === "saida") {
@@ -220,11 +233,30 @@ export default function Financeiro() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  {products?.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name}
-                    </SelectItem>
-                  ))}
+                  {products && products.length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                        Produtos
+                      </div>
+                      {products.map((product) => (
+                        <SelectItem key={product.id} value={product.id}>
+                          {product.name}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                  {kits && kits.length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                        Kits
+                      </div>
+                      {kits.map((kit) => (
+                        <SelectItem key={kit.id} value={kit.id}>
+                          {kit.name}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
