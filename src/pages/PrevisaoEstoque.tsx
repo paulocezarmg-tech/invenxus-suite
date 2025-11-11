@@ -380,10 +380,10 @@ export default function PrevisaoEstoque() {
                       </div>
                     </TableCell>
                     <TableCell className="text-center tabular-nums">
-                      {Number(previsao.estoque_atual).toFixed(2)} {previsao.products?.unit || "UN"}
+                      {Number(previsao.estoque_atual).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} {previsao.products?.unit || "UN"}
                     </TableCell>
                     <TableCell className="text-center tabular-nums">
-                      {Number(previsao.media_vendas_diaria).toFixed(2)}
+                      {Number(previsao.media_vendas_diaria).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell className="text-center">
                       {getDiasBadge(previsao.dias_restantes)}
@@ -441,11 +441,11 @@ export default function PrevisaoEstoque() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Estoque Atual</p>
-                <p className="text-lg font-bold">{Number(selectedPrevisao?.estoque_atual || 0).toFixed(2)} {selectedPrevisao?.products?.unit || "UN"}</p>
+                <p className="text-lg font-bold">{Number(selectedPrevisao?.estoque_atual || 0).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} {selectedPrevisao?.products?.unit || "UN"}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Média Diária</p>
-                <p className="text-lg font-bold">{Number(selectedPrevisao?.media_vendas_diaria || 0).toFixed(2)}</p>
+                <p className="text-lg font-bold">{Number(selectedPrevisao?.media_vendas_diaria || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Dias Restantes</p>
