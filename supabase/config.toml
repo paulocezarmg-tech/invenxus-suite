@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.migrate-movements-to-financeiro]
 verify_jwt = true
+
+[functions.calcular-previsoes]
+verify_jwt = true
+
+[functions.enviar-alertas-estoque]
+verify_jwt = true

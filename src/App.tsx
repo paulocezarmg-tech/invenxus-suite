@@ -17,6 +17,7 @@ import AcceptInvite from "./pages/AcceptInvite";
 import Admin from "./pages/Admin";
 import Financeiro from "./pages/Financeiro";
 import Contas from "./pages/Contas";
+import PrevisaoEstoque from "./pages/PrevisaoEstoque";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 
@@ -94,6 +95,14 @@ const App = () => (
             element={
               <Layout>
                 <Stock />
+              </Layout>
+            }
+          />
+          <Route
+            path="/previsao-estoque"
+            element={
+              <Layout>
+                <PrevisaoEstoque />
               </Layout>
             }
           />

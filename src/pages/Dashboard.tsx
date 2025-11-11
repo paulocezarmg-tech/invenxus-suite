@@ -7,7 +7,7 @@ import { StockChart } from "@/components/dashboard/StockChart";
 import { SalesVsPurchasesChart } from "@/components/dashboard/SalesVsPurchasesChart";
 import { CriticalStock } from "@/components/dashboard/CriticalStock";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
-import { Package, DollarSign, AlertTriangle, TrendingUp, TrendingDown, Clock } from "lucide-react";
+import { Package, DollarSign, AlertTriangle, TrendingUp, TrendingDown, Clock, Brain } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { formatCurrency } from "@/lib/formatters";
 const Dashboard = () => {
@@ -208,6 +208,24 @@ const Dashboard = () => {
     },
     enabled: !!organizationId
   });
+
+  // Buscar previsões de estoque
+  const { data: previsoesRisco } = useQuery({
+    queryKey: ["previsoes-risco-dashboard", organizationId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("previsoes_estoque")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .lte("dias_restantes", 7)
+        .not("dias_restantes", "is", null);
+
+      if (error) throw error;
+      return data?.length || 0;
+    },
+    enabled: !!organizationId,
+  });
+
   if (isLoadingRole) {
     return <div className="flex items-center justify-center min-h-screen">
         <div className="text-muted-foreground">Carregando...</div>
@@ -264,6 +282,18 @@ const Dashboard = () => {
               description="Próximos 7 dias"
             />
           )}
+        </div>
+      )}
+
+      {/* Previsão de Estoque Card - Para todos os usuários */}
+      {previsoesRisco !== undefined && previsoesRisco > 0 && (
+        <div className="grid gap-4">
+          <KPICard
+            title="📦 Produtos em Risco de Ruptura"
+            value={previsoesRisco}
+            icon={Brain}
+            description="Menos de 7 dias de estoque (IA)"
+          />
         </div>
       )}
 

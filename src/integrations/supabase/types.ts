@@ -503,6 +503,53 @@ export type Database = {
         }
         Relationships: []
       }
+      previsoes_estoque: {
+        Row: {
+          created_at: string
+          data_previsao: string
+          dias_restantes: number | null
+          estoque_atual: number
+          id: string
+          media_vendas_diaria: number
+          organization_id: string
+          produto_id: string
+          recomendacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_previsao?: string
+          dias_restantes?: number | null
+          estoque_atual?: number
+          id?: string
+          media_vendas_diaria?: number
+          organization_id: string
+          produto_id: string
+          recomendacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_previsao?: string
+          dias_restantes?: number | null
+          estoque_atual?: number
+          id?: string
+          media_vendas_diaria?: number
+          organization_id?: string
+          produto_id?: string
+          recomendacao?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "previsoes_estoque_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           active: boolean
