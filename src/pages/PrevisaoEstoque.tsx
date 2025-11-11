@@ -10,7 +10,7 @@ import { AlertCircle, TrendingDown, Package, RefreshCw, Mail, Loader2, BarChart3
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 
 export default function PrevisaoEstoque() {
   const [isCalculating, setIsCalculating] = useState(false);
@@ -52,14 +52,29 @@ export default function PrevisaoEstoque() {
     perdaPotencialTotal: previsoes?.reduce((acc, p) => acc + Number(p.perda_financeira || 0), 0) || 0,
   };
 
-  // Preparar dados do gráfico
+  // Preparar dados do gráfico com cores dinâmicas
   const chartData = previsoes
     ?.filter((p) => p.dias_restantes !== null && p.dias_restantes > 0)
     .slice(0, 10)
-    .map((p) => ({
-      nome: p.products?.name?.substring(0, 20) || "N/A",
-      dias: Math.floor(Number(p.dias_restantes)),
-    })) || [];
+    .map((p) => {
+      const dias = Math.floor(Number(p.dias_restantes));
+      let cor = "#10b981"; // Verde padrão
+      
+      if (dias <= 3) {
+        cor = "#ef4444"; // Vermelho crítico
+      } else if (dias <= 7) {
+        cor = "#f59e0b"; // Laranja alerta
+      } else if (dias <= 15) {
+        cor = "#eab308"; // Amarelo atenção
+      }
+      
+      return {
+        nome: p.products?.name || "N/A",
+        dias: dias,
+        cor: cor,
+        produto: p.products?.name || "N/A"
+      };
+    }) || [];
 
   const handleCalcularPrevisoes = async () => {
     if (!organizationId) return;
@@ -226,16 +241,89 @@ export default function PrevisaoEstoque() {
             <CardDescription>Top 10 produtos com menor tempo de estoque</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="nome" angle={-45} textAnchor="end" height={100} />
-                <YAxis label={{ value: "Dias", angle: -90, position: "insideLeft" }} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="dias" fill="hsl(var(--primary))" name="Dias Restantes" />
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart 
+                data={chartData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis 
+                  dataKey="nome" 
+                  angle={-35} 
+                  textAnchor="end" 
+                  height={100}
+                  tick={{ fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 500 }}
+                  interval={0}
+                />
+                <YAxis 
+                  label={{ 
+                    value: "Dias Restantes", 
+                    angle: -90, 
+                    position: "insideLeft",
+                    style: { fill: 'hsl(var(--foreground))', fontSize: 14, fontWeight: 600 }
+                  }}
+                  tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--popover))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                  }}
+                  labelStyle={{
+                    color: 'hsl(var(--popover-foreground))',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    marginBottom: '4px'
+                  }}
+                  itemStyle={{
+                    color: 'hsl(var(--popover-foreground))',
+                    fontSize: '13px'
+                  }}
+                  formatter={(value: any, name: string, props: any) => {
+                    const dias = value as number;
+                    let status = "Normal";
+                    if (dias <= 3) status = "Crítico 🔴";
+                    else if (dias <= 7) status = "Alerta 🟠";
+                    else if (dias <= 15) status = "Atenção 🟡";
+                    return [`${value} dias (${status})`, "Dias Restantes"];
+                  }}
+                  labelFormatter={(label) => `Produto: ${label}`}
+                />
+                <Bar 
+                  dataKey="dias" 
+                  name="Dias Restantes"
+                  radius={[8, 8, 0, 0]}
+                  maxBarSize={60}
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.cor} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
+            
+            {/* Legenda customizada */}
+            <div className="flex flex-wrap gap-4 justify-center mt-4 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#ef4444' }}></div>
+                <span>Crítico (≤ 3 dias)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#f59e0b' }}></div>
+                <span>Alerta (≤ 7 dias)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#eab308' }}></div>
+                <span>Atenção (≤ 15 dias)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#10b981' }}></div>
+                <span>Normal (&gt; 15 dias)</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
