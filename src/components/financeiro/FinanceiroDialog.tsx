@@ -30,10 +30,11 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2 } from "lucide-react";
+import { formatCurrency } from "@/lib/formatters";
 
 const formSchema = z.object({
   tipo: z.enum(["entrada", "saida"]),
-  descricao: z.string().min(3, "Descrição deve ter no mínimo 3 caracteres"),
+  descricao: z.string().optional(),
   produto_id: z.string().optional(),
   valor: z.string().min(1, "Valor é obrigatório"),
   data: z.string().min(1, "Data é obrigatória"),
@@ -188,6 +189,38 @@ export function FinanceiroDialog({
       }
     }
   }, [form.watch("produto_id"), allItems]);
+
+  // Calcular valor total automaticamente
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      const quantidade = parseFloat(value.quantidade || "1");
+      const custoUnitario = parseFloat(value.custo_unitario || "0");
+      const precoVenda = parseFloat(value.preco_venda || "0");
+      const tipo = value.tipo;
+      
+      let valorCalculado = 0;
+      
+      if (tipo === "entrada") {
+        // Para compras: quantidade * custo unitário
+        valorCalculado = quantidade * custoUnitario;
+      } else {
+        // Para vendas: quantidade * preço de venda
+        valorCalculado = quantidade * precoVenda;
+      }
+      
+      // Adicionar custos adicionais
+      const custoAdicionaisTotal = custosAdicionais.reduce((sum, c) => sum + c.valor, 0);
+      valorCalculado += custoAdicionaisTotal;
+      
+      // Atualizar campo valor apenas se for diferente
+      const valorAtual = parseFloat(value.valor || "0");
+      if (valorCalculado > 0 && Math.abs(valorCalculado - valorAtual) > 0.01) {
+        form.setValue("valor", valorCalculado.toFixed(2));
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form, custosAdicionais]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -365,10 +398,10 @@ export function FinanceiroDialog({
               name="descricao"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Descrição *</FormLabel>
+                  <FormLabel>Descrição</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Descreva a movimentação..."
+                      placeholder="Descreva a movimentação... (opcional)"
                       {...field}
                     />
                   </FormControl>
@@ -450,26 +483,106 @@ export function FinanceiroDialog({
             <FormField
               control={form.control}
               name="valor"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor Total *</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                        R$
-                      </span>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0,00"
-                        className="pl-10"
-                        {...field}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const quantidade = parseFloat(form.watch("quantidade") || "1");
+                const custoUnitario = parseFloat(form.watch("custo_unitario") || "0");
+                const precoVenda = parseFloat(form.watch("preco_venda") || "0");
+                const tipo = form.watch("tipo");
+                const custoAdicionaisTotal = custosAdicionais.reduce((sum, c) => sum + c.valor, 0);
+                
+                let custoBase = 0;
+                let vendaTotal = 0;
+                
+                if (tipo === "entrada") {
+                  custoBase = quantidade * custoUnitario;
+                } else {
+                  vendaTotal = quantidade * precoVenda;
+                  custoBase = quantidade * custoUnitario;
+                }
+                
+                const valorTotal = parseFloat(field.value || "0");
+                const lucroEstimado = tipo === "saida" ? vendaTotal - custoBase - custoAdicionaisTotal : 0;
+                
+                return (
+                  <FormItem>
+                    <FormLabel>Valor Total *</FormLabel>
+                    <FormControl>
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                            R$
+                          </span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0,00"
+                            className="pl-10 text-lg font-semibold"
+                            {...field}
+                            readOnly
+                          />
+                        </div>
+                        
+                        {valorTotal > 0 && (
+                          <div className="text-xs space-y-1 p-3 rounded-md bg-muted/50">
+                            <div className="font-semibold text-muted-foreground mb-2">Prévia do Cálculo:</div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Quantidade:</span>
+                              <span className="font-medium">{quantidade}</span>
+                            </div>
+                            {tipo === "entrada" && (
+                              <>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Custo unitário:</span>
+                                  <span className="font-medium">{formatCurrency(custoUnitario)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Subtotal:</span>
+                                  <span className="font-medium">{formatCurrency(custoBase)}</span>
+                                </div>
+                              </>
+                            )}
+                            {tipo === "saida" && (
+                              <>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Preço de venda:</span>
+                                  <span className="font-medium">{formatCurrency(precoVenda)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Subtotal venda:</span>
+                                  <span className="font-medium">{formatCurrency(vendaTotal)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Custo estimado:</span>
+                                  <span className="font-medium text-destructive">-{formatCurrency(custoBase)}</span>
+                                </div>
+                              </>
+                            )}
+                            {custoAdicionaisTotal > 0 && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Custos adicionais:</span>
+                                <span className="font-medium text-destructive">+{formatCurrency(custoAdicionaisTotal)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between pt-2 border-t mt-2">
+                              <span className="font-semibold">Total:</span>
+                              <span className="font-bold text-primary">{formatCurrency(valorTotal)}</span>
+                            </div>
+                            {tipo === "saida" && lucroEstimado !== 0 && (
+                              <div className="flex justify-between pt-1">
+                                <span className="font-semibold">Lucro estimado:</span>
+                                <span className={`font-bold ${lucroEstimado >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                  {formatCurrency(lucroEstimado)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <div className="space-y-2">
