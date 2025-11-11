@@ -47,6 +47,15 @@ interface CustoAdicional {
   valor: number;
 }
 
+interface ItemWithCost {
+  id: string;
+  name: string;
+  sku: string;
+  custo_unitario: number;
+  preco_venda: number;
+  isKit?: boolean;
+}
+
 interface FinanceiroDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -90,6 +99,52 @@ export function FinanceiroDialog({
     },
   });
 
+  const { data: kits } = useQuery({
+    queryKey: ["kits-with-cost"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("kits")
+        .select(`
+          id,
+          name,
+          sku,
+          kit_items (
+            quantity,
+            products (
+              custo_unitario
+            )
+          )
+        `)
+        .eq("active", true)
+        .order("name");
+      
+      if (error) throw error;
+      
+      // Calcular custo de cada kit
+      return data?.map(kit => {
+        const custoTotal = kit.kit_items.reduce((sum: number, item: any) => {
+          const custoUnitario = item.products?.custo_unitario || 0;
+          return sum + (custoUnitario * item.quantity);
+        }, 0);
+        
+        return {
+          id: kit.id,
+          name: kit.name,
+          sku: kit.sku,
+          custo_unitario: custoTotal,
+          preco_venda: 0,
+          isKit: true,
+        };
+      }) || [];
+    },
+  });
+
+  // Combinar produtos e kits
+  const allItems: ItemWithCost[] = [
+    ...(products?.map(p => ({ ...p, isKit: false })) || []), 
+    ...(kits || [])
+  ];
+
   useEffect(() => {
     if (movement) {
       form.reset({
@@ -118,21 +173,21 @@ export function FinanceiroDialog({
     }
   }, [movement, form]);
 
-  // Auto-preencher custos quando produto selecionado
+  // Auto-preencher custos quando produto ou kit selecionado
   useEffect(() => {
-    const productId = form.watch("produto_id");
-    if (productId && productId !== "none" && products) {
-      const product = products.find(p => p.id === productId);
-      if (product) {
-        if (product.custo_unitario && !form.getValues("custo_unitario")) {
-          form.setValue("custo_unitario", product.custo_unitario.toString());
+    const itemId = form.watch("produto_id");
+    if (itemId && itemId !== "none" && allItems) {
+      const item = allItems.find(p => p.id === itemId);
+      if (item) {
+        if (item.custo_unitario) {
+          form.setValue("custo_unitario", item.custo_unitario.toString());
         }
-        if (product.preco_venda && !form.getValues("preco_venda")) {
-          form.setValue("preco_venda", product.preco_venda.toString());
+        if (item.preco_venda && !item.isKit) {
+          form.setValue("preco_venda", item.preco_venda.toString());
         }
       }
     }
-  }, [form.watch("produto_id"), products]);
+  }, [form.watch("produto_id"), allItems]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -260,31 +315,50 @@ export function FinanceiroDialog({
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="produto_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Produto</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um produto (opcional)" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhum</SelectItem>
-                      {products?.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name} {product.sku && `(${product.sku})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="produto_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Produto / Kit</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um produto ou kit (opcional)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum</SelectItem>
+                        {products && products.length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                              Produtos
+                            </div>
+                            {products.map((product) => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.name} {product.sku && `(${product.sku})`}
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
+                        {kits && kits.length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                              Kits
+                            </div>
+                            {kits.map((kit) => (
+                              <SelectItem key={kit.id} value={kit.id}>
+                                🎁 {kit.name} {kit.sku && `(${kit.sku})`}
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
             <FormField
               control={form.control}
@@ -329,12 +403,18 @@ export function FinanceiroDialog({
                   <FormItem>
                     <FormLabel>Custo Unit.</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        {...field}
-                      />
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                          R$
+                        </span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0,00"
+                          className="pl-10"
+                          {...field}
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -348,12 +428,18 @@ export function FinanceiroDialog({
                   <FormItem>
                     <FormLabel>Preço Venda</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        {...field}
-                      />
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                          R$
+                        </span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0,00"
+                          className="pl-10"
+                          {...field}
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -366,14 +452,20 @@ export function FinanceiroDialog({
               name="valor"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Valor Total (R$) *</FormLabel>
+                  <FormLabel>Valor Total *</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      {...field}
-                    />
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        R$
+                      </span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0,00"
+                        className="pl-10"
+                        {...field}
+                      />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -389,7 +481,7 @@ export function FinanceiroDialog({
                 {custosAdicionais.map((custo, index) => (
                   <div key={index} className="flex gap-2">
                     <Input
-                      placeholder="Descrição"
+                      placeholder="Descrição (ex: Frete, Imposto)"
                       value={custo.descricao}
                       onChange={(e) => {
                         const novos = [...custosAdicionais];
@@ -398,18 +490,23 @@ export function FinanceiroDialog({
                       }}
                       className="flex-1"
                     />
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="R$ 0.00"
-                      value={custo.valor}
-                      onChange={(e) => {
-                        const novos = [...custosAdicionais];
-                        novos[index].valor = parseFloat(e.target.value) || 0;
-                        setCustosAdicionais(novos);
-                      }}
-                      className="w-32"
-                    />
+                    <div className="relative w-32">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        R$
+                      </span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0,00"
+                        value={custo.valor}
+                        onChange={(e) => {
+                          const novos = [...custosAdicionais];
+                          novos[index].valor = parseFloat(e.target.value) || 0;
+                          setCustosAdicionais(novos);
+                        }}
+                        className="pl-10"
+                      />
+                    </div>
                     <Button
                       type="button"
                       variant="ghost"
