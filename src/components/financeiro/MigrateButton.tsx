@@ -34,6 +34,7 @@ export function MigrateButton() {
   const [isLoading, setIsLoading] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [migrationType, setMigrationType] = useState<"products" | "kits">("products");
+  const [movementType, setMovementType] = useState<"all" | "in" | "out">("all");
   const [migrationResult, setMigrationResult] = useState<any>(null);
 
   const handleMigrate = async () => {
@@ -45,7 +46,10 @@ export function MigrateButton() {
       const { data, error } = await supabase.functions.invoke(
         'migrate-movements-to-financeiro',
         {
-          body: { type: migrationType }
+          body: { 
+            type: migrationType,
+            movementType: movementType
+          }
         }
       );
 
@@ -98,17 +102,32 @@ export function MigrateButton() {
               <p className="text-sm text-muted-foreground">
                 Movimentações já migradas serão ignoradas automaticamente.
               </p>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Tipo de Migração:</label>
-                <Select value={migrationType} onValueChange={(value: "products" | "kits") => setMigrationType(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="products">Apenas Produtos</SelectItem>
-                    <SelectItem value="kits">Apenas Kits</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tipo de Item:</label>
+                  <Select value={migrationType} onValueChange={(value: "products" | "kits") => setMigrationType(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="products">Apenas Produtos</SelectItem>
+                      <SelectItem value="kits">Apenas Kits</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tipo de Movimentação:</label>
+                  <Select value={movementType} onValueChange={(value: "all" | "in" | "out") => setMovementType(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Entradas e Saídas</SelectItem>
+                      <SelectItem value="in">Apenas Entradas (Compras)</SelectItem>
+                      <SelectItem value="out">Apenas Saídas (Vendas)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>

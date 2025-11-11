@@ -17,23 +17,32 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { type = 'products' } = await req.json();
+    const { type = 'products', movementType = 'all' } = await req.json();
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log(`Starting migration of ${type} movements to financeiro...`);
+    console.log(`Starting migration of ${type} movements (${movementType}) to financeiro...`);
 
-    // Get all IN and OUT movements filtered by type
+    // Get movements filtered by type
     let query = supabaseClient
       .from('movements')
       .select('*')
-      .in('type', ['IN', 'OUT'])
       .order('created_at', { ascending: true });
     
-    console.log('Query will fetch both IN and OUT movements');
+    // Filter by movement type (IN/OUT/both)
+    if (movementType === 'in') {
+      query = query.eq('type', 'IN');
+      console.log('Query will fetch only IN movements (compras)');
+    } else if (movementType === 'out') {
+      query = query.eq('type', 'OUT');
+      console.log('Query will fetch only OUT movements (vendas)');
+    } else {
+      query = query.in('type', ['IN', 'OUT']);
+      console.log('Query will fetch both IN and OUT movements');
+    }
 
     // Filter by product or kit
     if (type === 'products') {
