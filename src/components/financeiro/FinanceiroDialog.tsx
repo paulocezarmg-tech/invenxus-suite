@@ -59,7 +59,7 @@ export function FinanceiroDialog({
     defaultValues: {
       tipo: "entrada",
       descricao: "",
-      produto_id: "",
+      produto_id: "none",
       valor: "",
       data: new Date().toISOString().split("T")[0],
       quantidade: "",
@@ -84,7 +84,7 @@ export function FinanceiroDialog({
       form.reset({
         tipo: movement.tipo,
         descricao: movement.descricao,
-        produto_id: movement.produto_id || "",
+        produto_id: movement.produto_id || "none",
         valor: movement.valor.toString(),
         data: movement.data,
         quantidade: movement.quantidade?.toString() || "",
@@ -93,7 +93,7 @@ export function FinanceiroDialog({
       form.reset({
         tipo: "entrada",
         descricao: "",
-        produto_id: "",
+        produto_id: "none",
         valor: "",
         data: new Date().toISOString().split("T")[0],
         quantidade: "",
@@ -118,7 +118,7 @@ export function FinanceiroDialog({
       const payload = {
         tipo: values.tipo,
         descricao: values.descricao,
-        produto_id: values.produto_id || null,
+        produto_id: values.produto_id && values.produto_id !== "none" ? values.produto_id : null,
         valor: parseFloat(values.valor),
         data: values.data,
         quantidade: values.quantidade ? parseInt(values.quantidade) : null,
@@ -207,7 +207,7 @@ export function FinanceiroDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Nenhum</SelectItem>
+                      <SelectItem value="none">Nenhum</SelectItem>
                       {products?.map((product) => (
                         <SelectItem key={product.id} value={product.id}>
                           {product.name} {product.sku && `(${product.sku})`}
