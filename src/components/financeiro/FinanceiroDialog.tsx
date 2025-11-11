@@ -148,6 +148,11 @@ export function FinanceiroDialog({
 
   useEffect(() => {
     if (movement) {
+      // Calcular custo unitário real a partir de custo_total / quantidade
+      const custoUnitarioCalculado = movement.quantidade && movement.custo_total 
+        ? (movement.custo_total / movement.quantidade).toFixed(2)
+        : movement.custo_total?.toString() || "";
+      
       form.reset({
         tipo: movement.tipo,
         descricao: movement.descricao,
@@ -155,7 +160,7 @@ export function FinanceiroDialog({
         valor: movement.valor?.toString() || "",
         data: movement.data,
         quantidade: movement.quantidade?.toString() || "",
-        custo_unitario: movement.custo_total?.toString() || "",
+        custo_unitario: custoUnitarioCalculado,
         preco_venda: movement.preco_venda?.toString() || "",
       });
       setCustosAdicionais(movement.custos_adicionais || []);
