@@ -6,7 +6,7 @@ import { RecentMovements } from "@/components/dashboard/RecentMovements";
 import { StockChart } from "@/components/dashboard/StockChart";
 import { CriticalStock } from "@/components/dashboard/CriticalStock";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
-import { Package, DollarSign, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
+import { Package, DollarSign, AlertTriangle, TrendingUp, TrendingDown, Clock } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { formatCurrency } from "@/lib/formatters";
 const Dashboard = () => {
@@ -141,6 +141,32 @@ const Dashboard = () => {
     enabled: !!organizationId,
   });
 
+  // Fetch contas a vencer
+  const { data: contasAVencer } = useQuery({
+    queryKey: ['contas-a-vencer', organizationId],
+    queryFn: async () => {
+      if (!organizationId) return null;
+
+      const today = new Date();
+      const futureDate = new Date();
+      futureDate.setDate(today.getDate() + 7);
+
+      const { data, error } = await supabase
+        .from('contas')
+        .select('valor')
+        .eq('organization_id', organizationId)
+        .eq('status', 'Pendente')
+        .gte('data_vencimento', today.toISOString().split('T')[0])
+        .lte('data_vencimento', futureDate.toISOString().split('T')[0]);
+
+      if (error) throw error;
+
+      const total = data?.reduce((acc, c) => acc + Number(c.valor), 0) || 0;
+      return { count: data?.length || 0, total };
+    },
+    enabled: !!organizationId,
+  });
+
   const {
     data: stats
   } = useQuery({
@@ -210,7 +236,7 @@ const Dashboard = () => {
 
       {/* Financial KPI Cards - Only for admin and superadmin */}
       {userRole && ['admin', 'superadmin'].includes(userRole) && financialStats && (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
           <KPICard
             title="Saldo Total"
             value={formatCurrency(financialStats.saldo)}
@@ -229,6 +255,14 @@ const Dashboard = () => {
             icon={TrendingDown}
             description="Total de saídas"
           />
+          {contasAVencer && (
+            <KPICard
+              title="Contas a Vencer (7 dias)"
+              value={`${contasAVencer.count} - ${formatCurrency(contasAVencer.total)}`}
+              icon={Clock}
+              description="Próximos 7 dias"
+            />
+          )}
         </div>
       )}
 

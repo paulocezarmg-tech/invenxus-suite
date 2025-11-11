@@ -16,6 +16,7 @@ import Auth from "./pages/Auth";
 import AcceptInvite from "./pages/AcceptInvite";
 import Admin from "./pages/Admin";
 import Financeiro from "./pages/Financeiro";
+import Contas from "./pages/Contas";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 
@@ -69,6 +70,14 @@ const App = () => (
             element={
               <Layout>
                 <Financeiro />
+              </Layout>
+            }
+          />
+          <Route
+            path="/contas"
+            element={
+              <Layout>
+                <Contas />
               </Layout>
             }
           />

@@ -79,6 +79,51 @@ export type Database = {
           },
         ]
       }
+      contas: {
+        Row: {
+          categoria: string
+          created_at: string
+          data_pagamento: string | null
+          data_vencimento: string
+          descricao: string
+          id: string
+          organization_id: string
+          status: string
+          tipo: string
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento: string
+          descricao: string
+          id?: string
+          organization_id: string
+          status?: string
+          tipo: string
+          updated_at?: string
+          user_id: string
+          valor: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento?: string
+          descricao?: string
+          id?: string
+          organization_id?: string
+          status?: string
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       financeiro: {
         Row: {
           created_at: string
@@ -668,6 +713,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_contas_status: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "superadmin" | "admin" | "almoxarife" | "operador" | "auditor"

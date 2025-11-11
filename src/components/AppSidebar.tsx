@@ -1,4 +1,4 @@
-import { Home, Package, TrendingUp, FileText, Settings, LogOut, Boxes, Warehouse, Shield, DollarSign } from "lucide-react";
+import { Home, Package, TrendingUp, FileText, Settings, LogOut, Boxes, Warehouse, Shield, DollarSign, Receipt } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import stockmasterLogo from "@/assets/stockmaster-logo.png";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
@@ -66,6 +66,10 @@ export function AppSidebar() {
     title: "Financeiro",
     url: "/financeiro",
     icon: DollarSign
+  }, {
+    title: "Contas a Pagar/Receber",
+    url: "/contas",
+    icon: Receipt
   }, {
     title: "Estoque",
     url: "/stock",
