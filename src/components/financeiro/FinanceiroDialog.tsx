@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { Plus, Trash2 } from "lucide-react";
 
 const formSchema = z.object({
   tipo: z.enum(["entrada", "saida"]),
@@ -37,7 +38,14 @@ const formSchema = z.object({
   valor: z.string().min(1, "Valor é obrigatório"),
   data: z.string().min(1, "Data é obrigatória"),
   quantidade: z.string().optional(),
+  custo_unitario: z.string().optional(),
+  preco_venda: z.string().optional(),
 });
+
+interface CustoAdicional {
+  descricao: string;
+  valor: number;
+}
 
 interface FinanceiroDialogProps {
   open: boolean;
@@ -53,6 +61,7 @@ export function FinanceiroDialog({
   onSuccess,
 }: FinanceiroDialogProps) {
   const { toast } = useToast();
+  const [custosAdicionais, setCustosAdicionais] = useState<CustoAdicional[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -63,6 +72,8 @@ export function FinanceiroDialog({
       valor: "",
       data: new Date().toISOString().split("T")[0],
       quantidade: "",
+      custo_unitario: "",
+      preco_venda: "",
     },
   });
 
@@ -71,7 +82,7 @@ export function FinanceiroDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, sku")
+        .select("id, name, sku, custo_unitario, preco_venda")
         .eq("active", true)
         .order("name");
       if (error) throw error;
@@ -85,10 +96,13 @@ export function FinanceiroDialog({
         tipo: movement.tipo,
         descricao: movement.descricao,
         produto_id: movement.produto_id || "none",
-        valor: movement.valor.toString(),
+        valor: movement.valor?.toString() || "",
         data: movement.data,
         quantidade: movement.quantidade?.toString() || "",
+        custo_unitario: movement.custo_total?.toString() || "",
+        preco_venda: movement.preco_venda?.toString() || "",
       });
+      setCustosAdicionais(movement.custos_adicionais || []);
     } else {
       form.reset({
         tipo: "entrada",
@@ -97,16 +111,34 @@ export function FinanceiroDialog({
         valor: "",
         data: new Date().toISOString().split("T")[0],
         quantidade: "",
+        custo_unitario: "",
+        preco_venda: "",
       });
+      setCustosAdicionais([]);
     }
   }, [movement, form]);
+
+  // Auto-preencher custos quando produto selecionado
+  useEffect(() => {
+    const productId = form.watch("produto_id");
+    if (productId && productId !== "none" && products) {
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        if (product.custo_unitario && !form.getValues("custo_unitario")) {
+          form.setValue("custo_unitario", product.custo_unitario.toString());
+        }
+        if (product.preco_venda && !form.getValues("preco_venda")) {
+          form.setValue("preco_venda", product.preco_venda.toString());
+        }
+      }
+    }
+  }, [form.watch("produto_id"), products]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Get organization_id
       const { data: orgMember } = await supabase
         .from('organization_members')
         .select('organization_id')
@@ -114,6 +146,19 @@ export function FinanceiroDialog({
         .single();
 
       if (!orgMember) throw new Error("Organização não encontrada");
+
+      const quantidade = values.quantidade ? parseInt(values.quantidade) : 1;
+      const custoUnitario = values.custo_unitario ? parseFloat(values.custo_unitario) : 0;
+      const precoVenda = values.preco_venda ? parseFloat(values.preco_venda) : parseFloat(values.valor);
+      
+      // Calcular custo total
+      const custoProduto = custoUnitario * quantidade;
+      const custoAdicionaisTotal = custosAdicionais.reduce((sum, c) => sum + c.valor, 0);
+      const custoTotal = custoProduto + custoAdicionaisTotal;
+      
+      // Calcular lucro
+      const lucroLiquido = precoVenda - custoTotal;
+      const margemPercentual = precoVenda > 0 ? (lucroLiquido / precoVenda) * 100 : 0;
 
       const payload = {
         tipo: values.tipo,
@@ -124,6 +169,11 @@ export function FinanceiroDialog({
         quantidade: values.quantidade ? parseInt(values.quantidade) : null,
         user_id: user.id,
         organization_id: orgMember.organization_id,
+        custo_total: custoTotal,
+        preco_venda: precoVenda,
+        lucro_liquido: lucroLiquido,
+        margem_percentual: margemPercentual,
+        custos_adicionais: custosAdicionais as any,
       };
 
       if (movement) {
@@ -163,7 +213,7 @@ export function FinanceiroDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {movement ? "Editar Movimentação" : "Lançar Movimentação"}
@@ -172,27 +222,43 @@ export function FinanceiroDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="tipo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="tipo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="entrada">Compra</SelectItem>
+                        <SelectItem value="saida">Venda</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="data"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data *</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tipo" />
-                      </SelectTrigger>
+                      <Input type="date" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="entrada">Entrada</SelectItem>
-                      <SelectItem value="saida">Saída</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
@@ -222,57 +288,6 @@ export function FinanceiroDialog({
 
             <FormField
               control={form.control}
-              name="valor"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor (R$) *</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="quantidade"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quantidade</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Opcional"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="data"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Data *</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="descricao"
               render={({ field }) => (
                 <FormItem>
@@ -287,6 +302,138 @@ export function FinanceiroDialog({
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="quantidade"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantidade</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="1"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="custo_unitario"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Custo Unit.</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="preco_venda"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preço Venda</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="valor"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Valor Total (R$) *</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="space-y-2">
+              <FormLabel>Custos Adicionais</FormLabel>
+              <p className="text-xs text-muted-foreground">
+                Frete, impostos, taxas, etc.
+              </p>
+              <div className="space-y-2">
+                {custosAdicionais.map((custo, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      placeholder="Descrição"
+                      value={custo.descricao}
+                      onChange={(e) => {
+                        const novos = [...custosAdicionais];
+                        novos[index].descricao = e.target.value;
+                        setCustosAdicionais(novos);
+                      }}
+                      className="flex-1"
+                    />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="R$ 0.00"
+                      value={custo.valor}
+                      onChange={(e) => {
+                        const novos = [...custosAdicionais];
+                        novos[index].valor = parseFloat(e.target.value) || 0;
+                        setCustosAdicionais(novos);
+                      }}
+                      className="w-32"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        const novos = custosAdicionais.filter((_, i) => i !== index);
+                        setCustosAdicionais(novos);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCustosAdicionais([...custosAdicionais, { descricao: "", valor: 0 }])}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Custo
+                </Button>
+              </div>
+            </div>
 
             <div className="flex justify-end space-x-2 pt-4">
               <Button

@@ -127,10 +127,15 @@ export type Database = {
       financeiro: {
         Row: {
           created_at: string
+          custo_total: number | null
+          custos_adicionais: Json | null
           data: string
           descricao: string
           id: string
+          lucro_liquido: number | null
+          margem_percentual: number | null
           organization_id: string
+          preco_venda: number | null
           produto_id: string | null
           quantidade: number | null
           tipo: string
@@ -140,10 +145,15 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          custo_total?: number | null
+          custos_adicionais?: Json | null
           data?: string
           descricao: string
           id?: string
+          lucro_liquido?: number | null
+          margem_percentual?: number | null
           organization_id: string
+          preco_venda?: number | null
           produto_id?: string | null
           quantidade?: number | null
           tipo: string
@@ -153,10 +163,15 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          custo_total?: number | null
+          custos_adicionais?: Json | null
           data?: string
           descricao?: string
           id?: string
+          lucro_liquido?: number | null
+          margem_percentual?: number | null
           organization_id?: string
+          preco_venda?: number | null
           produto_id?: string | null
           quantidade?: number | null
           tipo?: string
@@ -264,6 +279,7 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          custos_adicionais: Json | null
           description: string | null
           id: string
           name: string
@@ -274,6 +290,7 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          custos_adicionais?: Json | null
           description?: string | null
           id?: string
           name: string
@@ -284,6 +301,7 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          custos_adicionais?: Json | null
           description?: string | null
           id?: string
           name?: string
@@ -489,6 +507,7 @@ export type Database = {
           category_id: string | null
           cost: number
           created_at: string
+          custo_unitario: number | null
           description: string | null
           id: string
           image_url: string | null
@@ -496,6 +515,7 @@ export type Database = {
           min_quantity: number
           name: string
           organization_id: string
+          preco_venda: number | null
           quantity: number
           sku: string
           supplier_id: string | null
@@ -508,6 +528,7 @@ export type Database = {
           category_id?: string | null
           cost?: number
           created_at?: string
+          custo_unitario?: number | null
           description?: string | null
           id?: string
           image_url?: string | null
@@ -515,6 +536,7 @@ export type Database = {
           min_quantity?: number
           name: string
           organization_id: string
+          preco_venda?: number | null
           quantity?: number
           sku: string
           supplier_id?: string | null
@@ -527,6 +549,7 @@ export type Database = {
           category_id?: string | null
           cost?: number
           created_at?: string
+          custo_unitario?: number | null
           description?: string | null
           id?: string
           image_url?: string | null
@@ -534,6 +557,7 @@ export type Database = {
           min_quantity?: number
           name?: string
           organization_id?: string
+          preco_venda?: number | null
           quantity?: number
           sku?: string
           supplier_id?: string | null
