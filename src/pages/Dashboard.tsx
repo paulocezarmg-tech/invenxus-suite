@@ -6,8 +6,9 @@ import { RecentMovements } from "@/components/dashboard/RecentMovements";
 import { StockChart } from "@/components/dashboard/StockChart";
 import { CriticalStock } from "@/components/dashboard/CriticalStock";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
-import { Package, DollarSign, AlertTriangle, TrendingUp } from "lucide-react";
+import { Package, DollarSign, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
+import { formatCurrency } from "@/lib/formatters";
 const Dashboard = () => {
   const queryClient = useQueryClient();
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
@@ -110,6 +111,36 @@ const Dashboard = () => {
     setDateFrom(from);
     setDateTo(to);
   };
+
+  // Fetch financial stats
+  const { data: financialStats } = useQuery({
+    queryKey: ['financial-stats', dateFrom, dateTo, organizationId],
+    queryFn: async () => {
+      if (!organizationId) return null;
+
+      let query = supabase
+        .from('financeiro')
+        .select('tipo, valor')
+        .eq('organization_id', organizationId);
+
+      if (dateFrom && dateTo) {
+        query = query
+          .gte('data', dateFrom.toISOString().split('T')[0])
+          .lte('data', dateTo.toISOString().split('T')[0]);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const entradas = data?.filter(m => m.tipo === 'entrada').reduce((acc, m) => acc + Number(m.valor), 0) || 0;
+      const saidas = data?.filter(m => m.tipo === 'saida').reduce((acc, m) => acc + Number(m.valor), 0) || 0;
+      const saldo = entradas - saidas;
+
+      return { saldo, entradas, saidas };
+    },
+    enabled: !!organizationId,
+  });
+
   const {
     data: stats
   } = useQuery({
@@ -171,14 +202,35 @@ const Dashboard = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {userRole !== "operador" && <KPICard title="Valor Total em Estoque" value={new Intl.NumberFormat("pt-BR", {
-        style: "currency",
-        currency: "BRL"
-      }).format(stats?.totalValue || 0)} icon={DollarSign} description="Valor total de produtos" />}
+        {userRole !== "operador" && <KPICard title="Valor Total em Estoque" value={formatCurrency(stats?.totalValue || 0)} icon={DollarSign} description="Valor total de produtos" />}
         <KPICard title="Itens Críticos" value={stats?.criticalItems || 0} icon={AlertTriangle} description="Abaixo do estoque mínimo" />
         <KPICard title="Movimentações Hoje" value={stats?.todayMovements || 0} icon={TrendingUp} description="Entradas e saídas do dia" />
         <KPICard title="Produtos Sem Estoque" value={stats?.zeroStock || 0} icon={Package} description="Produtos com quantidade zero" />
       </div>
+
+      {/* Financial KPI Cards - Only for admin and superadmin */}
+      {userRole && ['admin', 'superadmin'].includes(userRole) && financialStats && (
+        <div className="grid gap-4 md:grid-cols-3">
+          <KPICard
+            title="Saldo Total"
+            value={formatCurrency(financialStats.saldo)}
+            icon={DollarSign}
+            description="No período selecionado"
+          />
+          <KPICard
+            title="Entradas"
+            value={formatCurrency(financialStats.entradas)}
+            icon={TrendingUp}
+            description="Total de entradas"
+          />
+          <KPICard
+            title="Saídas"
+            value={formatCurrency(financialStats.saidas)}
+            icon={TrendingDown}
+            description="Total de saídas"
+          />
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         <StockChart />

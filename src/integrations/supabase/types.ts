@@ -79,6 +79,56 @@ export type Database = {
           },
         ]
       }
+      financeiro: {
+        Row: {
+          created_at: string
+          data: string
+          descricao: string
+          id: string
+          organization_id: string
+          produto_id: string | null
+          quantidade: number | null
+          tipo: string
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          descricao: string
+          id?: string
+          organization_id: string
+          produto_id?: string | null
+          quantidade?: number | null
+          tipo: string
+          updated_at?: string
+          user_id: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          descricao?: string
+          id?: string
+          organization_id?: string
+          produto_id?: string | null
+          quantidade?: number | null
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invites: {
         Row: {
           accepted_at: string | null

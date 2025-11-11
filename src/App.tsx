@@ -15,6 +15,7 @@ import Stock from "./pages/Stock";
 import Auth from "./pages/Auth";
 import AcceptInvite from "./pages/AcceptInvite";
 import Admin from "./pages/Admin";
+import Financeiro from "./pages/Financeiro";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 
@@ -60,6 +61,14 @@ const App = () => (
             element={
               <Layout>
                 <Movements />
+              </Layout>
+            }
+          />
+          <Route
+            path="/financeiro"
+            element={
+              <Layout>
+                <Financeiro />
               </Layout>
             }
           />
