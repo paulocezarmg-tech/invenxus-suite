@@ -134,7 +134,7 @@ const Dashboard = () => {
 
       const entradas = data?.filter(m => m.tipo === 'entrada').reduce((acc, m) => acc + Number(m.valor), 0) || 0;
       const saidas = data?.filter(m => m.tipo === 'saida').reduce((acc, m) => acc + Number(m.valor), 0) || 0;
-      const saldo = entradas - saidas;
+      const saldo = saidas - entradas;
 
       return { saldo, entradas, saidas };
     },
