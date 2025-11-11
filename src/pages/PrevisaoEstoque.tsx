@@ -274,22 +274,23 @@ export default function PrevisaoEstoque() {
                 />
                 <Tooltip 
                   contentStyle={{
-                    backgroundColor: 'hsl(var(--popover))',
-                    border: '1px solid hsl(var(--border))',
+                    backgroundColor: 'hsl(var(--background))',
+                    border: '1px solid hsl(var(--primary))',
                     borderRadius: '8px',
                     padding: '12px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
                   }}
                   labelStyle={{
-                    color: 'hsl(var(--popover-foreground))',
+                    color: 'hsl(var(--foreground))',
                     fontWeight: 600,
                     fontSize: '14px',
                     marginBottom: '4px'
                   }}
                   itemStyle={{
-                    color: 'hsl(var(--popover-foreground))',
+                    color: 'hsl(var(--foreground))',
                     fontSize: '13px'
                   }}
+                  cursor={{ fill: 'transparent' }}
                   formatter={(value: any, name: string, props: any) => {
                     const dias = value as number;
                     let status = "Normal";
