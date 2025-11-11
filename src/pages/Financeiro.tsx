@@ -79,7 +79,7 @@ export default function Financeiro() {
   // Calcular métricas de lucro real
   const totalFaturamento = movements?.reduce((sum, m) => {
     if (m.tipo === "saida") {
-      return sum + (parseFloat(m.preco_venda?.toString() || "0") || parseFloat(m.valor?.toString() || "0"));
+      return sum + (parseFloat(m.valor?.toString() || "0"));
     }
     return sum;
   }, 0) || 0;
@@ -88,9 +88,7 @@ export default function Financeiro() {
     return sum + parseFloat(m.custo_total?.toString() || "0");
   }, 0) || 0;
 
-  const lucroLiquido = movements?.reduce((sum, m) => {
-    return sum + parseFloat(m.lucro_liquido?.toString() || "0");
-  }, 0) || 0;
+  const lucroLiquido = totalFaturamento - totalCusto;
 
   const margemLucro = totalFaturamento > 0 ? (lucroLiquido / totalFaturamento) * 100 : 0;
 
