@@ -74,19 +74,35 @@ serve(async (req) => {
       );
     }
 
-    // Preparar HTML do email
+    // Preparar HTML do email com recomendações da IA
     const produtosHtml = previsoesAlerta
       .map(
         (p) => `
       <tr style="border-bottom: 1px solid #e5e7eb;">
-        <td style="padding: 12px; text-align: left;">${p.products?.name || "N/A"}</td>
-        <td style="padding: 12px; text-align: center;">${Number(p.estoque_atual).toFixed(2)}</td>
-        <td style="padding: 12px; text-align: center;">${Number(p.media_vendas_diaria).toFixed(2)}</td>
-        <td style="padding: 12px; text-align: center; color: ${Number(p.dias_restantes) <= 3 ? "#ef4444" : "#f59e0b"}; font-weight: bold;">
+        <td style="padding: 16px; text-align: left;">
+          <div style="font-weight: 600; color: #111827; font-size: 15px; margin-bottom: 4px;">
+            ${p.products?.name || "N/A"}
+          </div>
+          <div style="color: #6b7280; font-size: 13px;">SKU: ${p.products?.sku || "-"}</div>
+        </td>
+        <td style="padding: 16px; text-align: center;">${Number(p.estoque_atual).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</td>
+        <td style="padding: 16px; text-align: center;">${Number(p.media_vendas_diaria).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+        <td style="padding: 16px; text-align: center; color: ${Number(p.dias_restantes) <= 3 ? "#ef4444" : "#f59e0b"}; font-weight: bold; font-size: 16px;">
           ${Math.floor(Number(p.dias_restantes))} dias
         </td>
-        <td style="padding: 12px; text-align: center; color: #dc2626; font-weight: bold;">
+        <td style="padding: 16px; text-align: center; color: #dc2626; font-weight: 600;">
           ${Number(p.perda_financeira || 0) > 0 ? `R$ ${Number(p.perda_financeira).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
+        </td>
+      </tr>
+      <tr>
+        <td colspan="5" style="padding: 12px 16px; background-color: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+          <div style="display: flex; align-items: flex-start; gap: 8px;">
+            <div style="color: #10b981; font-size: 18px; margin-top: 2px;">🤖</div>
+            <div>
+              <div style="font-weight: 600; color: #10b981; font-size: 13px; margin-bottom: 4px;">Recomendação da IA:</div>
+              <div style="color: #374151; font-size: 14px; line-height: 1.6;">${p.recomendacao || "Nenhuma recomendação disponível."}</div>
+            </div>
+          </div>
         </td>
       </tr>
     `
@@ -119,7 +135,11 @@ serve(async (req) => {
             Olá! 👋
           </p>
           <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-            O sistema detectou <strong style="color: #dc2626;">${previsoesAlerta.length} produto(s)</strong> com estoque crítico (menos de ${limite_dias} dias restantes).
+            O sistema de IA detectou <strong style="color: #dc2626;">${previsoesAlerta.length} produto(s)</strong> com estoque crítico (menos de ${limite_dias} dias restantes).
+          </p>
+          
+          <p style="color: #374151; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">
+            Confira abaixo os detalhes e as <strong style="color: #10b981;">recomendações personalizadas da Inteligência Artificial</strong> para cada produto:
           </p>
 
           <!-- Tabela de Produtos -->
@@ -138,24 +158,24 @@ serve(async (req) => {
             </tbody>
           </table>
 
-          <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
-            <p style="color: #92400e; margin: 0; font-size: 14px; line-height: 1.6;">
-              <strong>💡 Recomendação:</strong> Providencie o reabastecimento destes produtos o quanto antes para evitar rupturas de estoque.
+          <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 24px 0; border-radius: 6px;">
+            <p style="color: #92400e; margin: 0; font-size: 14px; line-height: 1.7;">
+              <strong>💡 Ação Recomendada:</strong> As sugestões acima foram geradas por nossa Inteligência Artificial com base no histórico real de vendas. Providencie o reabastecimento o quanto antes para evitar rupturas e perdas financeiras.
             </p>
           </div>
 
           <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
-            Acesse o painel de <strong>Previsão de Estoque</strong> para mais detalhes e recomendações da IA.
+            Acesse o painel de <strong>Previsão de Estoque com IA</strong> no StockMaster CMS para visualizar análises detalhadas e gráficos preditivos.
           </p>
         </div>
 
         <!-- Footer -->
-        <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
-          <p style="color: #6b7280; font-size: 12px; margin: 0;">
+        <div style="background-color: #f9fafb; padding: 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; font-size: 12px; margin: 0 0 8px 0;">
             Este é um alerta automático do <strong>StockMaster CMS</strong>
           </p>
-          <p style="color: #9ca3af; font-size: 11px; margin: 10px 0 0 0;">
-            Sistema de Gestão de Estoque com IA
+          <p style="color: #9ca3af; font-size: 11px; margin: 0;">
+            Sistema de Gestão de Estoque com Inteligência Artificial • Previsões atualizadas diariamente
           </p>
         </div>
 
@@ -179,7 +199,7 @@ serve(async (req) => {
           body: JSON.stringify({
             from: "StockMaster CMS <onboarding@resend.dev>",
             to: [email],
-            subject: `⚠️ Alerta: ${previsoesAlerta.length} produto(s) com estoque crítico`,
+            subject: `🚨 Alerta StockMaster: ${previsoesAlerta.length} produto(s) em estoque crítico com recomendações da IA`,
             html: emailHtml,
           }),
         });
