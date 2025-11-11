@@ -260,7 +260,7 @@ export default function Stock() {
                     <TableHead>Produto</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead>Localização</TableHead>
-                    <TableHead className="text-center bg-muted/30 font-semibold">Quantidade</TableHead>
+                    <TableHead className="text-center">Quantidade</TableHead>
                     <TableHead className="text-center">Qtd. Mínima</TableHead>
                     <TableHead>Status</TableHead>
                     {userRole && userRole !== "operador" && (
@@ -279,7 +279,7 @@ export default function Stock() {
                         <TableCell className="font-medium">{product.name}</TableCell>
                         <TableCell className="text-muted-foreground">{product.category?.name || "-"}</TableCell>
                         <TableCell className="text-muted-foreground">{product.location?.name || "-"}</TableCell>
-                        <TableCell className="text-center font-bold text-lg bg-muted/20 tabular-nums">
+                        <TableCell className="text-center font-semibold tabular-nums">
                           {formatNumber(Number(product.quantity))} {product.unit}
                         </TableCell>
                         <TableCell className="text-center text-muted-foreground tabular-nums">
