@@ -63,6 +63,7 @@ interface MovementDialogProps {
 
 export function MovementDialog({ open, onOpenChange, movement }: MovementDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [custoUnitario, setCustoUnitario] = useState(0);
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
 
@@ -146,6 +147,60 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
 
   const movementType = form.watch("type");
   const itemType = form.watch("item_type");
+  const productId = form.watch("product_id");
+  const kitId = form.watch("kit_id");
+  const quantity = form.watch("quantity");
+
+  // Fetch cost when product/kit changes
+  useEffect(() => {
+    const fetchCost = async () => {
+      if (itemType === "product" && productId) {
+        const { data: product } = await supabase
+          .from("products")
+          .select("custo_unitario")
+          .eq("id", productId)
+          .single();
+        
+        if (product) {
+          setCustoUnitario(Number(product.custo_unitario) || 0);
+        }
+      } else if (itemType === "kit" && kitId) {
+        const { data: kit } = await supabase
+          .from("kits")
+          .select(`
+            custos_adicionais,
+            kit_items (
+              quantity,
+              products (custo_unitario)
+            )
+          `)
+          .eq("id", kitId)
+          .single();
+        
+        if (kit) {
+          let kitCost = 0;
+          if (kit.kit_items) {
+            for (const item of kit.kit_items) {
+              const productCost = Number(item.products?.custo_unitario) || 0;
+              kitCost += productCost * Number(item.quantity);
+            }
+          }
+
+          if (kit.custos_adicionais && Array.isArray(kit.custos_adicionais)) {
+            for (const custo of kit.custos_adicionais as unknown as CustoAdicional[]) {
+              kitCost += Number(custo.valor) || 0;
+            }
+          }
+
+          setCustoUnitario(kitCost);
+        }
+      } else {
+        setCustoUnitario(0);
+      }
+    };
+
+    fetchCost();
+  }, [productId, kitId, itemType]);
 
   const onSubmit = async (data: MovementFormData) => {
     setIsSubmitting(true);
@@ -432,6 +487,29 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
                 </FormItem>
               )}
             />
+
+            {movementType === "IN" && custoUnitario > 0 && quantity && (
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Custo Unitário:</span>
+                  <span className="text-sm">
+                    {new Intl.NumberFormat('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                    }).format(custoUnitario)}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between border-t pt-2">
+                  <span className="text-sm font-medium">Valor Total:</span>
+                  <span className="text-lg font-bold text-primary">
+                    {new Intl.NumberFormat('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                    }).format(custoUnitario * parseFloat(quantity || '0'))}
+                  </span>
+                </div>
+              </div>
+            )}
 
             {movementType === "TRANSFER" && (
               <>
