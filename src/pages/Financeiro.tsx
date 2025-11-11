@@ -46,7 +46,11 @@ export default function Financeiro() {
       }
 
       if (filterProduct !== "all") {
-        query = query.eq("produto_id", filterProduct);
+        // Buscar tanto pelo produto_id quanto pela descrição que contém o nome
+        const selectedItem = [...(products || []), ...(kits || [])].find(item => item.id === filterProduct);
+        if (selectedItem) {
+          query = query.or(`produto_id.eq.${filterProduct},descricao.ilike.%${selectedItem.name}%`);
+        }
       }
 
       if (startDate) {
