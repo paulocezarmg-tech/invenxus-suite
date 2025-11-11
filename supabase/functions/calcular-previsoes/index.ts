@@ -43,13 +43,12 @@ serve(async (req) => {
     data30DiasAtras.setDate(data30DiasAtras.getDate() - 30);
 
     for (const produto of produtos || []) {
-      // Buscar movimentações de saída dos últimos 30 dias
+      // Buscar TODAS as movimentações de saída do produto
       const { data: movimentos, error: movimentosError } = await supabaseClient
         .from("movements")
         .select("quantity, created_at")
         .eq("product_id", produto.id)
         .eq("type", "OUT")
-        .gte("created_at", data30DiasAtras.toISOString())
         .order("created_at", { ascending: true });
 
       if (movimentosError) {
@@ -60,23 +59,49 @@ serve(async (req) => {
       // Calcular média de vendas diárias
       let totalVendas = 0;
       const diasComVendas = new Set();
+      let primeiraVenda: Date | null = null;
+      let ultimaVenda: Date | null = null;
 
       if (movimentos && movimentos.length > 0) {
         for (const mov of movimentos) {
           totalVendas += Number(mov.quantity);
-          const dia = new Date(mov.created_at).toISOString().split("T")[0];
+          const dataVenda = new Date(mov.created_at);
+          const dia = dataVenda.toISOString().split("T")[0];
           diasComVendas.add(dia);
+          
+          if (!primeiraVenda || dataVenda < primeiraVenda) {
+            primeiraVenda = dataVenda;
+          }
+          if (!ultimaVenda || dataVenda > ultimaVenda) {
+            ultimaVenda = dataVenda;
+          }
         }
       }
 
-      const numeroDiasComVendas = diasComVendas.size || 1;
-      const mediaVendasDiaria = totalVendas / numeroDiasComVendas;
+      // Calcular número de dias entre primeira e última venda
+      let diasPeriodo = 1;
+      if (primeiraVenda && ultimaVenda) {
+        const diffTime = Math.abs(ultimaVenda.getTime() - primeiraVenda.getTime());
+        diasPeriodo = Math.max(Math.ceil(diffTime / (1000 * 60 * 60 * 24)), 1); // Mínimo 1 dia
+      }
+
+      // Se houver movimentações mas todas no mesmo dia, usar 1 dia
+      if (movimentos && movimentos.length > 0 && diasPeriodo === 0) {
+        diasPeriodo = 1;
+      }
+
+      // Usar o período real de vendas para calcular a média
+      const mediaVendasDiaria = diasPeriodo > 0 && totalVendas > 0 ? totalVendas / diasPeriodo : 0;
       const estoqueAtual = Number(produto.quantity);
 
-      let diasRestantes = null;
-      let recomendacao = "Sem dados suficientes para previsão.";
+      console.log(`Produto ${produto.name}: ${movimentos?.length || 0} movimentações, Total vendas: ${totalVendas}, Período: ${diasPeriodo} dias, Média: ${mediaVendasDiaria.toFixed(2)}/dia`);
 
-      if (mediaVendasDiaria > 0) {
+      let diasRestantes = null;
+      let recomendacao = "Sem movimentações de saída registradas. Não é possível calcular previsão.";
+
+      if (movimentos && movimentos.length === 0) {
+        recomendacao = `O produto ${produto.name} ainda não possui movimentações de saída. Comece a registrar saídas para gerar previsões automáticas.`;
+      } else if (mediaVendasDiaria > 0) {
         diasRestantes = estoqueAtual / mediaVendasDiaria;
 
         // Calcular data estimada de reabastecimento
