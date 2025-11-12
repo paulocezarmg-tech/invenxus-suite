@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, CheckCircle, AlertCircle, DollarSign, TrendingUp, TrendingDown, Clock, Paperclip } from "lucide-react";
+import { Plus, Pencil, Trash2, CheckCircle, AlertCircle, DollarSign, TrendingUp, TrendingDown, Clock, Paperclip, Bell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format, differenceInDays, parseISO } from "date-fns";
@@ -183,6 +183,31 @@ export default function Contas() {
     }
   };
 
+  const handleSendAlerts = async () => {
+    try {
+      toast({
+        title: "Enviando alertas...",
+        description: "Processando contas a vencer.",
+      });
+
+      const { data, error } = await supabase.functions.invoke("enviar-alertas-contas");
+
+      if (error) throw error;
+
+      toast({
+        title: "Alertas enviados!",
+        description: data.message || "Notificações enviadas com sucesso.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao enviar alertas",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", className: string }> = {
       Pago: { variant: "default", className: "bg-green-600 hover:bg-green-700" },
@@ -206,15 +231,21 @@ export default function Contas() {
             Organize seus compromissos financeiros e acompanhe vencimentos
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedConta(null);
-            setDialogOpen(true);
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Conta
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleSendAlerts}>
+            <Bell className="mr-2 h-4 w-4" />
+            Enviar Alertas
+          </Button>
+          <Button
+            onClick={() => {
+              setSelectedConta(null);
+              setDialogOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Conta
+          </Button>
+        </div>
       </div>
 
       {contasVencendoEmBreve && contasVencendoEmBreve.length > 0 && (
