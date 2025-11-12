@@ -95,7 +95,7 @@ export default function Contas() {
     },
   });
 
-  // Update overdue status
+  // Update overdue status on mount
   useEffect(() => {
     const updateOverdueStatus = async () => {
       const { error } = await supabase.rpc('update_contas_status');
@@ -104,7 +104,7 @@ export default function Contas() {
       }
     };
     updateOverdueStatus();
-  }, [refetch]);
+  }, []); // Run only once on mount
 
   const categorias = [...new Set(contas?.map(c => c.categoria) || [])];
 
