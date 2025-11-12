@@ -205,6 +205,28 @@ serve(async (req: Request) => {
 
       const htmlContasString = htmlContas.join('');
 
+      // Gerar anexos (attachments) com URLs assinadas válidas por 7 dias
+      const attachmentsPayload: { filename: string; path: string }[] = [];
+      for (const conta of contasOrg) {
+        if (conta.anexos && conta.anexos.length > 0) {
+          for (const anexo of conta.anexos) {
+            try {
+              const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+                .from('conta-documentos')
+                .createSignedUrl(anexo.path, 604800);
+              if (!signedUrlError && signedUrlData?.signedUrl) {
+                attachmentsPayload.push({ filename: anexo.name, path: signedUrlData.signedUrl });
+              } else if (signedUrlError) {
+                console.error('Erro ao assinar anexo para attachment:', signedUrlError);
+              }
+            } catch (e) {
+                console.error('Exceção ao preparar attachment:', e);
+            }
+          }
+        }
+      }
+      console.log(`Total de anexos adicionados ao email: ${attachmentsPayload.length}`);
+
       const emailHtml = `
         <!DOCTYPE html>
         <html>
@@ -257,6 +279,7 @@ serve(async (req: Request) => {
               to: [email],
               subject: `⚠️ ${contasOrg.length} conta(s) a vencer nos próximos 3 dias`,
               html: emailHtml,
+              attachments: attachmentsPayload,
             }),
           });
 
