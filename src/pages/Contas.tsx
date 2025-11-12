@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, CheckCircle, AlertCircle, DollarSign, TrendingUp, TrendingDown, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, CheckCircle, AlertCircle, DollarSign, TrendingUp, TrendingDown, Clock, Paperclip } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format, differenceInDays, parseISO } from "date-fns";
@@ -356,7 +356,17 @@ export default function Contas() {
                       {conta.tipo}
                     </Badge>
                   </TableCell>
-                  <TableCell>{conta.descricao}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span>{conta.descricao}</span>
+                      {conta.anexos && Array.isArray(conta.anexos) && conta.anexos.length > 0 && (
+                        <Badge variant="outline" className="gap-1">
+                          <Paperclip className="h-3 w-3" />
+                          {conta.anexos.length}
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>{conta.categoria}</TableCell>
                   <TableCell>R$ {parseFloat(conta.valor.toString()).toFixed(2)}</TableCell>
                   <TableCell>{getStatusBadge(conta.status)}</TableCell>

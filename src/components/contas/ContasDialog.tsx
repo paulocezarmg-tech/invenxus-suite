@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -28,6 +28,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { FileUp, X, Download, FileText } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const formSchema = z.object({
   tipo: z.enum(["Pagar", "Receber"]),
@@ -64,6 +66,8 @@ export function ContasDialog({
   onSuccess,
 }: ContasDialogProps) {
   const { toast } = useToast();
+  const [anexos, setAnexos] = useState<Array<{ name: string; url: string; path: string }>>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -89,6 +93,12 @@ export function ContasDialog({
         status: conta.status,
         data_pagamento: conta.data_pagamento || "",
       });
+      // Carregar anexos existentes
+      if (conta.anexos && Array.isArray(conta.anexos)) {
+        setAnexos(conta.anexos);
+      } else {
+        setAnexos([]);
+      }
     } else {
       form.reset({
         tipo: "Pagar",
@@ -99,8 +109,117 @@ export function ContasDialog({
         status: "Pendente",
         data_pagamento: "",
       });
+      setAnexos([]);
     }
   }, [conta, form]);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingFile(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data: orgMember } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!orgMember) throw new Error("Organização não encontrada");
+
+      const uploadedFiles: Array<{ name: string; url: string; path: string }> = [];
+
+      for (const file of Array.from(files)) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${orgMember.organization_id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('conta-documentos')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('conta-documentos')
+          .getPublicUrl(filePath);
+
+        uploadedFiles.push({
+          name: file.name,
+          url: publicUrl,
+          path: filePath,
+        });
+      }
+
+      setAnexos([...anexos, ...uploadedFiles]);
+      toast({
+        title: "Arquivos enviados",
+        description: `${uploadedFiles.length} arquivo(s) enviado(s) com sucesso.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao enviar arquivo",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const handleRemoveFile = async (index: number) => {
+    try {
+      const fileToRemove = anexos[index];
+      
+      const { error } = await supabase.storage
+        .from('conta-documentos')
+        .remove([fileToRemove.path]);
+
+      if (error) throw error;
+
+      const newAnexos = anexos.filter((_, i) => i !== index);
+      setAnexos(newAnexos);
+
+      toast({
+        title: "Arquivo removido",
+        description: "O arquivo foi removido com sucesso.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao remover arquivo",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadFile = async (anexo: { name: string; url: string; path: string }) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('conta-documentos')
+        .download(anexo.path);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = anexo.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao baixar arquivo",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -125,6 +244,7 @@ export function ContasDialog({
         data_pagamento: values.data_pagamento || null,
         user_id: user.id,
         organization_id: orgMember.organization_id,
+        anexos: anexos,
       };
 
       if (conta) {
@@ -308,6 +428,64 @@ export function ContasDialog({
                 )}
               />
             )}
+
+            <div className="space-y-2">
+              <FormLabel>Anexos (Boletos, Comprovantes, etc.)</FormLabel>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={uploadingFile}
+                  onClick={() => document.getElementById('file-upload')?.click()}
+                >
+                  <FileUp className="h-4 w-4 mr-2" />
+                  {uploadingFile ? "Enviando..." : "Adicionar Arquivo"}
+                </Button>
+                <input
+                  id="file-upload"
+                  type="file"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+              </div>
+
+              {anexos.length > 0 && (
+                <div className="space-y-2 mt-3">
+                  {anexos.map((anexo, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 border rounded-lg bg-muted/50"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <FileText className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                        <span className="text-sm truncate">{anexo.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownloadFile(anexo)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveFile(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div className="flex justify-end space-x-2 pt-4">
               <Button

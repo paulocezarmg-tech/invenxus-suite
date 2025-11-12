@@ -81,6 +81,7 @@ export type Database = {
       }
       contas: {
         Row: {
+          anexos: Json | null
           categoria: string
           created_at: string
           data_pagamento: string | null
@@ -95,6 +96,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          anexos?: Json | null
           categoria: string
           created_at?: string
           data_pagamento?: string | null
@@ -109,6 +111,7 @@ export type Database = {
           valor: number
         }
         Update: {
+          anexos?: Json | null
           categoria?: string
           created_at?: string
           data_pagamento?: string | null
