@@ -10,12 +10,36 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import logo from "@/assets/stockmaster-logo.png";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Reports = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
   const [dateTo, setDateTo] = useState<Date | null>(null);
   const { data: organizationId } = useOrganization();
+  const { isAdmin, isSuperAdmin, isLoading: isLoadingRole } = useUserRole();
+
+  // Redirect if not admin or superadmin
+  if (!isLoadingRole && !isAdmin() && !isSuperAdmin()) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2>
+          <p className="text-muted-foreground">
+            Esta funcionalidade está disponível apenas para administradores.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoadingRole) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">Carregando...</div>
+      </div>
+    );
+  }
 
   const handleDateChange = (from: Date | null, to: Date | null) => {
     setDateFrom(from);

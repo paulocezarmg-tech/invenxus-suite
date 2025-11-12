@@ -63,34 +63,47 @@ export function AppSidebar() {
     url: "/movements",
     icon: TrendingUp
   }, {
-    title: "Financeiro",
-    url: "/financeiro",
-    icon: DollarSign
-  }, {
-    title: "Contas a Pagar/Receber",
-    url: "/contas",
-    icon: Receipt
-  }, {
     title: "Estoque",
     url: "/stock",
     icon: Warehouse
-  }, {
-    title: "Previsão de Estoque",
-    url: "/previsao-estoque",
-    icon: Brain
-  }, {
-    title: "Relatórios",
-    url: "/reports",
-    icon: FileText
   }, {
     title: "Configurações",
     url: "/settings",
     icon: Settings
   }];
 
-  const menuItems = userRole === "superadmin" 
-    ? [...baseMenuItems, { title: "Administração", url: "/admin", icon: Shield }]
-    : baseMenuItems;
+  // Items only for admin and superadmin
+  const adminMenuItems = [
+    {
+      title: "Financeiro",
+      url: "/financeiro",
+      icon: DollarSign
+    }, {
+      title: "Contas a Pagar/Receber",
+      url: "/contas",
+      icon: Receipt
+    }, {
+      title: "Previsão de Estoque",
+      url: "/previsao-estoque",
+      icon: Brain
+    }, {
+      title: "Relatórios",
+      url: "/reports",
+      icon: FileText
+    }
+  ];
+
+  let menuItems = [...baseMenuItems];
+  
+  // Add admin items if user is admin or superadmin
+  if (userRole === "admin" || userRole === "superadmin") {
+    menuItems = [...baseMenuItems.slice(0, 5), ...adminMenuItems, ...baseMenuItems.slice(5)];
+  }
+
+  // Add administration if superadmin
+  if (userRole === "superadmin") {
+    menuItems = [...menuItems, { title: "Administração", url: "/admin", icon: Shield }];
+  }
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();

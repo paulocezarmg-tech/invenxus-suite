@@ -247,7 +247,14 @@ const Dashboard = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {userRole !== "operador" && <KPICard title="Valor Total em Estoque" value={formatCurrency(stats?.totalValue || 0)} icon={DollarSign} description="Valor total de produtos" />}
+        {(userRole === "admin" || userRole === "superadmin") && (
+          <KPICard 
+            title="Valor Total em Estoque" 
+            value={formatCurrency(stats?.totalValue || 0)} 
+            icon={DollarSign} 
+            description="Valor total de produtos" 
+          />
+        )}
         <KPICard title="Itens Críticos" value={stats?.criticalItems || 0} icon={AlertTriangle} description="Abaixo do estoque mínimo" />
         <KPICard title="Movimentações Hoje" value={stats?.todayMovements || 0} icon={TrendingUp} description="Entradas e saídas do dia" />
         <KPICard title="Produtos Sem Estoque" value={stats?.zeroStock || 0} icon={Package} description="Produtos com quantidade zero" />

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,6 +21,21 @@ export default function PrevisaoEstoque() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
+  const { isAdmin, isSuperAdmin, isLoading: isLoadingRole } = useUserRole();
+
+  // Redirect if not admin or superadmin
+  if (!isLoadingRole && !isAdmin() && !isSuperAdmin()) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2>
+          <p className="text-muted-foreground">
+            Esta funcionalidade está disponível apenas para administradores.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Buscar previsões
   const { data: previsoes, isLoading } = useQuery({
@@ -137,7 +153,7 @@ export default function PrevisaoEstoque() {
     setIsDialogOpen(true);
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingRole) {
     return (
       <div className="flex items-center justify-center h-96">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

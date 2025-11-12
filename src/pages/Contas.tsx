@@ -36,7 +36,29 @@ export default function Contas() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoriaFilter, setCategoriaFilter] = useState<string>("all");
   const { toast } = useToast();
-  const { userRole, isAdmin, isSuperAdmin } = useUserRole();
+  const { userRole, isAdmin, isSuperAdmin, isLoading: isLoadingRole } = useUserRole();
+
+  // Redirect if not admin or superadmin
+  if (!isLoadingRole && !isAdmin() && !isSuperAdmin()) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2>
+          <p className="text-muted-foreground">
+            Esta funcionalidade está disponível apenas para administradores.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoadingRole) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">Carregando...</div>
+      </div>
+    );
+  }
 
   const handleDateChange = (from: Date | null, to: Date | null) => {
     setDateRange({ from: from || undefined, to: to || undefined });
