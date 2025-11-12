@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,14 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, DollarSign, TrendingUp, TrendingDown, Percent, Pencil, Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, DollarSign, TrendingUp, TrendingDown, Percent, Pencil, Trash2, FileText, Download, BarChart3 } from "lucide-react";
 import { FinanceiroDialog } from "@/components/financeiro/FinanceiroDialog";
 import { MigrateButton } from "@/components/financeiro/MigrateButton";
 import { formatCurrency } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useUserRole } from "@/hooks/useUserRole";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+
+const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
 export default function Financeiro() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -23,6 +27,7 @@ export default function Financeiro() {
   const [filterProduct, setFilterProduct] = useState<string>("all");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  const [activeTab, setActiveTab] = useState("movimentacoes");
   const { toast } = useToast();
   const { userRole, isAdmin, isSuperAdmin, isLoading: isLoadingRole } = useUserRole();
 
@@ -131,6 +136,65 @@ export default function Financeiro() {
 
   const margemLucro = totalFaturamento > 0 ? (lucroLiquido / totalFaturamento) * 100 : 0;
 
+  // Dados para gráficos de relatórios
+  const chartData = useMemo(() => {
+    if (!movements) return { monthly: [], products: [], daily: [] };
+
+    // Agrupar por mês
+    const monthlyData: Record<string, { faturamento: number; custo: number; lucro: number }> = {};
+    
+    movements.forEach(m => {
+      const monthKey = format(new Date(m.data), "MMM/yy", { locale: ptBR });
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { faturamento: 0, custo: 0, lucro: 0 };
+      }
+      
+      const valor = m.tipo === "saida" ? parseFloat(m.valor?.toString() || "0") : 0;
+      const custo = parseFloat(m.custo_total?.toString() || "0");
+      
+      monthlyData[monthKey].faturamento += valor;
+      monthlyData[monthKey].custo += custo;
+      monthlyData[monthKey].lucro += m.tipo === "saida" ? (valor - custo) : 0;
+    });
+
+    const monthly = Object.entries(monthlyData).map(([mes, data]) => ({
+      mes,
+      faturamento: data.faturamento,
+      custo: data.custo,
+      lucro: data.lucro,
+    }));
+
+    // Agrupar por produto (top 5)
+    const productData: Record<string, { lucro: number; vendas: number; nome: string }> = {};
+    
+    movements.forEach(m => {
+      if (m.tipo !== "saida") return;
+      
+      const produto = products?.find(p => p.id === m.produto_id);
+      const nome = produto?.name || m.descricao;
+      
+      if (!productData[nome]) {
+        productData[nome] = { lucro: 0, vendas: 0, nome };
+      }
+      
+      productData[nome].lucro += parseFloat(m.lucro_liquido?.toString() || "0");
+      productData[nome].vendas += parseFloat(m.valor?.toString() || "0");
+    });
+
+    const productsArray = Object.values(productData)
+      .sort((a, b) => b.lucro - a.lucro)
+      .slice(0, 5);
+
+    return { monthly, products: productsArray, daily: [] };
+  }, [movements, products]);
+
+  const exportPDF = () => {
+    toast({
+      title: "Exportando relatório",
+      description: "A funcionalidade de exportação em PDF será implementada em breve.",
+    });
+  };
+
   const handleEdit = (movement: any) => {
     setSelectedMovement(movement);
     setIsDialogOpen(true);
@@ -175,8 +239,21 @@ export default function Financeiro() {
         </div>
       </div>
 
-      {/* Cards de Métricas */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="movimentacoes">
+            <FileText className="h-4 w-4 mr-2" />
+            Movimentações
+          </TabsTrigger>
+          <TabsTrigger value="relatorios">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Relatórios
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Cards de Métricas */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Faturamento Total</CardTitle>
@@ -230,8 +307,10 @@ export default function Financeiro() {
         </Card>
       </div>
 
-      {/* Filtros */}
-      <Card>
+      {/* Aba de Movimentações */}
+      <TabsContent value="movimentacoes" className="space-y-6">
+        {/* Filtros */}
+        <Card>
         <CardHeader>
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
@@ -420,6 +499,142 @@ export default function Financeiro() {
           </div>
         </CardContent>
       </Card>
+      </TabsContent>
+
+      {/* Aba de Relatórios */}
+      <TabsContent value="relatorios" className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold">Análises e Relatórios</h2>
+            <p className="text-muted-foreground">Visualize tendências e insights do seu negócio</p>
+          </div>
+          <Button onClick={exportPDF} variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Exportar PDF
+          </Button>
+        </div>
+
+        {/* Gráfico de Evolução Mensal */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Evolução Mensal</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData.monthly}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value: number) => formatCurrency(value)}
+                  contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="faturamento" stroke="#10b981" name="Faturamento" strokeWidth={2} />
+                <Line type="monotone" dataKey="custo" stroke="#ef4444" name="Custo Total" strokeWidth={2} />
+                <Line type="monotone" dataKey="lucro" stroke="#3b82f6" name="Lucro Líquido" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Produtos Mais Lucrativos */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Top 5 Produtos Mais Lucrativos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData.products}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="nome" angle={-15} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value: number) => formatCurrency(value)}
+                  contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                />
+                <Legend />
+                <Bar dataKey="lucro" fill="#10b981" name="Lucro Líquido" />
+                <Bar dataKey="vendas" fill="#3b82f6" name="Faturamento" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Análise de Desempenho */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Resumo do Período</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Total de Vendas:</span>
+                <span className="font-bold">{movements?.filter(m => m.tipo === "saida").length || 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Total de Compras:</span>
+                <span className="font-bold">{movements?.filter(m => m.tipo === "entrada").length || 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Ticket Médio:</span>
+                <span className="font-bold">
+                  {formatCurrency(
+                    movements?.filter(m => m.tipo === "saida").length 
+                      ? totalFaturamento / movements.filter(m => m.tipo === "saida").length 
+                      : 0
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Lucro Médio/Venda:</span>
+                <span className="font-bold text-green-500">
+                  {formatCurrency(
+                    movements?.filter(m => m.tipo === "saida").length 
+                      ? lucroLiquido / movements.filter(m => m.tipo === "saida").length 
+                      : 0
+                  )}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Indicadores de Performance</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-muted-foreground">ROI (Retorno sobre Investimento)</span>
+                  <span className={`text-sm font-bold ${totalCusto > 0 && (lucroLiquido / totalCusto) * 100 >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {totalCusto > 0 ? `${((lucroLiquido / totalCusto) * 100).toFixed(1)}%` : "0%"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-muted-foreground">Margem Bruta</span>
+                  <span className="text-sm font-bold text-primary">
+                    {margemLucro.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-muted-foreground">Custo / Faturamento</span>
+                  <span className="text-sm font-bold">
+                    {totalFaturamento > 0 ? `${((totalCusto / totalFaturamento) * 100).toFixed(1)}%` : "0%"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Status</span>
+                  <Badge variant={lucroLiquido >= 0 ? "default" : "destructive"}>
+                    {lucroLiquido >= 0 ? "Lucrativo" : "Prejuízo"}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </TabsContent>
+      </Tabs>
 
       <FinanceiroDialog
         open={isDialogOpen}
