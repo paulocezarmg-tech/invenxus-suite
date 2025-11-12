@@ -127,28 +127,60 @@ serve(async (req: Request) => {
         continue;
       }
 
-      // Gerar HTML do email
-      const htmlContas = contasOrg.map(conta => {
+      // Gerar HTML do email com URLs assinadas para os anexos
+      const htmlContas = await Promise.all(contasOrg.map(async (conta) => {
         const diasRestantes = Math.ceil(
           (new Date(conta.data_vencimento).getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)
         );
         
-        const anexosHtml = conta.anexos && conta.anexos.length > 0
-          ? `
-            <div style="margin-top: 10px;">
-              <strong>📎 Anexos:</strong>
-              <ul style="margin: 5px 0; padding-left: 20px;">
-                ${conta.anexos.map(anexo => `
-                  <li>
-                    <a href="${anexo.url}" style="color: #2563eb; text-decoration: none;">
-                      ${anexo.name}
-                    </a>
-                  </li>
-                `).join('')}
-              </ul>
-            </div>
-          `
-          : '';
+        let anexosHtml = '';
+        if (conta.anexos && conta.anexos.length > 0) {
+          // Gerar URLs assinadas para cada anexo (válidas por 7 dias)
+          const anexosComUrls = await Promise.all(
+            conta.anexos.map(async (anexo) => {
+              try {
+                const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+                  .from('conta-documentos')
+                  .createSignedUrl(anexo.path, 604800); // 7 dias em segundos
+                
+                if (signedUrlError) {
+                  console.error(`Erro ao gerar URL assinada para ${anexo.name}:`, signedUrlError);
+                  return null;
+                }
+                
+                return {
+                  name: anexo.name,
+                  signedUrl: signedUrlData.signedUrl
+                };
+              } catch (error) {
+                console.error(`Erro ao processar anexo ${anexo.name}:`, error);
+                return null;
+              }
+            })
+          );
+          
+          const anexosValidos = anexosComUrls.filter(a => a !== null);
+          
+          if (anexosValidos.length > 0) {
+            anexosHtml = `
+              <div style="margin-top: 10px;">
+                <strong>📎 Anexos:</strong>
+                <ul style="margin: 5px 0; padding-left: 20px;">
+                  ${anexosValidos.map(anexo => `
+                    <li>
+                      <a href="${anexo!.signedUrl}" style="color: #2563eb; text-decoration: none;">
+                        ${anexo!.name}
+                      </a>
+                    </li>
+                  `).join('')}
+                </ul>
+                <p style="font-size: 12px; color: #64748b; margin-top: 5px;">
+                  ⏰ Links válidos por 7 dias
+                </p>
+              </div>
+            `;
+          }
+        }
 
         return `
           <div style="background: #f8fafc; border-left: 4px solid ${conta.tipo === 'Pagar' ? '#dc2626' : '#16a34a'}; padding: 15px; margin: 10px 0; border-radius: 4px;">
@@ -169,7 +201,9 @@ serve(async (req: Request) => {
             </div>
           </div>
         `;
-      }).join('');
+      }));
+
+      const htmlContasString = htmlContas.join('');
 
       const emailHtml = `
         <!DOCTYPE html>
@@ -189,7 +223,7 @@ serve(async (req: Request) => {
               </p>
 
               <div style="margin: 20px 0;">
-                ${htmlContas}
+                ${htmlContasString}
               </div>
 
               <div style="margin-top: 30px; padding: 20px; background: #eff6ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
