@@ -270,16 +270,16 @@ const Dashboard = () => {
             description="No período selecionado"
           />
           <KPICard
-            title="Entradas"
+            title="Total Comprado"
             value={formatCurrency(financialStats.entradas)}
             icon={TrendingUp}
-            description="Total de entradas"
+            description="Total de compras"
           />
           <KPICard
-            title="Saídas"
+            title="Total Vendido"
             value={formatCurrency(financialStats.saidas)}
             icon={TrendingDown}
-            description="Total de saídas"
+            description="Total de vendas"
           />
           {contasAVencer && (
             <KPICard
