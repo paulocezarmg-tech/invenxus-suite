@@ -231,22 +231,23 @@ const Dashboard = () => {
         <div className="text-muted-foreground">Carregando...</div>
       </div>;
   }
-  return <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold">Dashboard</h1>
+  return <div className="min-h-screen bg-background">
+    <div className="p-8 space-y-8">
+      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl font-bold tracking-tight">Dashboard</h1>
           </div>
-          {userProfile?.name && <p className="mb-1 text-xl font-semibold">{getGreeting()}, {userProfile.name}! 👋
+          {userProfile?.name && <p className="text-xl font-semibold text-foreground">{getGreeting()}, {userProfile.name}! 👋
             </p>}
-          <p className="text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             Visão geral do estoque e movimentações
           </p>
         </div>
         <DateRangeFilter onDateChange={handleDateChange} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {(userRole === "admin" || userRole === "superadmin") && (
           <KPICard 
             title="Valor Total em Estoque" 
@@ -262,7 +263,7 @@ const Dashboard = () => {
 
       {/* Financial KPI Cards - Only for admin and superadmin */}
       {userRole && ['admin', 'superadmin'].includes(userRole) && financialStats && (
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-4">
           <KPICard
             title="Saldo Total"
             value={formatCurrency(financialStats.saldo)}
@@ -294,7 +295,7 @@ const Dashboard = () => {
 
       {/* Previsão de Estoque Card - Para todos os usuários */}
       {previsoesRisco !== undefined && previsoesRisco > 0 && (
-        <div className="grid gap-4">
+        <div className="grid gap-6">
           <KPICard
             title="📦 Produtos em Risco de Ruptura"
             value={previsoesRisco}
@@ -315,6 +316,7 @@ const Dashboard = () => {
       )}
 
       <RecentMovements />
-    </div>;
+    </div>
+  </div>;
 };
 export default Dashboard;

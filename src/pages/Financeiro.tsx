@@ -224,85 +224,94 @@ export default function Financeiro() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Painel de Lucro Real</h1>
-          <p className="text-muted-foreground">Controle completo de custos e lucratividade</p>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-8 space-y-8">
+        <div className="flex flex-col gap-6 md:flex-row md:justify-between md:items-start">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold tracking-tight">Painel de Lucro Real</h1>
+            <p className="text-base text-muted-foreground">Controle completo de custos e lucratividade</p>
+          </div>
+          <div className="flex gap-3">
+            <MigrateButton />
+            <Button onClick={() => { setSelectedMovement(null); setIsDialogOpen(true); }} className="h-11">
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Movimentação
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <MigrateButton />
-          <Button onClick={() => { setSelectedMovement(null); setIsDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Movimentação
-          </Button>
-        </div>
-      </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="movimentacoes">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+        <TabsList className="grid w-full max-w-md grid-cols-2 h-11">
+          <TabsTrigger value="movimentacoes" className="text-sm font-medium">
             <FileText className="h-4 w-4 mr-2" />
             Movimentações
           </TabsTrigger>
-          <TabsTrigger value="relatorios">
+          <TabsTrigger value="relatorios" className="text-sm font-medium">
             <BarChart3 className="h-4 w-4 mr-2" />
             Relatórios
           </TabsTrigger>
         </TabsList>
 
         {/* Cards de Métricas */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Faturamento Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Faturamento Total</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <DollarSign className="h-5 w-5 text-primary" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">
+          <CardContent className="space-y-1">
+            <div className="text-3xl font-bold tracking-tight">
               {formatCurrency(totalFaturamento)}
             </div>
-            <p className="text-xs text-muted-foreground">Total de vendas realizadas</p>
+            <p className="text-sm text-muted-foreground">Total de vendas realizadas</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custo Total</CardTitle>
-            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Custo Total</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+              <TrendingDown className="h-5 w-5 text-destructive" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">
+          <CardContent className="space-y-1">
+            <div className="text-3xl font-bold tracking-tight text-destructive">
               {formatCurrency(totalCusto)}
             </div>
-            <p className="text-xs text-muted-foreground">Custos + despesas operacionais</p>
+            <p className="text-sm text-muted-foreground">Custos + despesas operacionais</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Lucro Líquido</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Lucro Líquido</CardTitle>
+            <div className={`h-10 w-10 rounded-full flex items-center justify-center ${lucroLiquido >= 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
+              <TrendingUp className={`h-5 w-5 ${lucroLiquido >= 0 ? 'text-success' : 'text-destructive'}`} />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${lucroLiquido >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+          <CardContent className="space-y-1">
+            <div className={`text-3xl font-bold tracking-tight ${lucroLiquido >= 0 ? 'text-success' : 'text-destructive'}`}>
               {formatCurrency(lucroLiquido)}
             </div>
-            <p className="text-xs text-muted-foreground">Faturamento - custos totais</p>
+            <p className="text-sm text-muted-foreground">Faturamento - custos totais</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Margem de Lucro</CardTitle>
-            <Percent className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Margem de Lucro</CardTitle>
+            <div className={`h-10 w-10 rounded-full flex items-center justify-center ${margemLucro >= 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
+              <Percent className={`h-5 w-5 ${margemLucro >= 0 ? 'text-success' : 'text-destructive'}`} />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${margemLucro >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+          <CardContent className="space-y-1">
+            <div className={`text-3xl font-bold tracking-tight ${margemLucro >= 0 ? 'text-success' : 'text-destructive'}`}>
               {margemLucro.toFixed(1)}%
             </div>
-            <p className="text-xs text-muted-foreground">Percentual de lucro sobre vendas</p>
+            <p className="text-sm text-muted-foreground">Percentual de lucro sobre vendas</p>
           </CardContent>
         </Card>
       </div>
@@ -310,9 +319,9 @@ export default function Financeiro() {
       {/* Aba de Movimentações */}
       <TabsContent value="movimentacoes" className="space-y-6">
         {/* Filtros */}
-        <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
+        <Card className="border-0 shadow-card">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg font-semibold">Filtros</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-4">
@@ -388,9 +397,9 @@ export default function Financeiro() {
       </Card>
 
       {/* Tabela de Movimentações */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Movimentações Financeiras</CardTitle>
+      <Card className="border-0 shadow-card">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg font-semibold">Movimentações Financeiras</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
@@ -502,22 +511,22 @@ export default function Financeiro() {
       </TabsContent>
 
       {/* Aba de Relatórios */}
-      <TabsContent value="relatorios" className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold">Análises e Relatórios</h2>
-            <p className="text-muted-foreground">Visualize tendências e insights do seu negócio</p>
+      <TabsContent value="relatorios" className="space-y-8">
+        <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-start">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tight">Análises e Relatórios</h2>
+            <p className="text-base text-muted-foreground">Visualize tendências e insights do seu negócio</p>
           </div>
-          <Button onClick={exportPDF} variant="outline">
+          <Button onClick={exportPDF} variant="outline" className="h-11">
             <Download className="h-4 w-4 mr-2" />
             Exportar PDF
           </Button>
         </div>
 
         {/* Gráfico de Evolução Mensal */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Evolução Mensal</CardTitle>
+        <Card className="border-0 shadow-card">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold">Evolução Mensal</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -539,9 +548,9 @@ export default function Financeiro() {
         </Card>
 
         {/* Produtos Mais Lucrativos */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Top 5 Produtos Mais Lucrativos</CardTitle>
+        <Card className="border-0 shadow-card">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold">Top 5 Produtos Mais Lucrativos</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -562,10 +571,10 @@ export default function Financeiro() {
         </Card>
 
         {/* Análise de Desempenho */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Resumo do Período</CardTitle>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card className="border-0 shadow-card">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold">Resumo do Período</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center">
@@ -599,9 +608,9 @@ export default function Financeiro() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Indicadores de Performance</CardTitle>
+          <Card className="border-0 shadow-card">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold">Indicadores de Performance</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -646,6 +655,7 @@ export default function Financeiro() {
           setSelectedMovement(null);
         }}
       />
+      </div>
     </div>
   );
 }

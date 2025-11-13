@@ -223,98 +223,118 @@ export default function Contas() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Contas a Pagar e Receber</h1>
-          <p className="text-muted-foreground">
-            Organize seus compromissos financeiros e acompanhe vencimentos
-          </p>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-8 space-y-8">
+        <div className="flex flex-col gap-6 md:flex-row md:justify-between md:items-start">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold tracking-tight">Contas a Pagar e Receber</h1>
+            <p className="text-base text-muted-foreground">
+              Organize seus compromissos financeiros e acompanhe vencimentos
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={handleSendAlerts} className="h-11">
+              <Bell className="mr-2 h-4 w-4" />
+              Enviar Alertas
+            </Button>
+            <Button
+              onClick={() => {
+                setSelectedConta(null);
+                setDialogOpen(true);
+              }}
+              className="h-11"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Conta
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleSendAlerts}>
-            <Bell className="mr-2 h-4 w-4" />
-            Enviar Alertas
-          </Button>
-          <Button
-            onClick={() => {
-              setSelectedConta(null);
-              setDialogOpen(true);
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Conta
-          </Button>
+
+        {contasVencendoEmBreve && contasVencendoEmBreve.length > 0 && (
+          <Alert className="border-warning/50 bg-warning/10">
+            <AlertCircle className="h-5 w-5 text-warning" />
+            <AlertDescription className="text-sm font-medium">
+              Você possui {contasVencendoEmBreve.length} conta(s) vencendo em breve!
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Contas a Receber
+              </CardTitle>
+              <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-success" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="text-3xl font-bold tracking-tight">
+                R$ {totalReceber.toFixed(2)}
+              </div>
+              <p className="text-sm text-muted-foreground">Valores pendentes</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Contas a Pagar
+              </CardTitle>
+              <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                <TrendingDown className="h-5 w-5 text-destructive" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="text-3xl font-bold tracking-tight">
+                R$ {totalPagar.toFixed(2)}
+              </div>
+              <p className="text-sm text-muted-foreground">Valores pendentes</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Contas Vencidas
+              </CardTitle>
+              <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
+                <AlertCircle className="h-5 w-5 text-warning" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="text-3xl font-bold tracking-tight text-warning">
+                R$ {totalVencidas.toFixed(2)}
+              </div>
+              <p className="text-sm text-muted-foreground">Atrasadas</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Pagas/Recebidas
+              </CardTitle>
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <CheckCircle className="h-5 w-5 text-primary" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="text-3xl font-bold tracking-tight">
+                R$ {totalPagas.toFixed(2)}
+              </div>
+              <p className="text-sm text-muted-foreground">Total pago</p>
+            </CardContent>
+          </Card>
         </div>
-      </div>
 
-      {contasVencendoEmBreve && contasVencendoEmBreve.length > 0 && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            ⚠️ Você possui {contasVencendoEmBreve.length} conta(s) vencendo em breve!
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Contas a Receber</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+        <Card className="border-0 shadow-card">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold">Filtros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              R$ {totalReceber.toFixed(2)}
-            </div>
-            <p className="text-xs text-muted-foreground">Pendentes</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Contas a Pagar</CardTitle>
-            <TrendingDown className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              R$ {totalPagar.toFixed(2)}
-            </div>
-            <p className="text-xs text-muted-foreground">Pendentes</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Contas Vencidas</CardTitle>
-            <AlertCircle className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              R$ {totalVencidas.toFixed(2)}
-            </div>
-            <p className="text-xs text-muted-foreground">Atrasadas</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pagas/Recebidas</CardTitle>
-            <CheckCircle className="h-4 w-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">R$ {totalPagas.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Total pago</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-4">
             <Select value={tipoFilter} onValueChange={setTipoFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Tipo" />
@@ -357,11 +377,11 @@ export default function Contas() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de Contas</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <Card className="border-0 shadow-card">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold">Lista de Contas</CardTitle>
+          </CardHeader>
+          <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
@@ -449,6 +469,7 @@ export default function Contas() {
           setSelectedConta(null);
         }}
       />
+      </div>
     </div>
   );
 }
