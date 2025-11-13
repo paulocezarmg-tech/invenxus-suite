@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -102,21 +103,22 @@ export default function Kits() {
   const canManage = userRole === "admin" || userRole === "superadmin" || userRole === "almoxarife";
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Kits</h1>
-          <p className="text-muted-foreground">
-            Gerencie os kits de produtos
-          </p>
+    <div className="min-h-screen bg-background">
+      <div className="p-8 space-y-8 animate-fade-in">
+        <div className="flex flex-col gap-6 md:flex-row md:justify-between md:items-start">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold tracking-tight">Kits</h1>
+            <p className="text-base text-muted-foreground">
+              Gerencie os kits de produtos
+            </p>
+          </div>
+          {canManage && (
+            <Button onClick={handleAdd} className="h-11 gap-2">
+              <Plus className="h-4 w-4" />
+              Novo Kit
+            </Button>
+          )}
         </div>
-        {canManage && (
-          <Button onClick={handleAdd}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Kit
-          </Button>
-        )}
-      </div>
 
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
@@ -130,8 +132,11 @@ export default function Kits() {
         </div>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border-0">
+        <Card className="border-0 shadow-card">
+          <CardContent className="p-0">
+            <div className="rounded-lg overflow-x-auto">
+              <Table>
           <TableHeader>
             <TableRow>
               <TableHead>SKU</TableHead>
@@ -199,6 +204,9 @@ export default function Kits() {
             )}
           </TableBody>
         </Table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <KitDialog
@@ -206,6 +214,7 @@ export default function Kits() {
         onOpenChange={setIsDialogOpen}
         kit={selectedKit}
       />
+      </div>
     </div>
   );
 }

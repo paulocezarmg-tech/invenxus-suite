@@ -170,54 +170,63 @@ export default function Stock() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Estoque em Tempo Real</h1>
-        <p className="text-muted-foreground">
-          Visualize seu estoque atualizado automaticamente
-        </p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <div className="p-8 space-y-8 animate-fade-in">
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight">Estoque em Tempo Real</h1>
+          <p className="text-base text-muted-foreground">
+            Visualize seu estoque atualizado automaticamente
+          </p>
+        </div>
 
-      {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalProducts}</div>
-          </CardContent>
-        </Card>
+        {/* Statistics Cards */}
+        <div className="grid gap-6 md:grid-cols-4">
+          <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Total de Produtos</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Package className="h-5 w-5 text-primary" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="text-3xl font-bold tracking-tight">{totalProducts}</div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Estoque Crítico</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{criticalStock}</div>
-          </CardContent>
-        </Card>
+          <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Estoque Crítico</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-warning" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="text-3xl font-bold tracking-tight text-warning">{criticalStock}</div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Sem Estoque</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-destructive" />
+        <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Sem Estoque</CardTitle>
+            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{outOfStock}</div>
+          <CardContent className="space-y-1">
+            <div className="text-3xl font-bold tracking-tight text-destructive">{outOfStock}</div>
           </CardContent>
         </Card>
 
         {userRole && userRole !== "operador" && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
+          <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Valor Total</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center">
+                <CheckCircle className="h-5 w-5 text-success" />
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+            <CardContent className="space-y-1">
+              <div className="text-3xl font-bold tracking-tight text-success">
                 {new Intl.NumberFormat("pt-BR", {
                   style: "currency",
                   currency: "BRL",
@@ -319,6 +328,7 @@ export default function Stock() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

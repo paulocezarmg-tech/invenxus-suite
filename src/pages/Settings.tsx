@@ -60,38 +60,39 @@ const Settings = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <Tabs defaultValue={defaultTab} className="w-full">
-        <TabsList className="inline-flex h-12 items-center justify-start gap-2 rounded-lg bg-card/50 p-1 border border-border">
-          <TabsTrigger 
-            value="profile"
-            className="inline-flex items-center gap-2 rounded-md px-4 py-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
-          >
-            <User className="h-4 w-4" />
-            Meu Perfil
-          </TabsTrigger>
-          {userRole !== "operador" && (
-            <>
-              <TabsTrigger 
-                value="users" 
-                className="inline-flex items-center gap-2 rounded-md px-4 py-2 data-[state=active]:bg-success/20 data-[state=active]:text-success"
-              >
-                <Users className="h-4 w-4" />
-                Usuários
-              </TabsTrigger>
-              <TabsTrigger 
-                value="invites"
-                className="inline-flex items-center gap-2 rounded-md px-4 py-2 data-[state=inactive]:text-muted-foreground"
-              >
-                <UserPlus className="h-4 w-4" />
-                Convites
-              </TabsTrigger>
-              <TabsTrigger value="categories">Categorias</TabsTrigger>
-              <TabsTrigger value="locations">Locais</TabsTrigger>
-              <TabsTrigger value="suppliers">Fornecedores</TabsTrigger>
-            </>
-          )}
-        </TabsList>
+    <div className="min-h-screen bg-background">
+      <div className="p-8 space-y-8 animate-fade-in">
+        <Tabs defaultValue={defaultTab} className="w-full space-y-8">
+          <TabsList className="inline-flex h-12 items-center justify-start gap-2 rounded-lg bg-card p-1 border-0 shadow-card">
+            <TabsTrigger 
+              value="profile"
+              className="inline-flex items-center gap-2 rounded-md px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <User className="h-4 w-4" />
+              Meu Perfil
+            </TabsTrigger>
+            {userRole !== "operador" && (
+              <>
+                <TabsTrigger 
+                  value="users" 
+                  className="inline-flex items-center gap-2 rounded-md px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  <Users className="h-4 w-4" />
+                  Usuários
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="invites"
+                  className="inline-flex items-center gap-2 rounded-md px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Convites
+                </TabsTrigger>
+                <TabsTrigger value="categories" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Categorias</TabsTrigger>
+                <TabsTrigger value="locations" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Locais</TabsTrigger>
+                <TabsTrigger value="suppliers" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Fornecedores</TabsTrigger>
+              </>
+            )}
+          </TabsList>
 
         <TabsContent value="profile" className="mt-6">
           <ProfileSettings />
@@ -127,6 +128,7 @@ const Settings = () => {
           </>
         )}
       </Tabs>
+      </div>
     </div>
   );
 };

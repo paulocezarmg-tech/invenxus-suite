@@ -202,72 +202,81 @@ const Products = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Produtos</h1>
-          <p className="text-muted-foreground">
-            Gerenciar catálogo de produtos
-          </p>
+    <div className="min-h-screen bg-background">
+      <div className="p-8 space-y-8 animate-fade-in">
+        <div className="flex flex-col gap-6 md:flex-row md:justify-between md:items-start">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold tracking-tight">Produtos</h1>
+            <p className="text-base text-muted-foreground">
+              Gerenciar catálogo de produtos
+            </p>
+          </div>
+          <Button
+            className="h-11 gap-2"
+            onClick={() => {
+              setSelectedProduct(null);
+              setDialogOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Novo Produto
+          </Button>
         </div>
-        <Button
-          className="gap-2"
-          onClick={() => {
-            setSelectedProduct(null);
-            setDialogOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4" />
-          Novo Produto
-        </Button>
-      </div>
 
-      {/* Metrics Cards */}
-      <div className={`grid gap-4 ${userRole === "operador" ? "md:grid-cols-3" : "md:grid-cols-2 lg:grid-cols-4"}`}>
-        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total de Produtos</CardTitle>
-            <Package className="h-5 w-5 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats?.total || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Estoque Crítico</CardTitle>
-            <AlertCircle className="h-5 w-5 text-warning" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-warning">{stats?.critical || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Sem Estoque</CardTitle>
-            <TrendingDown className="h-5 w-5 text-danger" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-danger">{stats?.outOfStock || 0}</div>
-          </CardContent>
-        </Card>
-
-        {userRole && userRole !== "operador" && (
-          <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Valor Total</CardTitle>
-              <DollarSign className="h-5 w-5 text-success" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-success">
-                R$ {(stats?.totalValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+        {/* Metrics Cards */}
+        <div className={`grid gap-6 ${userRole === "operador" ? "md:grid-cols-3" : "md:grid-cols-2 lg:grid-cols-4"}`}>
+          <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Total de Produtos</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Package className="h-5 w-5 text-primary" />
               </div>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="text-3xl font-bold tracking-tight">{stats?.total || 0}</div>
             </CardContent>
           </Card>
-        )}
-      </div>
+
+          <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Estoque Crítico</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
+                <AlertCircle className="h-5 w-5 text-warning" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="text-3xl font-bold tracking-tight text-warning">{stats?.critical || 0}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Sem Estoque</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-danger/10 flex items-center justify-center">
+                <TrendingDown className="h-5 w-5 text-danger" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="text-3xl font-bold tracking-tight text-danger">{stats?.outOfStock || 0}</div>
+            </CardContent>
+          </Card>
+
+          {userRole && userRole !== "operador" && (
+            <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+                <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Valor Total</CardTitle>
+                <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-success" />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-1">
+                <div className="text-3xl font-bold tracking-tight text-success">
+                  R$ {(stats?.totalValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
@@ -281,8 +290,10 @@ const Products = () => {
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-card/50 shadow-card overflow-x-auto">
-        <Table className="table-fixed">
+      <Card className="border-0 shadow-card">
+        <CardContent className="p-0">
+          <div className="rounded-lg overflow-x-auto">
+            <Table className="table-fixed">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[120px]">SKU</TableHead>
@@ -375,13 +386,16 @@ const Products = () => {
             )}
           </TableBody>
         </Table>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <ProductDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         product={selectedProduct}
       />
+      </div>
     </div>
   );
 };
