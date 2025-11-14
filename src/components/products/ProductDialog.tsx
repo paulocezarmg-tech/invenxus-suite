@@ -45,6 +45,7 @@ const productSchema = z.object({
   min_quantity: z.string().min(0, "Quantidade mínima deve ser positiva"),
   location_id: z.string().optional(),
   supplier_id: z.string().optional(),
+  initial_quantity: z.string().optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -115,6 +116,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
           min_quantity: "0",
           location_id: "",
           supplier_id: "",
+          initial_quantity: "",
         },
   });
 
@@ -234,8 +236,40 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
         if (error) throw error;
         toast.success("Produto atualizado com sucesso");
       } else {
-        const { error } = await supabase.from("products").insert(productData);
+        const { data: newProduct, error } = await supabase
+          .from("products")
+          .insert(productData)
+          .select()
+          .single();
+        
         if (error) throw error;
+
+        // Se houver quantidade inicial, criar movimentação de entrada
+        const initialQty = data.initial_quantity ? parseFloat(data.initial_quantity) : 0;
+        if (initialQty > 0 && newProduct) {
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          const movementData = {
+            product_id: newProduct.id,
+            type: 'IN' as const,
+            quantity: initialQty,
+            to_location_id: data.location_id || null,
+            note: 'Entrada inicial ao cadastrar produto',
+            reference: sku,
+            organization_id: organizationId,
+            created_by: user?.id,
+          };
+
+          const { error: movementError } = await supabase
+            .from("movements")
+            .insert(movementData);
+
+          if (movementError) {
+            console.error("Erro ao criar movimentação inicial:", movementError);
+            toast.warning("Produto criado, mas não foi possível registrar a entrada inicial");
+          }
+        }
+        
         toast.success("Produto criado com sucesso");
       }
 
@@ -447,6 +481,31 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
                 )}
               />
             </div>
+
+            {!product && (
+              <FormField
+                control={form.control}
+                name="initial_quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantidade Inicial</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="1" 
+                        min="0" 
+                        placeholder="Deixe vazio se não houver estoque inicial"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      Informe a quantidade inicial se já possui este produto em estoque
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
