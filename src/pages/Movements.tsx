@@ -280,13 +280,13 @@ const Movements = () => {
               <TableHead>Origem</TableHead>
               <TableHead>Destino</TableHead>
               <TableHead>Referência</TableHead>
-              {userRole === "superadmin" && <TableHead className="w-[100px]">Ações</TableHead>}
+              {(userRole === "superadmin" || userRole === "operador" || userRole === "almoxarife" || userRole === "admin") && <TableHead className="w-[100px]">Ações</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={userRole === "superadmin" ? 8 : 7} className="text-center">
+                <TableCell colSpan={(userRole === "superadmin" || userRole === "operador" || userRole === "almoxarife" || userRole === "admin") ? 8 : 7} className="text-center">
                   Carregando...
                 </TableCell>
               </TableRow>
@@ -322,7 +322,7 @@ const Movements = () => {
                   <TableCell className="font-mono text-sm">
                     {movement.reference || "-"}
                   </TableCell>
-                  {userRole === "superadmin" && (
+                  {(userRole === "superadmin" || userRole === "operador" || userRole === "almoxarife" || userRole === "admin") && (
                     <TableCell>
                       <div className="flex gap-2">
                         <Button
@@ -335,13 +335,15 @@ const Movements = () => {
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(movement.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {userRole === "superadmin" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(movement.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   )}
@@ -349,7 +351,7 @@ const Movements = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={userRole === "superadmin" ? 8 : 7} className="text-center text-muted-foreground">
+                <TableCell colSpan={(userRole === "superadmin" || userRole === "operador" || userRole === "almoxarife" || userRole === "admin") ? 8 : 7} className="text-center text-muted-foreground">
                   Nenhuma movimentação encontrada
                 </TableCell>
               </TableRow>
