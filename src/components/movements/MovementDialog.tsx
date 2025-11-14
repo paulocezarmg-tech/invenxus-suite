@@ -5,6 +5,7 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Check, ChevronsUpDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,10 +29,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useOrganization } from "@/hooks/useOrganization";
+import { cn } from "@/lib/utils";
 
 const movementSchema = z.object({
   type: z.enum(["IN", "OUT", "TRANSFER"]),
@@ -64,6 +79,8 @@ interface MovementDialogProps {
 export function MovementDialog({ open, onOpenChange, movement }: MovementDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [custoUnitario, setCustoUnitario] = useState(0);
+  const [openProductCombo, setOpenProductCombo] = useState(false);
+  const [openKitCombo, setOpenKitCombo] = useState(false);
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
 
@@ -427,22 +444,56 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
                 control={form.control}
                 name="product_id"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel>Produto *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o produto" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {products?.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.sku} - {product.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={openProductCombo} onOpenChange={setOpenProductCombo}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openProductCombo}
+                            className={cn(
+                              "w-full justify-between h-10",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? products?.find((product) => product.id === field.value)?.name
+                              : "Selecione o produto"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Digite para buscar..." />
+                          <CommandList>
+                            <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              {products?.map((product) => (
+                                <CommandItem
+                                  key={product.id}
+                                  value={`${product.sku} ${product.name}`}
+                                  onSelect={() => {
+                                    form.setValue("product_id", product.id);
+                                    setOpenProductCombo(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      field.value === product.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {product.sku} - {product.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -452,22 +503,56 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
                 control={form.control}
                 name="kit_id"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel>Kit *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o kit" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {kits?.map((kit) => (
-                          <SelectItem key={kit.id} value={kit.id}>
-                            {kit.sku} - {kit.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={openKitCombo} onOpenChange={setOpenKitCombo}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openKitCombo}
+                            className={cn(
+                              "w-full justify-between h-10",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? kits?.find((kit) => kit.id === field.value)?.name
+                              : "Selecione o kit"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Digite para buscar..." />
+                          <CommandList>
+                            <CommandEmpty>Nenhum kit encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              {kits?.map((kit) => (
+                                <CommandItem
+                                  key={kit.id}
+                                  value={`${kit.sku} ${kit.name}`}
+                                  onSelect={() => {
+                                    form.setValue("kit_id", kit.id);
+                                    setOpenKitCombo(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      field.value === kit.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {kit.sku} - {kit.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
