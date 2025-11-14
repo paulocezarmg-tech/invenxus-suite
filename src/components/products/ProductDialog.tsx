@@ -160,26 +160,28 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
       // Generate SKU if not provided
       let sku = data.sku?.trim() || "";
       if (!sku) {
-        // Get the count of existing products to generate sequential SKU
-        const { count } = await supabase
-          .from("products")
-          .select("*", { count: 'exact', head: true })
-          .eq("organization_id", organizationId);
+        // Generate a unique SKU with timestamp to avoid collisions
+        const timestamp = Date.now().toString().slice(-6);
+        const random = Math.floor(Math.random() * 999).toString().padStart(3, '0');
+        sku = `SKU-${timestamp}-${random}`;
         
-        const nextNumber = (count || 0) + 1;
-        sku = `SKU-${nextNumber.toString().padStart(4, '0')}`;
-        
-        // Check if this SKU already exists (in case of concurrent creation)
-        const { data: existingCheck } = await supabase
-          .from("products")
-          .select("id")
-          .eq("sku", sku)
-          .eq("organization_id", organizationId);
-        
-        if (existingCheck && existingCheck.length > 0) {
-          // If exists, append random suffix
-          const random = Math.floor(Math.random() * 99).toString().padStart(2, '0');
-          sku = `SKU-${nextNumber.toString().padStart(4, '0')}-${random}`;
+        // Verify uniqueness (very unlikely to collide, but double-check)
+        let attempts = 0;
+        while (attempts < 5) {
+          const { data: existingCheck } = await supabase
+            .from("products")
+            .select("id")
+            .eq("sku", sku)
+            .eq("organization_id", organizationId);
+          
+          if (!existingCheck || existingCheck.length === 0) {
+            break;
+          }
+          
+          // If exists, generate new random suffix
+          const newRandom = Math.floor(Math.random() * 999).toString().padStart(3, '0');
+          sku = `SKU-${timestamp}-${newRandom}`;
+          attempts++;
         }
       }
 
