@@ -22,7 +22,12 @@ export const NotificationBell = () => {
     queryKey: ["notifications"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!user) {
+        console.log("No user found for notifications");
+        return [];
+      }
+
+      console.log("Fetching notifications for user:", user.id);
 
       const { data, error } = await supabase
         .from("notifications")
@@ -31,8 +36,13 @@ export const NotificationBell = () => {
         .order("created_at", { ascending: false })
         .limit(20);
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error fetching notifications:", error);
+        throw error;
+      }
+      
+      console.log("Notifications fetched:", data);
+      return data || [];
     },
   });
 
