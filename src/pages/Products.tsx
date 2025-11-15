@@ -17,6 +17,7 @@ import { Plus, Search, Pencil, Trash2, Package, TrendingDown, AlertCircle, Dolla
 import { ProductDialog } from "@/components/products/ProductDialog";
 import { toast } from "sonner";
 import { useOrganization } from "@/hooks/useOrganization";
+import { formatNumber } from "@/lib/formatters";
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -301,7 +302,7 @@ const Products = () => {
               <TableHead className="w-[120px]">Categoria</TableHead>
               <TableHead className="w-[90px]">Qtd.</TableHead>
               <TableHead className="w-[90px]">Mín.</TableHead>
-              <TableHead className="w-[130px]">Local</TableHead>
+              <TableHead className="min-w-[180px]">Local</TableHead>
               {userRole && userRole !== "operador" && <TableHead className="w-[100px]">Custo</TableHead>}
               <TableHead className="w-[110px]">Status</TableHead>
               {userRole === "superadmin" && <TableHead className="w-[100px]">Ações</TableHead>}
@@ -339,10 +340,10 @@ const Products = () => {
                       {product.categories?.name || "N/A"}
                     </div>
                   </TableCell>
-                  <TableCell className="font-medium text-sm">{product.quantity}</TableCell>
-                  <TableCell className="text-sm">{product.min_quantity}</TableCell>
+                  <TableCell className="font-medium text-sm">{formatNumber(Number(product.quantity))}</TableCell>
+                  <TableCell className="text-sm">{formatNumber(Number(product.min_quantity))}</TableCell>
                   <TableCell className="text-sm">
-                    <div className="truncate max-w-[130px]" title={product.locations?.name}>
+                    <div className="max-w-[180px] break-words" title={product.locations?.name}>
                       {product.locations?.name || "N/A"}
                     </div>
                   </TableCell>
