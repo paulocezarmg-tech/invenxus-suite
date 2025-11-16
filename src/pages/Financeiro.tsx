@@ -33,27 +33,30 @@ export default function Financeiro() {
   const { toast } = useToast();
   const { userRole, isAdmin, isSuperAdmin, isLoading: isLoadingRole } = useUserRole();
 
-  // Redirect if not admin or superadmin
-  if (!isLoadingRole && !isAdmin() && !isSuperAdmin()) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          <h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2>
-          <p className="text-muted-foreground">
-            Esta funcionalidade está disponível apenas para administradores.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Fetch products and kits first (needed for queries)
+  const { data: products } = useQuery({
+    queryKey: ["products-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, sku")
+        .eq("active", true);
+      if (error) throw error;
+      return data;
+    },
+  });
 
-  if (isLoadingRole) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Carregando...</div>
-      </div>
-    );
-  }
+  const { data: kits } = useQuery({
+    queryKey: ["kits-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("kits")
+        .select("id, name, sku")
+        .eq("active", true);
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: movements, isLoading, refetch } = useQuery({
     queryKey: ["financeiro", filterType, filterProduct, startDate, endDate],
@@ -96,31 +99,27 @@ export default function Financeiro() {
     },
   });
 
-  const { data: products } = useQuery({
-    queryKey: ["products-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("products")
-        .select("id, name, sku")
-        .eq("active", true)
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
+  // Redirect if not admin or superadmin - AFTER all hooks
+  if (!isLoadingRole && !isAdmin() && !isSuperAdmin()) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2>
+          <p className="text-muted-foreground">
+            Esta funcionalidade está disponível apenas para administradores.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  const { data: kits } = useQuery({
-    queryKey: ["kits-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("kits")
-        .select("id, name, sku")
-        .eq("active", true)
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
+  if (isLoadingRole) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">Carregando...</div>
+      </div>
+    );
+  }
 
   // Calcular métricas de lucro real
   const totalFaturamento = movements?.reduce((sum, m) => {
