@@ -192,10 +192,11 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Weekly report generation error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: errorMessage 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
