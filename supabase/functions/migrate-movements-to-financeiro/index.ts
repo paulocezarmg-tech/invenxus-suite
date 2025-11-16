@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
           .eq('data', new Date(movement.created_at).toISOString().split('T')[0])
           .eq('tipo', movement.type === 'IN' ? 'entrada' : 'saida')
           .eq('quantidade', movement.quantity)
-          .ilike('descricao', `${migrationDescription}%Migração`)
+          .ilike('descricao', `${migrationDescription}%`)
           .maybeSingle();
 
         if (existing) {
@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
           const financeiroData = {
             tipo: movement.type === "IN" ? "entrada" : "saida",
             data: new Date(movement.created_at).toISOString().split('T')[0],
-            descricao: `${movement.type === "IN" ? "Entrada" : "Saída"} - ${itemName}${movement.reference ? ` (${movement.reference})` : ""} - Migração`,
+            descricao: `${movement.type === "IN" ? "Entrada" : "Saída"} - ${itemName}${movement.reference ? ` (${movement.reference})` : ""}`,
             produto_id: null, // Don't use foreign key - just store description
             quantidade: quantity,
             custo_total: custoTotal,
