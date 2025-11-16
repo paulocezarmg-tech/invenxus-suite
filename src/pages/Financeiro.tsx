@@ -17,6 +17,8 @@ import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from
 import { ptBR } from "date-fns/locale";
 import { useUserRole } from "@/hooks/useUserRole";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
@@ -188,11 +190,145 @@ export default function Financeiro() {
     return { monthly, products: productsArray, daily: [] };
   }, [movements, products]);
 
-  const exportPDF = () => {
-    toast({
-      title: "Exportando relatório",
-      description: "A funcionalidade de exportação em PDF será implementada em breve.",
-    });
+  const exportPDF = async () => {
+    try {
+      toast({
+        title: "Gerando PDF",
+        description: "Aguarde enquanto o relatório é gerado...",
+      });
+
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      // Logo
+      try {
+        const logoImg = new Image();
+        logoImg.src = "/src/assets/stockmaster-logo.png";
+        doc.addImage(logoImg, "PNG", 14, 10, 30, 30);
+      } catch (error) {
+        console.log("Logo não encontrado");
+      }
+
+      // Título
+      doc.setFontSize(22);
+      doc.setTextColor(16, 185, 129);
+      doc.text("Relatório Financeiro", pageWidth / 2, 25, { align: "center" });
+
+      // Data de geração
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, pageWidth / 2, 32, { align: "center" });
+
+      // Resumo Financeiro
+      doc.setFontSize(14);
+      doc.setTextColor(40);
+      doc.text("Resumo Financeiro", 14, 50);
+
+      const summaryData = [
+        ["Faturamento Total", formatCurrency(totalFaturamento)],
+        ["Custo Total", formatCurrency(totalCusto)],
+        ["Lucro Líquido", formatCurrency(lucroLiquido)],
+        ["Margem de Lucro", `${margemLucro.toFixed(1)}%`],
+      ];
+
+      autoTable(doc, {
+        startY: 55,
+        head: [["Métrica", "Valor"]],
+        body: summaryData,
+        theme: "striped",
+        headStyles: { fillColor: [16, 185, 129] },
+        margin: { left: 14, right: 14 },
+      });
+
+      // Evolução Mensal
+      if (chartData.monthly.length > 0) {
+        const finalY = (doc as any).lastAutoTable.finalY || 55;
+        doc.setFontSize(14);
+        doc.setTextColor(40);
+        doc.text("Evolução Mensal", 14, finalY + 15);
+
+        const monthlyTableData = chartData.monthly.map(item => [
+          item.mes,
+          formatCurrency(item.faturamento),
+          formatCurrency(item.custo),
+          formatCurrency(item.lucro),
+        ]);
+
+        autoTable(doc, {
+          startY: finalY + 20,
+          head: [["Mês", "Faturamento", "Custo Total", "Lucro Líquido"]],
+          body: monthlyTableData,
+          theme: "grid",
+          headStyles: { fillColor: [16, 185, 129] },
+          margin: { left: 14, right: 14 },
+        });
+      }
+
+      // Top 5 Produtos Mais Lucrativos
+      if (chartData.products.length > 0) {
+        const finalY = (doc as any).lastAutoTable.finalY || 120;
+        
+        // Verificar se precisa de nova página
+        if (finalY > 220) {
+          doc.addPage();
+          doc.setFontSize(14);
+          doc.setTextColor(40);
+          doc.text("Top 5 Produtos Mais Lucrativos", 14, 20);
+          
+          const productsTableData = chartData.products.map((item, index) => [
+            `${index + 1}º`,
+            item.nome,
+            formatCurrency(item.vendas),
+            formatCurrency(item.lucro),
+          ]);
+
+          autoTable(doc, {
+            startY: 25,
+            head: [["Posição", "Produto", "Faturamento", "Lucro Líquido"]],
+            body: productsTableData,
+            theme: "grid",
+            headStyles: { fillColor: [16, 185, 129] },
+            margin: { left: 14, right: 14 },
+          });
+        } else {
+          doc.setFontSize(14);
+          doc.setTextColor(40);
+          doc.text("Top 5 Produtos Mais Lucrativos", 14, finalY + 15);
+
+          const productsTableData = chartData.products.map((item, index) => [
+            `${index + 1}º`,
+            item.nome,
+            formatCurrency(item.vendas),
+            formatCurrency(item.lucro),
+          ]);
+
+          autoTable(doc, {
+            startY: finalY + 20,
+            head: [["Posição", "Produto", "Faturamento", "Lucro Líquido"]],
+            body: productsTableData,
+            theme: "grid",
+            headStyles: { fillColor: [16, 185, 129] },
+            margin: { left: 14, right: 14 },
+          });
+        }
+      }
+
+      // Salvar PDF
+      const fileName = `relatorio-financeiro-${format(new Date(), "dd-MM-yyyy")}.pdf`;
+      doc.save(fileName);
+
+      toast({
+        title: "PDF gerado com sucesso",
+        description: `O arquivo ${fileName} foi baixado.`,
+      });
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEdit = (movement: any) => {
