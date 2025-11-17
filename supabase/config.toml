@@ -14,3 +14,6 @@ verify_jwt = true
 
 [functions.enviar-alertas-estoque]
 verify_jwt = true
+
+[functions.gerar-relatorio-semanal]
+verify_jwt = false
