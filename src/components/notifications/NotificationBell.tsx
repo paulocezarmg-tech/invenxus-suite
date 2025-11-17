@@ -5,17 +5,24 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export const NotificationBell = () => {
   const queryClient = useQueryClient();
+  const [selectedNotification, setSelectedNotification] = useState<any>(null);
 
   // Fetch notifications
   const { data: notifications = [], isLoading } = useQuery({
@@ -174,6 +181,7 @@ export const NotificationBell = () => {
                     if (!notification.read) {
                       markAsReadMutation.mutate(notification.id);
                     }
+                    setSelectedNotification(notification);
                   }}
                 >
                   <div className="flex items-start gap-3">
@@ -206,6 +214,30 @@ export const NotificationBell = () => {
           )}
         </ScrollArea>
       </PopoverContent>
+
+      <Dialog open={!!selectedNotification} onOpenChange={(open) => !open && setSelectedNotification(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="text-2xl">
+                {selectedNotification && getNotificationIcon(selectedNotification.type)}
+              </span>
+              {selectedNotification?.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              {selectedNotification && formatDistanceToNow(new Date(selectedNotification.created_at), {
+                addSuffix: true,
+                locale: ptBR,
+              })}
+            </div>
+            <div className="whitespace-pre-wrap text-base">
+              {selectedNotification?.message}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Popover>
   );
 };
