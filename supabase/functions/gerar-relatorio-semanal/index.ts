@@ -121,29 +121,31 @@ Deno.serve(async (req) => {
           message += `\n📈 Lucro Semanal: ${formatCurrency(stats.weekProfit)}`;
         }
 
-        // Get all admins and superadmins from this organization
-        const { data: adminUsers } = await supabaseClient
+        // Get all members from this organization
+        const { data: orgMembers } = await supabaseClient
           .from('organization_members')
-          .select(`
-            user_id,
-            user_roles!inner (
-              role
-            )
-          `)
+          .select('user_id')
           .eq('organization_id', org.id);
 
-        if (!adminUsers || adminUsers.length === 0) {
+        if (!orgMembers || orgMembers.length === 0) {
+          console.log(`No members found for organization ${org.name}`);
+          continue;
+        }
+
+        // Get admin and superadmin users from this organization
+        const memberIds = orgMembers.map(m => m.user_id);
+        const { data: adminRoles } = await supabaseClient
+          .from('user_roles')
+          .select('user_id, role')
+          .in('user_id', memberIds)
+          .in('role', ['admin', 'superadmin']);
+
+        if (!adminRoles || adminRoles.length === 0) {
           console.log(`No admin users found for organization ${org.name}`);
           continue;
         }
 
-        // Filter to only get admins and superadmins
-        const adminUserIds = adminUsers
-          .filter((member: any) => {
-            const roles = member.user_roles;
-            return roles && (roles.role === 'admin' || roles.role === 'superadmin');
-          })
-          .map((member: any) => member.user_id);
+        const adminUserIds = adminRoles.map(r => r.user_id);
 
         console.log(`Found ${adminUserIds.length} admin users for organization ${org.name}`);
 
