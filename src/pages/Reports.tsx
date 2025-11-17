@@ -290,21 +290,114 @@ const Reports = () => {
   };
 
   const exportMovementsPDF = async () => {
+    if (!organizationId) {
+      toast.error("Organização não encontrada");
+      return;
+    }
+    
     setIsExporting(true);
     try {
-      const { data, error } = await supabase.from("movements").select(`
-        created_at,
-        type,
-        quantity,
-        reference,
-        note,
-        products (sku, name),
-        kits (sku, name),
-        from_location:locations!movements_from_location_id_fkey (name),
-        to_location:locations!movements_to_location_id_fkey (name)
-      `).order("created_at", { ascending: false });
+      // Build query for movements with date filter
+      let movementsQuery = supabase
+        .from("movements")
+        .select(`
+          created_at,
+          type,
+          quantity,
+          reference,
+          note,
+          product_id,
+          products (id, sku, name, quantity),
+          kits (sku, name),
+          from_location:locations!movements_from_location_id_fkey (name),
+          to_location:locations!movements_to_location_id_fkey (name)
+        `)
+        .eq("organization_id", organizationId)
+        .order("created_at", { ascending: true });
+
+      if (dateFrom && dateTo) {
+        movementsQuery = movementsQuery
+          .gte("created_at", dateFrom.toISOString())
+          .lte("created_at", dateTo.toISOString());
+      }
+
+      const { data: movements, error } = await movementsQuery;
 
       if (error) throw error;
+
+      // Get unique products from movements
+      const productIds = [...new Set(movements?.filter((m: any) => m.product_id).map((m: any) => m.product_id))];
+      
+      // Get initial stock for each product (before the date range)
+      const initialStocks: Record<string, number> = {};
+      
+      for (const productId of productIds) {
+        if (!productId) continue;
+        
+        // Get current stock
+        const { data: productData } = await supabase
+          .from("products")
+          .select("quantity")
+          .eq("id", productId)
+          .single();
+        
+        if (!productData) continue;
+        
+        let currentStock = Number(productData.quantity);
+        
+        // If there's a date filter, calculate what the stock was at the start
+        if (dateFrom) {
+          // Get all movements after the start date to reverse them
+          const { data: futureMovements } = await supabase
+            .from("movements")
+            .select("type, quantity")
+            .eq("product_id", productId)
+            .gte("created_at", dateFrom.toISOString());
+          
+          // Reverse the movements to get initial stock
+          futureMovements?.forEach((m: any) => {
+            if (m.type === "IN") {
+              currentStock -= Number(m.quantity);
+            } else if (m.type === "OUT") {
+              currentStock += Number(m.quantity);
+            }
+          });
+        }
+        
+        initialStocks[productId] = currentStock;
+      }
+
+      // Process movements to add running balance
+      const processedMovements = movements?.map((m: any, index: number) => {
+        const productId = m.product_id;
+        
+        if (!productId) {
+          return {
+            ...m,
+            saldo: null
+          };
+        }
+        
+        // Calculate running balance
+        let saldo = initialStocks[productId] || 0;
+        
+        // Apply all movements up to this one
+        for (let i = 0; i <= index; i++) {
+          const mov = movements[i];
+          if (mov.product_id === productId) {
+            if (mov.type === "IN") {
+              saldo += Number(mov.quantity);
+            } else if (mov.type === "OUT") {
+              saldo -= Number(mov.quantity);
+            }
+          }
+        }
+        
+        return {
+          ...m,
+          saldo
+        };
+      }) || [];
 
       const doc = new jsPDF('landscape');
       const pageWidth = doc.internal.pageSize.width;
@@ -330,18 +423,13 @@ const Reports = () => {
       doc.setFont("helvetica", "normal");
       doc.setTextColor(100, 116, 139);
       doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`, 48, 38);
-      doc.text(`Total de Movimentações: ${data.length}`, pageWidth - 75, 38);
+      doc.text(`Total de Movimentações: ${processedMovements.length}`, pageWidth - 75, 38);
 
-      // Calculate totals by type
-      const totalIn = data.filter((m: any) => m.type === "IN").length;
-      const totalOut = data.filter((m: any) => m.type === "OUT").length;
-      const totalTransfer = data.filter((m: any) => m.type === "TRANSFER").length;
-
-      // Add table
+      // Add table with balance column
       autoTable(doc, {
         startY: 48,
-        head: [["Data e Hora", "Tipo", "Produto", "Qtd", "Origem", "Destino", "Ref", "Obs"]],
-        body: data.map((m: any) => [
+        head: [["Data e Hora", "Tipo", "Produto", "Qtd", "Origem", "Destino", "Saldo", "Obs"]],
+        body: processedMovements.map((m: any) => [
           new Date(m.created_at).toLocaleString("pt-BR", { 
             day: '2-digit', 
             month: '2-digit', 
@@ -354,7 +442,7 @@ const Reports = () => {
           m.quantity,
           m.from_location?.name || "-",
           m.to_location?.name || "-",
-          m.reference || "-",
+          m.saldo !== null ? m.saldo.toString() : "-",
           m.note || "-",
         ]),
         styles: { 
@@ -377,12 +465,12 @@ const Reports = () => {
         },
         columnStyles: {
           0: { cellWidth: 35, fontSize: 7 },
-          1: { halign: 'center', cellWidth: 25 },
-          2: { cellWidth: 60, halign: 'left' },
+          1: { halign: 'center', cellWidth: 22 },
+          2: { cellWidth: 55, halign: 'left' },
           3: { halign: 'center', cellWidth: 15 },
-          4: { cellWidth: 30 },
-          5: { cellWidth: 30 },
-          6: { cellWidth: 25 },
+          4: { cellWidth: 28 },
+          5: { cellWidth: 28 },
+          6: { halign: 'center', cellWidth: 18, fontStyle: 'bold' },
           7: { cellWidth: 45 },
         },
         didDrawCell: (data) => {
@@ -423,6 +511,11 @@ const Reports = () => {
       // Add summary at the end
       const finalY = (doc as any).lastAutoTable.finalY + 10;
       if (finalY < doc.internal.pageSize.height - 30) {
+        // Calculate totals by type
+        const totalIn = processedMovements.filter((m: any) => m.type === "IN").length;
+        const totalOut = processedMovements.filter((m: any) => m.type === "OUT").length;
+        const totalTransfer = processedMovements.filter((m: any) => m.type === "TRANSFER").length;
+        
         doc.setDrawColor(226, 232, 240);
         doc.setFillColor(248, 250, 252);
         doc.roundedRect(14, finalY, pageWidth - 28, 18, 2, 2, 'FD');
@@ -434,7 +527,7 @@ const Reports = () => {
         
         doc.setFont("helvetica", "normal");
         doc.setTextColor(71, 85, 105);
-        doc.text(`Total: ${data.length}`, 18, finalY + 14);
+        doc.text(`Total: ${processedMovements.length}`, 18, finalY + 14);
         doc.text(`Entradas: ${totalIn}`, pageWidth / 4, finalY + 14);
         doc.text(`Saídas: ${totalOut}`, pageWidth / 2, finalY + 14);
         doc.text(`Transferências: ${totalTransfer}`, (pageWidth / 4) * 3, finalY + 14);
