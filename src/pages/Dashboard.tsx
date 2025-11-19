@@ -184,20 +184,28 @@ const Dashboard = () => {
         error: productsError
       } = await supabase.from("products").select("quantity, cost, min_quantity").eq("organization_id", organizationId);
       if (productsError) throw productsError;
-      let movementsQuery = supabase.from("movements").select("type, created_at").eq("organization_id", organizationId);
-      if (dateFrom && dateTo) {
-        movementsQuery = movementsQuery.gte("created_at", dateFrom.toISOString()).lte("created_at", dateTo.toISOString());
-      } else {
-        movementsQuery = movementsQuery.gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-      }
+      
+      // Buscar movimentos de hoje
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
       const {
-        data: movements,
-        error: movementsError
-      } = await movementsQuery;
-      if (movementsError) throw movementsError;
+        data: todayMovementsData,
+        error: todayMovementsError
+      } = await supabase
+        .from("movements")
+        .select("type")
+        .eq("organization_id", organizationId)
+        .gte("created_at", today.toISOString())
+        .lt("created_at", tomorrow.toISOString());
+      
+      if (todayMovementsError) throw todayMovementsError;
+      
       const totalValue = products.reduce((sum, p) => sum + Number(p.quantity) * Number(p.cost), 0);
       const criticalItems = products.filter(p => Number(p.quantity) <= Number(p.min_quantity)).length;
-      const todayMovements = movements.length;
+      const todayMovements = todayMovementsData?.length || 0;
       const zeroStock = products.filter(p => Number(p.quantity) === 0).length;
       return {
         totalValue,
