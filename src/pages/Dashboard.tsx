@@ -113,28 +113,57 @@ const Dashboard = () => {
     setDateTo(to);
   };
 
-  // Fetch financial stats
+  // Fetch financial stats based on movements and product prices
   const { data: financialStats } = useQuery({
     queryKey: ['financial-stats', dateFrom, dateTo, organizationId],
     queryFn: async () => {
-      if (!organizationId) return null;
+      if (!organizationId) return { saldo: 0, entradas: 0, saidas: 0 };
 
-      let query = supabase
-        .from('financeiro')
-        .select('tipo, valor')
-        .eq('organization_id', organizationId);
+      // Definir período
+      let from = dateFrom;
+      let to = dateTo;
 
-      if (dateFrom && dateTo) {
-        query = query
-          .gte('data', dateFrom.toISOString().split('T')[0])
-          .lte('data', dateTo.toISOString().split('T')[0]);
+      if (!from || !to) {
+        // Se não tiver filtro, usa o dia atual
+        from = new Date();
+        from.setHours(0, 0, 0, 0);
+        to = new Date(from);
+        to.setDate(to.getDate() + 1);
+      } else {
+        // Garantir início/fim do dia
+        from = new Date(from);
+        from.setHours(0, 0, 0, 0);
+        to = new Date(to);
+        to.setHours(23, 59, 59, 999);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await supabase
+        .from('movements')
+        .select('type, quantity, created_at, products(preco_venda, cost, custo_unitario), kits(preco_venda, custos_adicionais)')
+        .eq('organization_id', organizationId)
+        .gte('created_at', from.toISOString())
+        .lte('created_at', to.toISOString());
+
       if (error) throw error;
 
-      const entradas = data?.filter(m => m.tipo === 'entrada').reduce((acc, m) => acc + Number(m.valor), 0) || 0;
-      const saidas = data?.filter(m => m.tipo === 'saida').reduce((acc, m) => acc + Number(m.valor), 0) || 0;
+      // Total comprado = entradas multiplicando pelo custo
+      const entradas = data?.filter(m => m.type === 'IN').reduce((acc, m: any) => {
+        const productPrice = m.products?.cost ?? m.products?.custo_unitario ?? 0;
+        const kitCost = m.kits?.custos_adicionais
+          ? (Array.isArray(m.kits.custos_adicionais)
+              ? m.kits.custos_adicionais.reduce((s: number, c: any) => s + Number(c.valor || 0), 0)
+              : 0)
+          : 0;
+        const unitCost = productPrice + kitCost;
+        return acc + unitCost * Number(m.quantity || 0);
+      }, 0) || 0;
+
+      // Total vendido = saídas multiplicando pelo preço de venda
+      const saidas = data?.filter(m => m.type === 'OUT').reduce((acc, m: any) => {
+        const salePrice = m.products?.preco_venda ?? m.kits?.preco_venda ?? 0;
+        return acc + salePrice * Number(m.quantity || 0);
+      }, 0) || 0;
+
       const saldo = saidas - entradas;
 
       return { saldo, entradas, saidas };
