@@ -123,6 +123,11 @@ const Dashboard = () => {
       let from = dateFrom;
       let to = dateTo;
 
+      // Se o usuário selecionou apenas uma data, usamos o mesmo dia como início e fim
+      if (from && !to) {
+        to = from;
+      }
+
       if (!from || !to) {
         // Se não tiver filtro, usa o dia atual
         from = new Date();
@@ -225,14 +230,17 @@ const Dashboard = () => {
       // na data final do filtro, “voltando no tempo” a partir da quantidade atual
       let totalValue = 0;
 
-      if (!dateFrom || !dateTo) {
+      // Considera também o caso em que só há uma data selecionada (from)
+      const effectiveEndDate = dateTo || dateFrom || null;
+
+      if (!effectiveEndDate) {
         // Sem filtro: usa quantidade atual direto
         totalValue = products.reduce(
           (sum, p) => sum + Number(p.quantity) * Number(p.cost),
           0
         );
       } else {
-        const endDate = new Date(dateTo);
+        const endDate = new Date(effectiveEndDate);
         endDate.setHours(23, 59, 59, 999);
 
         // Buscar movimentações APÓS a data final, para ajustar o estoque atual
