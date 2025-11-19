@@ -208,18 +208,77 @@ const Dashboard = () => {
         todayMovements: 0,
         zeroStock: 0
       };
+
+      // Sempre buscamos os produtos atuais
       const {
         data: products,
         error: productsError
-      } = await supabase.from("products").select("quantity, cost, min_quantity").eq("organization_id", organizationId);
+      } = await supabase
+        .from("products")
+        .select("id, quantity, cost, min_quantity")
+        .eq("organization_id", organizationId);
+
       if (productsError) throw productsError;
-      
-      // Buscar movimentos de hoje
+
+      // Por padrão, o card mostra o valor ATUAL do estoque
+      // Se o usuário selecionar um período, calculamos o valor do estoque
+      // na data final do filtro, “voltando no tempo” a partir da quantidade atual
+      let totalValue = 0;
+
+      if (!dateFrom || !dateTo) {
+        // Sem filtro: usa quantidade atual direto
+        totalValue = products.reduce(
+          (sum, p) => sum + Number(p.quantity) * Number(p.cost),
+          0
+        );
+      } else {
+        const endDate = new Date(dateTo);
+        endDate.setHours(23, 59, 59, 999);
+
+        // Buscar movimentações APÓS a data final, para ajustar o estoque atual
+        const { data: movementsAfter, error: movementsError } = await supabase
+          .from("movements")
+          .select("product_id, type, quantity, created_at")
+          .eq("organization_id", organizationId)
+          .gt("created_at", endDate.toISOString());
+
+        if (movementsError) throw movementsError;
+
+        // Mapa de ajuste por produto: quanto o estoque mudou DEPOIS da data final
+        const adjustments = new Map<string, number>();
+
+        (movementsAfter || []).forEach((m: any) => {
+          if (!m.product_id) return; // ignora kits por enquanto
+          const current = adjustments.get(m.product_id) || 0;
+
+          // Após a data final:
+          // IN aumenta o estoque atual, então precisamos subtrair para voltar no tempo
+          // OUT diminui o estoque atual, então somamos para voltar no tempo
+          let delta = 0;
+          if (m.type === "IN") delta = Number(m.quantity || 0);
+          if (m.type === "OUT") delta = -Number(m.quantity || 0);
+
+          adjustments.set(m.product_id, current + delta);
+        });
+
+        totalValue = products.reduce((sum, p: any) => {
+          const adj = adjustments.get(p.id) || 0;
+          const quantityAtEndDate = Number(p.quantity) - adj;
+          return sum + quantityAtEndDate * Number(p.cost);
+        }, 0);
+      }
+
+      // Métricas que SEMPRE usam o estoque atual
+      const criticalItems = products.filter(
+        (p: any) => Number(p.quantity) <= Number(p.min_quantity)
+      ).length;
+
+      // Buscar movimentações de hoje (independente do filtro de data)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      
+
       const {
         data: todayMovementsData,
         error: todayMovementsError
@@ -229,13 +288,12 @@ const Dashboard = () => {
         .eq("organization_id", organizationId)
         .gte("created_at", today.toISOString())
         .lt("created_at", tomorrow.toISOString());
-      
+
       if (todayMovementsError) throw todayMovementsError;
-      
-      const totalValue = products.reduce((sum, p) => sum + Number(p.quantity) * Number(p.cost), 0);
-      const criticalItems = products.filter(p => Number(p.quantity) <= Number(p.min_quantity)).length;
+
       const todayMovements = todayMovementsData?.length || 0;
-      const zeroStock = products.filter(p => Number(p.quantity) === 0).length;
+      const zeroStock = products.filter((p: any) => Number(p.quantity) === 0).length;
+
       return {
         totalValue,
         criticalItems,
