@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.gerar-relatorio-semanal]
 verify_jwt = false
+
+[functions.gerar-relatorio-diario]
+verify_jwt = false
