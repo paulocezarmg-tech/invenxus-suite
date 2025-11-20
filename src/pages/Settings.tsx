@@ -8,7 +8,8 @@ import { SuppliersSettings } from "@/components/settings/SuppliersSettings";
 import { UsersSettings } from "@/components/settings/UsersSettings";
 import { InvitesSettings } from "@/components/settings/InvitesSettings";
 import { ProfileSettings } from "@/components/settings/ProfileSettings";
-import { Users, UserPlus, User } from "lucide-react";
+import { ReportSettings } from "@/components/settings/ReportSettings";
+import { Users, UserPlus, User, FileText } from "lucide-react";
 
 const Settings = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -71,6 +72,13 @@ const Settings = () => {
               <User className="h-4 w-4" />
               Meu Perfil
             </TabsTrigger>
+            <TabsTrigger 
+              value="reports"
+              className="inline-flex items-center gap-2 rounded-md px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <FileText className="h-4 w-4" />
+              Relatórios
+            </TabsTrigger>
             {userRole !== "operador" && (
               <>
                 <TabsTrigger 
@@ -96,6 +104,10 @@ const Settings = () => {
 
         <TabsContent value="profile" className="mt-6">
           <ProfileSettings />
+        </TabsContent>
+
+        <TabsContent value="reports" className="mt-6">
+          <ReportSettings />
         </TabsContent>
 
         {userRole !== "operador" && (

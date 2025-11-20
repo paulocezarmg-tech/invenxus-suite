@@ -739,6 +739,53 @@ export type Database = {
           },
         ]
       }
+      relatorio_configuracoes: {
+        Row: {
+          created_at: string
+          horario_envio: string
+          id: string
+          incluir_estoque_critico: boolean
+          incluir_financeiro: boolean
+          incluir_previsoes: boolean
+          incluir_valor_estoque: boolean
+          organization_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          horario_envio?: string
+          id?: string
+          incluir_estoque_critico?: boolean
+          incluir_financeiro?: boolean
+          incluir_previsoes?: boolean
+          incluir_valor_estoque?: boolean
+          organization_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          horario_envio?: string
+          id?: string
+          incluir_estoque_critico?: boolean
+          incluir_financeiro?: boolean
+          incluir_previsoes?: boolean
+          incluir_valor_estoque?: boolean
+          organization_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relatorio_configuracoes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           active: boolean
