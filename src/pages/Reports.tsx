@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
+import { MovementsReportTable } from "@/components/reports/MovementsReportTable";
 import { Download, FileText, Package, TrendingUp, Activity } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -597,10 +598,10 @@ const Reports = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Relatórios</h1>
-          <p className="text-muted-foreground">Gerar e exportar relatórios do sistema</p>
+          <p className="text-muted-foreground">Visualize e exporte relatórios do sistema</p>
         </div>
         <DateRangeFilter onDateChange={handleDateChange} />
       </div>
@@ -649,6 +650,10 @@ const Reports = () => {
         </Card>
       </div>
 
+      {/* Visualização do Relatório de Movimentações */}
+      <MovementsReportTable dateFrom={dateFrom} dateTo={dateTo} />
+
+      {/* Opções de Exportação */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
           <CardHeader>
@@ -671,7 +676,7 @@ const Reports = () => {
 
         <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
           <CardHeader>
-            <CardTitle>Relatório de Movimentações</CardTitle>
+            <CardTitle>Exportar Movimentações</CardTitle>
             <CardDescription>
               Exportar histórico de entradas, saídas e transferências
             </CardDescription>
