@@ -606,6 +606,69 @@ const Reports = () => {
         <DateRangeFilter onDateChange={handleDateChange} />
       </div>
 
+      {/* Opções de Exportação - Compacto */}
+      <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
+        <CardContent className="pt-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-3">
+                <Package className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold text-sm">Inventário</h3>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={exportInventoryPDF} 
+                  disabled={isExporting} 
+                  className="flex-1 h-9 text-xs gap-1.5"
+                  size="sm"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  PDF
+                </Button>
+                <Button 
+                  onClick={exportInventory} 
+                  disabled={isExporting} 
+                  variant="outline" 
+                  className="flex-1 h-9 text-xs gap-1.5"
+                  size="sm"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  CSV
+                </Button>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-3">
+                <Activity className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold text-sm">Movimentações</h3>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={exportMovementsPDF} 
+                  disabled={isExporting} 
+                  className="flex-1 h-9 text-xs gap-1.5"
+                  size="sm"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  PDF
+                </Button>
+                <Button 
+                  onClick={exportMovements} 
+                  disabled={isExporting} 
+                  variant="outline" 
+                  className="flex-1 h-9 text-xs gap-1.5"
+                  size="sm"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  CSV
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -652,47 +715,6 @@ const Reports = () => {
 
       {/* Visualização do Relatório de Movimentações */}
       <MovementsReportTable dateFrom={dateFrom} dateTo={dateTo} />
-
-      {/* Opções de Exportação */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-          <CardHeader>
-            <CardTitle>Relatório de Inventário</CardTitle>
-            <CardDescription>
-              Exportar lista completa de produtos com quantidades e valores
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Button onClick={exportInventoryPDF} disabled={isExporting} className="w-full gap-2">
-              <FileText className="h-4 w-4" />
-              {isExporting ? "Exportando..." : "Exportar em PDF"}
-            </Button>
-            <Button onClick={exportInventory} disabled={isExporting} variant="outline" className="w-full gap-2">
-              <Download className="h-4 w-4" />
-              {isExporting ? "Exportando..." : "Exportar CSV"}
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-          <CardHeader>
-            <CardTitle>Exportar Movimentações</CardTitle>
-            <CardDescription>
-              Exportar histórico de entradas, saídas e transferências
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Button onClick={exportMovementsPDF} disabled={isExporting} className="w-full gap-2">
-              <FileText className="h-4 w-4" />
-              {isExporting ? "Exportando..." : "Exportar em PDF"}
-            </Button>
-            <Button onClick={exportMovements} disabled={isExporting} variant="outline" className="w-full gap-2">
-              <Download className="h-4 w-4" />
-              {isExporting ? "Exportando..." : "Exportar CSV"}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 };
