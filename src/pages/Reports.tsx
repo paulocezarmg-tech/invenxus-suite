@@ -185,32 +185,33 @@ const Reports = () => {
       // Header with logo and info
       doc.addImage(logo, "PNG", 14, 12, 25, 25);
       
-      doc.setFontSize(22);
+      doc.setFontSize(26);
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(30, 58, 138); // Blue
-      doc.text("StockMaster CMS", 45, 20);
+      doc.setTextColor(30, 64, 175); // Dark blue
+      doc.text("StockMaster CMS", 45, 22);
       
-      doc.setFontSize(14);
-      doc.setTextColor(71, 85, 105); // Gray
-      doc.text("Relatório de Inventário", 45, 28);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(71, 85, 105);
+      doc.text("Relatório de Inventário", 45, 32);
       
       // Info box
-      doc.setDrawColor(226, 232, 240);
-      doc.setFillColor(248, 250, 252);
-      doc.roundedRect(45, 32, pageWidth - 59, 10, 2, 2, 'FD');
+      doc.setDrawColor(229, 231, 235);
+      doc.setFillColor(249, 250, 251);
+      doc.roundedRect(14, 40, pageWidth - 28, 10, 2, 2, 'FD');
       
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`, 48, 38);
-      doc.text(`Total de Produtos: ${data.length}`, pageWidth - 55, 38);
+      doc.setTextColor(107, 114, 128);
+      doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`, 18, 46);
+      doc.text(`Total de Produtos: ${data.length}`, pageWidth - 55, 46);
 
       // Calculate totals
       const totalValue = data.reduce((sum: number, p: any) => sum + Number(p.cost) * Number(p.quantity), 0);
 
       // Add table
       autoTable(doc, {
-        startY: 48,
+        startY: 56,
         head: [["SKU", "Nome", "Cód. Barras", "Qtd", "Qtd Min", "Custo", "Un", "Categoria", "Local", "Fornecedor"]],
         body: data.map((p: any) => [
           p.sku,
@@ -226,18 +227,20 @@ const Reports = () => {
         ]),
         styles: { 
           fontSize: 8,
-          cellPadding: 3,
-          lineColor: [226, 232, 240],
-          lineWidth: 0.1,
+          cellPadding: 4,
+          lineColor: [229, 231, 235],
+          lineWidth: 0.5,
+          valign: 'middle',
         },
         headStyles: { 
           fillColor: [59, 130, 246],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
           halign: 'center',
+          fontSize: 9,
         },
         alternateRowStyles: {
-          fillColor: [248, 250, 252],
+          fillColor: [249, 250, 251],
         },
         columnStyles: {
           0: { cellWidth: 18 },
@@ -255,7 +258,7 @@ const Reports = () => {
           // Footer
           const pageCount = (doc as any).internal.getNumberOfPages();
           doc.setFontSize(8);
-          doc.setTextColor(148, 163, 184);
+          doc.setTextColor(156, 163, 175);
           doc.text(
             `Página ${data.pageNumber} de ${pageCount}`,
             pageWidth / 2,
@@ -267,19 +270,22 @@ const Reports = () => {
 
       // Add summary at the end
       const finalY = (doc as any).lastAutoTable.finalY + 10;
-      doc.setDrawColor(226, 232, 240);
-      doc.setFillColor(248, 250, 252);
-      doc.roundedRect(14, finalY, pageWidth - 28, 18, 2, 2, 'FD');
-      
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(30, 58, 138);
-      doc.text("Resumo do Inventário", 18, finalY + 7);
-      
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(71, 85, 105);
-      doc.text(`Total de Produtos: ${data.length}`, 18, finalY + 14);
-      doc.text(`Valor Total em Estoque: R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, pageWidth / 2, finalY + 14);
+      if (finalY < doc.internal.pageSize.height - 30) {
+        doc.setDrawColor(229, 231, 235);
+        doc.setFillColor(249, 250, 251);
+        doc.roundedRect(14, finalY, pageWidth - 28, 18, 2, 2, 'FD');
+        
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 64, 175);
+        doc.text("Resumo do Inventário", 18, finalY + 8);
+        
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(71, 85, 105);
+        doc.text(`Total de Produtos: ${data.length}`, 18, finalY + 14);
+        doc.text(`Valor Total em Estoque: R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, pageWidth / 2 + 10, finalY + 14);
+      }
 
       doc.save(`inventario_${new Date().toISOString().split("T")[0]}.pdf`);
       toast.success("Relatório PDF exportado com sucesso");
@@ -406,29 +412,30 @@ const Reports = () => {
       // Header with logo and info
       doc.addImage(logo, "PNG", 14, 12, 25, 25);
       
-      doc.setFontSize(22);
+      doc.setFontSize(26);
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(30, 58, 138); // Blue
-      doc.text("StockMaster CMS", 45, 20);
+      doc.setTextColor(30, 64, 175); // Dark blue
+      doc.text("StockMaster CMS", 45, 22);
       
-      doc.setFontSize(14);
-      doc.setTextColor(71, 85, 105); // Gray
-      doc.text("Relatório de Movimentações", 45, 28);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(71, 85, 105);
+      doc.text("Relatório de Movimentações", 45, 32);
       
       // Info box
-      doc.setDrawColor(226, 232, 240);
-      doc.setFillColor(248, 250, 252);
-      doc.roundedRect(45, 32, pageWidth - 59, 10, 2, 2, 'FD');
+      doc.setDrawColor(229, 231, 235);
+      doc.setFillColor(249, 250, 251);
+      doc.roundedRect(14, 40, pageWidth - 28, 10, 2, 2, 'FD');
       
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`, 48, 38);
-      doc.text(`Total de Movimentações: ${processedMovements.length}`, pageWidth - 75, 38);
+      doc.setTextColor(107, 114, 128);
+      doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`, 18, 46);
+      doc.text(`Total de Movimentações: ${processedMovements.length}`, pageWidth - 80, 46);
 
       // Add table with balance column
       autoTable(doc, {
-        startY: 48,
+        startY: 56,
         head: [["Data e Hora", "Tipo", "Produto", "Qtd", "Origem", "Destino", "Saldo", "Obs"]],
         body: processedMovements.map((m: any) => [
           new Date(m.created_at).toLocaleString("pt-BR", { 
@@ -448,9 +455,9 @@ const Reports = () => {
         ]),
         styles: { 
           fontSize: 8,
-          cellPadding: 3,
-          lineColor: [226, 232, 240],
-          lineWidth: 0.1,
+          cellPadding: 4,
+          lineColor: [229, 231, 235],
+          lineWidth: 0.5,
           valign: 'middle',
           halign: 'left',
         },
@@ -460,9 +467,10 @@ const Reports = () => {
           fontStyle: 'bold',
           halign: 'center',
           valign: 'middle',
+          fontSize: 9,
         },
         alternateRowStyles: {
-          fillColor: [248, 250, 252],
+          fillColor: [249, 250, 251],
         },
         columnStyles: {
           0: { cellWidth: 35, fontSize: 7 },
@@ -499,7 +507,7 @@ const Reports = () => {
           // Footer
           const pageCount = (doc as any).internal.getNumberOfPages();
           doc.setFontSize(8);
-          doc.setTextColor(148, 163, 184);
+          doc.setTextColor(156, 163, 175);
           doc.text(
             `Página ${data.pageNumber} de ${pageCount}`,
             pageWidth / 2,
@@ -517,15 +525,16 @@ const Reports = () => {
         const totalOut = processedMovements.filter((m: any) => m.type === "OUT").length;
         const totalTransfer = processedMovements.filter((m: any) => m.type === "TRANSFER").length;
         
-        doc.setDrawColor(226, 232, 240);
-        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(229, 231, 235);
+        doc.setFillColor(249, 250, 251);
         doc.roundedRect(14, finalY, pageWidth - 28, 18, 2, 2, 'FD');
         
-        doc.setFontSize(10);
+        doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(30, 58, 138);
-        doc.text("Resumo das Movimentações", 18, finalY + 7);
+        doc.setTextColor(30, 64, 175);
+        doc.text("Resumo das Movimentações", 18, finalY + 8);
         
+        doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(71, 85, 105);
         doc.text(`Total: ${processedMovements.length}`, 18, finalY + 14);
