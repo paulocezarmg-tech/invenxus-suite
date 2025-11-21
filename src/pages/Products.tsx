@@ -291,105 +291,174 @@ const Products = () => {
         </div>
       </div>
 
-      <Card className="border-0 shadow-card">
+      {/* Desktop Table View */}
+      <Card className="border-0 shadow-card hidden md:block">
         <CardContent className="p-0">
           <div className="rounded-lg overflow-x-auto">
-            <Table className="table-fixed">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[120px]">SKU</TableHead>
-              <TableHead className="min-w-[180px]">Nome</TableHead>
-              <TableHead className="w-[120px]">Categoria</TableHead>
-              <TableHead className="w-[90px]">Qtd.</TableHead>
-              <TableHead className="w-[90px]">Mín.</TableHead>
-              <TableHead className="min-w-[180px]">Local</TableHead>
-              {userRole && userRole !== "operador" && <TableHead className="w-[100px]">Custo</TableHead>}
-              <TableHead className="w-[110px]">Status</TableHead>
-              {userRole === "superadmin" && <TableHead className="w-[100px]">Ações</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={userRole === "superadmin" ? 9 : 8} className="text-center">
-                  Carregando...
-                </TableCell>
-              </TableRow>
-            ) : products && products.length > 0 ? (
-              products.map((product: any) => (
-                <TableRow key={product.id}>
-                  <TableCell className="font-mono text-xs">
-                    <div className="truncate max-w-[120px]" title={product.sku}>
-                      {product.sku}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium text-sm truncate max-w-[200px]" title={product.name}>
-                        {product.name}
-                      </div>
-                      {product.barcode && (
-                        <div className="text-xs text-muted-foreground font-mono truncate max-w-[200px]" title={product.barcode}>
-                          {product.barcode}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    <div className="truncate max-w-[120px]" title={product.categories?.name}>
-                      {product.categories?.name || "N/A"}
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium text-sm">{formatNumber(Number(product.quantity))}</TableCell>
-                  <TableCell className="text-sm">{formatNumber(Number(product.min_quantity))}</TableCell>
-                  <TableCell className="text-sm">
-                    <div className="max-w-[180px] break-words" title={product.locations?.name}>
-                      {product.locations?.name || "N/A"}
-                    </div>
-                  </TableCell>
-                  {userRole && userRole !== "operador" && (
-                    <TableCell className="text-sm whitespace-nowrap">R$ {Number(product.cost).toFixed(2)}</TableCell>
-                  )}
-                  <TableCell>
-                    {getStockBadge(Number(product.quantity), Number(product.min_quantity))}
-                  </TableCell>
-                  {userRole === "superadmin" && (
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedProduct(product);
-                            setDialogOpen(true);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(product.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  )}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[100px]">SKU</TableHead>
+                  <TableHead className="min-w-[150px]">Nome</TableHead>
+                  <TableHead className="min-w-[120px]">Categoria</TableHead>
+                  <TableHead className="min-w-[80px]">Qtd.</TableHead>
+                  <TableHead className="min-w-[80px]">Mín.</TableHead>
+                  <TableHead className="min-w-[150px]">Local</TableHead>
+                  {userRole && userRole !== "operador" && <TableHead className="min-w-[100px]">Custo</TableHead>}
+                  <TableHead className="min-w-[100px]">Status</TableHead>
+                  {userRole === "superadmin" && <TableHead className="min-w-[100px]">Ações</TableHead>}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={userRole === "superadmin" ? 9 : 8} className="text-center text-muted-foreground">
-                  Nenhum produto encontrado
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={userRole === "superadmin" ? 9 : 8} className="text-center">
+                      Carregando...
+                    </TableCell>
+                  </TableRow>
+                ) : products && products.length > 0 ? (
+                  products.map((product: any) => (
+                    <TableRow key={product.id}>
+                      <TableCell className="font-mono text-xs">{product.sku}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium text-sm">{product.name}</div>
+                          {product.barcode && (
+                            <div className="text-xs text-muted-foreground font-mono">{product.barcode}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">{product.categories?.name || "N/A"}</TableCell>
+                      <TableCell className="font-medium text-sm">{formatNumber(Number(product.quantity))}</TableCell>
+                      <TableCell className="text-sm">{formatNumber(Number(product.min_quantity))}</TableCell>
+                      <TableCell className="text-sm">{product.locations?.name || "N/A"}</TableCell>
+                      {userRole && userRole !== "operador" && (
+                        <TableCell className="text-sm whitespace-nowrap">R$ {Number(product.cost).toFixed(2)}</TableCell>
+                      )}
+                      <TableCell>{getStockBadge(Number(product.quantity), Number(product.min_quantity))}</TableCell>
+                      {userRole === "superadmin" && (
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setSelectedProduct(product);
+                                setDialogOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(product.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={userRole === "superadmin" ? 9 : 8} className="text-center text-muted-foreground">
+                      Nenhum produto encontrado
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
+
+      {/* Mobile Cards View */}
+      <div className="md:hidden space-y-4">
+        {isLoading ? (
+          <Card className="border-0 shadow-card">
+            <CardContent className="p-6 text-center text-muted-foreground">
+              Carregando...
+            </CardContent>
+          </Card>
+        ) : products && products.length > 0 ? (
+          products.map((product: any) => (
+            <Card key={product.id} className="border-0 shadow-card">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-base truncate">{product.name}</div>
+                    <div className="text-xs text-muted-foreground font-mono mt-0.5">SKU: {product.sku}</div>
+                    {product.barcode && (
+                      <div className="text-xs text-muted-foreground font-mono">Código: {product.barcode}</div>
+                    )}
+                  </div>
+                  {getStockBadge(Number(product.quantity), Number(product.min_quantity))}
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <div className="text-xs text-muted-foreground">Categoria</div>
+                    <div className="font-medium truncate">{product.categories?.name || "N/A"}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Qtd.</div>
+                    <div className="font-bold">{formatNumber(Number(product.quantity))}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Mín.</div>
+                    <div className="font-medium">{formatNumber(Number(product.min_quantity))}</div>
+                  </div>
+                  {userRole && userRole !== "operador" && (
+                    <div>
+                      <div className="text-xs text-muted-foreground">Custo</div>
+                      <div className="font-medium">R$ {Number(product.cost).toFixed(2)}</div>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <div className="text-xs text-muted-foreground">Local</div>
+                  <div className="font-medium text-sm">{product.locations?.name || "N/A"}</div>
+                </div>
+
+                {userRole === "superadmin" && (
+                  <div className="flex gap-2 pt-2 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        setSelectedProduct(product);
+                        setDialogOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                      Editar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleDelete(product.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                      Excluir
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <Card className="border-0 shadow-card">
+            <CardContent className="p-6 text-center text-muted-foreground">
+              Nenhum produto encontrado
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       <ProductDialog
         open={dialogOpen}
