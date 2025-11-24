@@ -6,7 +6,8 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Upload } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import {
   Table,
@@ -35,6 +36,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useOrganization } from "@/hooks/useOrganization";
+import { formatPhone } from "@/lib/formatters";
 
 const supplierSchema = z.object({
   name: z.string().trim().min(1, "Nome é obrigatório").max(200, "Nome deve ter no máximo 200 caracteres"),
@@ -50,6 +52,8 @@ export function SuppliersSettings() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
 
@@ -99,6 +103,8 @@ export function SuppliersSettings() {
         email: editingSupplier.email || "",
         phone: editingSupplier.phone || "",
       });
+      setLogoPreview(editingSupplier.logo_url || null);
+      setLogoFile(null);
     } else {
       form.reset({
         name: "",
@@ -106,6 +112,8 @@ export function SuppliersSettings() {
         email: "",
         phone: "",
       });
+      setLogoPreview(null);
+      setLogoFile(null);
     }
   }, [editingSupplier, form]);
 
@@ -114,31 +122,93 @@ export function SuppliersSettings() {
     setDialogOpen(true);
   };
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadLogo = async (supplierId: string): Promise<string | null> => {
+    if (!logoFile) return null;
+
+    const fileExt = logoFile.name.split('.').pop();
+    const fileName = `${supplierId}-${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('supplier-logos')
+      .upload(filePath, logoFile, { upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('supplier-logos')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
   const onSubmit = async (data: SupplierFormData) => {
     setIsSubmitting(true);
     try {
       if (!organizationId) throw new Error("Organization not found");
       
+      let logoUrl = editingSupplier?.logo_url || null;
+
       const supplierData = {
         name: data.name,
         contact: data.contact || null,
         email: data.email || null,
         phone: data.phone || null,
         organization_id: organizationId,
+        logo_url: logoUrl,
       };
 
       if (editingSupplier) {
+        // Upload new logo if selected
+        if (logoFile) {
+          logoUrl = await uploadLogo(editingSupplier.id);
+          supplierData.logo_url = logoUrl;
+        }
+        
         const { error } = await supabase.from("suppliers").update(supplierData).eq("id", editingSupplier.id);
         if (error) throw error;
         toast.success("Fornecedor atualizado");
       } else {
-        const { error } = await supabase.from("suppliers").insert(supplierData);
+        // Insert first to get the ID
+        const { data: newSupplier, error } = await supabase
+          .from("suppliers")
+          .insert(supplierData)
+          .select()
+          .single();
+        
         if (error) throw error;
+        
+        // Upload logo if selected
+        if (logoFile && newSupplier) {
+          logoUrl = await uploadLogo(newSupplier.id);
+          if (logoUrl) {
+            await supabase
+              .from("suppliers")
+              .update({ logo_url: logoUrl })
+              .eq("id", newSupplier.id);
+          }
+        }
+        
         toast.success("Fornecedor criado");
       }
+      
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       setDialogOpen(false);
       form.reset();
+      setLogoFile(null);
+      setLogoPreview(null);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -172,6 +242,7 @@ export function SuppliersSettings() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[60px]">Logo</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Contato</TableHead>
               <TableHead>Email</TableHead>
@@ -183,17 +254,25 @@ export function SuppliersSettings() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center">
+                <TableCell colSpan={7} className="text-center">
                   Carregando...
                 </TableCell>
               </TableRow>
             ) : suppliers && suppliers.length > 0 ? (
               suppliers.map((supplier) => (
                 <TableRow key={supplier.id}>
+                  <TableCell>
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={supplier.logo_url || ""} alt={supplier.name} />
+                      <AvatarFallback>
+                        <Building2 className="h-5 w-5" />
+                      </AvatarFallback>
+                    </Avatar>
+                  </TableCell>
                   <TableCell className="font-medium">{supplier.name}</TableCell>
                   <TableCell>{supplier.contact || "-"}</TableCell>
                   <TableCell>{supplier.email || "-"}</TableCell>
-                  <TableCell>{supplier.phone || "-"}</TableCell>
+                  <TableCell>{formatPhone(supplier.phone)}</TableCell>
                   <TableCell>
                     {supplier.active ? (
                       <Badge className="bg-success">Ativo</Badge>
@@ -213,12 +292,11 @@ export function SuppliersSettings() {
                       </div>
                     </TableCell>
                   )}
-
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
                   Nenhum fornecedor encontrado
                 </TableCell>
               </TableRow>
@@ -237,6 +315,29 @@ export function SuppliersSettings() {
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Logo da Empresa</Label>
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={logoPreview || ""} alt="Logo" />
+                    <AvatarFallback>
+                      <Building2 className="h-10 w-10" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                      className="cursor-pointer"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Formatos aceitos: JPG, PNG, WEBP (máx. 5MB)
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
               <FormField
                 control={form.control}
                 name="name"
