@@ -45,3 +45,18 @@ export const getMovementTypeBadge = (type: string) => {
       return <Badge>{type}</Badge>;
   }
 };
+
+/**
+ * Format phone number to Brazilian format
+ */
+export const formatPhone = (phone: string | null): string => {
+  if (!phone) return "-";
+  const cleaned = phone.replace(/\D/g, "");
+  if (cleaned.length === 11) {
+    return `(${cleaned.substring(0, 2)})${cleaned.substring(2, 7)}-${cleaned.substring(7)}`;
+  }
+  if (cleaned.length === 10) {
+    return `(${cleaned.substring(0, 2)})${cleaned.substring(2, 6)}-${cleaned.substring(6)}`;
+  }
+  return phone;
+};
