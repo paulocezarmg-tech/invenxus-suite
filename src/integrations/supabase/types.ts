@@ -789,6 +789,7 @@ export type Database = {
       suppliers: {
         Row: {
           active: boolean
+          cnpj: string | null
           contact: string | null
           created_at: string
           email: string | null
@@ -801,6 +802,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          cnpj?: string | null
           contact?: string | null
           created_at?: string
           email?: string | null
@@ -813,6 +815,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          cnpj?: string | null
           contact?: string | null
           created_at?: string
           email?: string | null
