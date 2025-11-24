@@ -6,7 +6,7 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, Building2, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Upload, History } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import {
@@ -37,12 +37,19 @@ import {
 } from "@/components/ui/form";
 import { useOrganization } from "@/hooks/useOrganization";
 import { formatPhone } from "@/lib/formatters";
+import { validateCNPJ, maskCNPJ, formatCNPJ } from "@/lib/cnpj-validator";
+import { SupplierPurchaseHistory } from "./SupplierPurchaseHistory";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const supplierSchema = z.object({
   name: z.string().trim().min(1, "Nome é obrigatório").max(200, "Nome deve ter no máximo 200 caracteres"),
   contact: z.string().trim().max(200, "Contato deve ter no máximo 200 caracteres").optional(),
   email: z.string().trim().email("Email inválido").max(255, "Email deve ter no máximo 255 caracteres").optional().or(z.literal("")),
   phone: z.string().trim().max(20, "Telefone deve ter no máximo 20 caracteres").optional(),
+  cnpj: z.string().trim().optional().refine(
+    (val) => !val || val === "" || validateCNPJ(val),
+    { message: "CNPJ inválido" }
+  ),
 });
 
 type SupplierFormData = z.infer<typeof supplierSchema>;
@@ -54,6 +61,8 @@ export function SuppliersSettings() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [selectedSupplierForHistory, setSelectedSupplierForHistory] = useState<any>(null);
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
 
@@ -64,6 +73,7 @@ export function SuppliersSettings() {
       contact: "",
       email: "",
       phone: "",
+      cnpj: "",
     },
   });
 
@@ -102,6 +112,7 @@ export function SuppliersSettings() {
         contact: editingSupplier.contact || "",
         email: editingSupplier.email || "",
         phone: editingSupplier.phone || "",
+        cnpj: editingSupplier.cnpj || "",
       });
       setLogoPreview(editingSupplier.logo_url || null);
       setLogoFile(null);
@@ -111,6 +122,7 @@ export function SuppliersSettings() {
         contact: "",
         email: "",
         phone: "",
+        cnpj: "",
       });
       setLogoPreview(null);
       setLogoFile(null);
@@ -166,6 +178,7 @@ export function SuppliersSettings() {
         contact: data.contact || null,
         email: data.email || null,
         phone: data.phone || null,
+        cnpj: data.cnpj ? data.cnpj.replace(/\D/g, "") : null,
         organization_id: organizationId,
         logo_url: logoUrl,
       };
@@ -244,17 +257,18 @@ export function SuppliersSettings() {
             <TableRow>
               <TableHead className="w-[60px]">Logo</TableHead>
               <TableHead>Nome</TableHead>
+              <TableHead>CNPJ</TableHead>
               <TableHead>Contato</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Status</TableHead>
-              {userRole !== "operador" && <TableHead className="w-[100px]">Ações</TableHead>}
+              {userRole !== "operador" && <TableHead className="w-[120px]">Ações</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center">
+                <TableCell colSpan={8} className="text-center">
                   Carregando...
                 </TableCell>
               </TableRow>
@@ -270,6 +284,9 @@ export function SuppliersSettings() {
                     </Avatar>
                   </TableCell>
                   <TableCell className="font-medium">{supplier.name}</TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {supplier.cnpj ? formatCNPJ(supplier.cnpj) : "-"}
+                  </TableCell>
                   <TableCell>{supplier.contact || "-"}</TableCell>
                   <TableCell>{supplier.email || "-"}</TableCell>
                   <TableCell>{formatPhone(supplier.phone)}</TableCell>
@@ -283,6 +300,17 @@ export function SuppliersSettings() {
                   {userRole !== "operador" && (
                     <TableCell>
                       <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => {
+                            setSelectedSupplierForHistory(supplier);
+                            setHistoryDialogOpen(true);
+                          }}
+                          title="Ver histórico"
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(supplier)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -296,7 +324,7 @@ export function SuppliersSettings() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
                   Nenhum fornecedor encontrado
                 </TableCell>
               </TableRow>
@@ -346,6 +374,27 @@ export function SuppliersSettings() {
                     <FormLabel>Nome *</FormLabel>
                     <FormControl>
                       <Input placeholder="Nome do fornecedor" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="cnpj"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CNPJ</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="00.000.000/0000-00" 
+                        {...field}
+                        onChange={(e) => {
+                          const masked = maskCNPJ(e.target.value);
+                          field.onChange(masked);
+                        }}
+                        maxLength={18}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -418,6 +467,26 @@ export function SuppliersSettings() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Purchase History Dialog */}
+      <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Histórico de Compras</DialogTitle>
+            <DialogDescription>
+              Histórico de compras do fornecedor {selectedSupplierForHistory?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[70vh] pr-4">
+            {selectedSupplierForHistory && (
+              <SupplierPurchaseHistory 
+                supplierId={selectedSupplierForHistory.id}
+                supplierName={selectedSupplierForHistory.name}
+              />
+            )}
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </>
