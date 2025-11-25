@@ -5,7 +5,7 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +47,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useOrganization } from "@/hooks/useOrganization";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/formatters";
 
 const movementSchema = z.object({
   type: z.enum(["IN", "OUT", "TRANSFER"]),
@@ -58,6 +59,7 @@ const movementSchema = z.object({
   to_location_id: z.string().optional(),
   reference: z.string().optional(),
   note: z.string().optional(),
+  preco_venda: z.string().optional(),
 }).refine((data) => data.product_id || data.kit_id, {
   message: "Selecione um produto ou kit",
   path: ["product_id"],
@@ -79,8 +81,10 @@ interface MovementDialogProps {
 export function MovementDialog({ open, onOpenChange, movement }: MovementDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [custoUnitario, setCustoUnitario] = useState(0);
+  const [precoVendaPadrao, setPrecoVendaPadrao] = useState(0);
   const [openProductCombo, setOpenProductCombo] = useState(false);
   const [openKitCombo, setOpenKitCombo] = useState(false);
+  const [custosAdicionais, setCustosAdicionais] = useState<CustoAdicional[]>([]);
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
 
@@ -131,6 +135,7 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
       to_location_id: "",
       reference: "",
       note: "",
+      preco_venda: "",
     },
   });
 
@@ -146,7 +151,9 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
         to_location_id: movement.to_location_id || "",
         reference: movement.reference || "",
         note: movement.note || "",
+        preco_venda: String(movement.preco_venda_usado || ""),
       });
+      setCustosAdicionais(movement.custos_adicionais || []);
     } else {
       form.reset({
         type: "IN",
@@ -158,7 +165,9 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
         to_location_id: "",
         reference: "",
         note: "",
+        preco_venda: "",
       });
+      setCustosAdicionais([]);
     }
   }, [movement, form]);
 
@@ -168,23 +177,28 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
   const kitId = form.watch("kit_id");
   const quantity = form.watch("quantity");
 
-  // Fetch cost when product/kit changes
+  // Fetch cost and price when product/kit changes
   useEffect(() => {
     const fetchCost = async () => {
       if (itemType === "product" && productId) {
         const { data: product } = await supabase
           .from("products")
-          .select("custo_unitario")
+          .select("custo_unitario, preco_venda")
           .eq("id", productId)
           .single();
         
         if (product) {
           setCustoUnitario(Number(product.custo_unitario) || 0);
+          setPrecoVendaPadrao(Number(product.preco_venda) || 0);
+          if (!form.getValues("preco_venda")) {
+            form.setValue("preco_venda", String(Number(product.preco_venda) || 0));
+          }
         }
       } else if (itemType === "kit" && kitId) {
         const { data: kit } = await supabase
           .from("kits")
           .select(`
+            preco_venda,
             custos_adicionais,
             kit_items (
               quantity,
@@ -210,9 +224,14 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
           }
 
           setCustoUnitario(kitCost);
+          setPrecoVendaPadrao(Number(kit.preco_venda) || 0);
+          if (!form.getValues("preco_venda")) {
+            form.setValue("preco_venda", String(Number(kit.preco_venda) || 0));
+          }
         }
       } else {
         setCustoUnitario(0);
+        setPrecoVendaPadrao(0);
       }
     };
 
@@ -228,29 +247,72 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
 
       const quantity = parseFloat(data.quantity);
 
-      // Validate sufficient stock for OUT movements (only for products, not kits)
-      if (data.type === "OUT" && data.item_type === "product" && data.product_id) {
-        const { data: productData, error: productError } = await supabase
-          .from("products")
-          .select("quantity, name")
-          .eq("id", data.product_id)
-          .single();
+      // Validate sufficient stock for OUT movements
+      if (data.type === "OUT") {
+        if (data.item_type === "product" && data.product_id) {
+          // Validar estoque de produto único
+          const { data: productData, error: productError } = await supabase
+            .from("products")
+            .select("quantity, name")
+            .eq("id", data.product_id)
+            .single();
 
-        if (productError) throw productError;
+          if (productError) throw productError;
 
-        if (!productData) {
-          toast.error("Produto não encontrado");
-          setIsSubmitting(false);
-          return;
-        }
+          if (!productData) {
+            toast.error("Produto não encontrado");
+            setIsSubmitting(false);
+            return;
+          }
 
-        const currentQuantity = Number(productData.quantity);
-        if (currentQuantity < quantity) {
-          toast.error(
-            `Estoque insuficiente! Disponível: ${currentQuantity}, Solicitado: ${quantity}`
-          );
-          setIsSubmitting(false);
-          return;
+          const currentQuantity = Number(productData.quantity);
+          if (currentQuantity < quantity) {
+            toast.error(
+              `Estoque insuficiente! Disponível: ${currentQuantity}, Solicitado: ${quantity}`
+            );
+            setIsSubmitting(false);
+            return;
+          }
+        } else if (data.item_type === "kit" && data.kit_id) {
+          // Validar estoque de TODOS os produtos do kit
+          const { data: kitData } = await supabase
+            .from("kits")
+            .select(`
+              name,
+              kit_items (
+                quantity,
+                products (
+                  id,
+                  name,
+                  quantity
+                )
+              )
+            `)
+            .eq("id", data.kit_id)
+            .single();
+
+          if (kitData) {
+            const insufficientProducts: string[] = [];
+            
+            for (const item of kitData.kit_items) {
+              const requiredQty = Number(item.quantity) * quantity;
+              const availableQty = Number(item.products?.quantity || 0);
+              
+              if (availableQty < requiredQty) {
+                insufficientProducts.push(
+                  `${item.products?.name} (disponível: ${availableQty}, necessário: ${requiredQty})`
+                );
+              }
+            }
+
+            if (insufficientProducts.length > 0) {
+              toast.error(
+                `Estoque insuficiente para os produtos do kit: ${insufficientProducts.join(", ")}`
+              );
+              setIsSubmitting(false);
+              return;
+            }
+          }
         }
       }
 
@@ -265,6 +327,8 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
         note: data.note || null,
         created_by: user.id,
         organization_id: organizationId,
+        custos_adicionais: data.type === "OUT" ? (custosAdicionais as any) : [],
+        preco_venda_usado: data.type === "OUT" ? parseFloat(data.preco_venda || "0") : 0,
       };
 
       if (movement) {
@@ -296,7 +360,9 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
               itemData = product;
               itemName = product.name;
               custoUnitario = Number(product.custo_unitario) || 0;
-              precoVenda = Number(product.preco_venda) || 0;
+              precoVenda = data.type === "OUT" && data.preco_venda 
+                ? parseFloat(data.preco_venda) 
+                : Number(product.preco_venda) || 0;
             }
           } else if (data.item_type === "kit" && data.kit_id) {
             const { data: kit } = await supabase
@@ -316,7 +382,9 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
             if (kit) {
               itemData = kit;
               itemName = kit.name;
-              precoVenda = Number(kit.preco_venda) || 0;
+              precoVenda = data.type === "OUT" && data.preco_venda 
+                ? parseFloat(data.preco_venda) 
+                : Number(kit.preco_venda) || 0;
 
               // Calculate kit cost from components
               let kitCost = 0;
@@ -327,7 +395,7 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
                 }
               }
 
-              // Add additional costs
+              // Add kit's additional costs (custos do cadastro do kit)
               if (kit.custos_adicionais && Array.isArray(kit.custos_adicionais)) {
                 for (const custo of kit.custos_adicionais as unknown as CustoAdicional[]) {
                   kitCost += Number(custo.valor) || 0;
@@ -339,11 +407,13 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
           }
 
           if (itemData) {
-            const custoTotal = custoUnitario * quantity;
+            // Adicionar custos adicionais da movimentação ao custo total
+            const custosAdicionaisTotal = custosAdicionais.reduce((sum, c) => sum + Number(c.valor || 0), 0);
+            const custoTotal = (custoUnitario * quantity) + custosAdicionaisTotal;
             const valorTotal = data.type === "OUT" ? precoVenda * quantity : custoTotal;
-            const lucroLiquido = data.type === "OUT" ? (precoVenda - custoUnitario) * quantity : 0;
-            const margemPercentual = data.type === "OUT" && precoVenda > 0 
-              ? ((precoVenda - custoUnitario) / precoVenda) * 100 
+            const lucroLiquido = data.type === "OUT" ? (valorTotal - custoTotal) : 0;
+            const margemPercentual = data.type === "OUT" && valorTotal > 0 
+              ? (lucroLiquido / valorTotal) * 100 
               : 0;
 
             const financeiroData = {
@@ -357,7 +427,7 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
               valor: valorTotal,
               lucro_liquido: lucroLiquido,
               margem_percentual: margemPercentual,
-              custos_adicionais: [],
+              custos_adicionais: custosAdicionais as any,
               user_id: user.id,
               organization_id: organizationId,
             };
@@ -572,6 +642,138 @@ export function MovementDialog({ open, onOpenChange, movement }: MovementDialogP
                 </FormItem>
               )}
             />
+
+            {movementType === "OUT" && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="preco_venda"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preço de Venda Unitário *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          min="0" 
+                          placeholder="0.00" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Custos Adicionais</FormLabel>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCustosAdicionais([...custosAdicionais, { descricao: "", valor: 0 }])}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Adicionar
+                    </Button>
+                  </div>
+
+                  {custosAdicionais.map((custo, index) => (
+                    <div key={index} className="flex gap-2 items-start">
+                      <div className="flex-1 space-y-2">
+                        <Input
+                          placeholder="Descrição (ex: Frete, Imposto)"
+                          value={custo.descricao}
+                          onChange={(e) => {
+                            const newCustos = [...custosAdicionais];
+                            newCustos[index].descricao = e.target.value;
+                            setCustosAdicionais(newCustos);
+                          }}
+                        />
+                      </div>
+                      <div className="w-32">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          value={custo.valor}
+                          onChange={(e) => {
+                            const newCustos = [...custosAdicionais];
+                            newCustos[index].valor = parseFloat(e.target.value) || 0;
+                            setCustosAdicionais(newCustos);
+                          }}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const newCustos = custosAdicionais.filter((_, i) => i !== index);
+                          setCustosAdicionais(newCustos);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                {custoUnitario > 0 && quantity && (
+                  <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Custo Unitário dos Itens:</span>
+                      <span className="font-medium">
+                        {formatCurrency(custoUnitario)}
+                      </span>
+                    </div>
+                    {custosAdicionais.length > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Custos Adicionais:</span>
+                        <span className="font-medium">
+                          {formatCurrency(custosAdicionais.reduce((sum, c) => sum + Number(c.valor || 0), 0))}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-sm border-t pt-2">
+                      <span className="text-muted-foreground">Custo Total:</span>
+                      <span className="font-bold">
+                        {formatCurrency(
+                          (custoUnitario * parseFloat(quantity || '0')) + 
+                          custosAdicionais.reduce((sum, c) => sum + Number(c.valor || 0), 0)
+                        )}
+                      </span>
+                    </div>
+                    {form.watch("preco_venda") && (
+                      <>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Valor de Venda:</span>
+                          <span className="font-bold text-primary">
+                            {formatCurrency(parseFloat(form.watch("preco_venda") || '0') * parseFloat(quantity || '0'))}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm border-t pt-2">
+                          <span className="text-muted-foreground">Lucro Estimado:</span>
+                          <span className={`font-bold ${
+                            (parseFloat(form.watch("preco_venda") || '0') * parseFloat(quantity || '0')) - 
+                            ((custoUnitario * parseFloat(quantity || '0')) + custosAdicionais.reduce((sum, c) => sum + Number(c.valor || 0), 0)) >= 0
+                              ? 'text-success' 
+                              : 'text-destructive'
+                          }`}>
+                            {formatCurrency(
+                              (parseFloat(form.watch("preco_venda") || '0') * parseFloat(quantity || '0')) - 
+                              ((custoUnitario * parseFloat(quantity || '0')) + custosAdicionais.reduce((sum, c) => sum + Number(c.valor || 0), 0))
+                            )}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
 
             {movementType === "IN" && custoUnitario > 0 && quantity && (
               <div className="rounded-lg border bg-muted/50 p-4">

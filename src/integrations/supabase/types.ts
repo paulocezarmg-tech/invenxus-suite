@@ -373,11 +373,13 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          custos_adicionais: Json | null
           from_location_id: string | null
           id: string
           kit_id: string | null
           note: string | null
           organization_id: string
+          preco_venda_usado: number | null
           product_id: string | null
           quantity: number
           reference: string | null
@@ -387,11 +389,13 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          custos_adicionais?: Json | null
           from_location_id?: string | null
           id?: string
           kit_id?: string | null
           note?: string | null
           organization_id: string
+          preco_venda_usado?: number | null
           product_id?: string | null
           quantity: number
           reference?: string | null
@@ -401,11 +405,13 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          custos_adicionais?: Json | null
           from_location_id?: string | null
           id?: string
           kit_id?: string | null
           note?: string | null
           organization_id?: string
+          preco_venda_usado?: number | null
           product_id?: string | null
           quantity?: number
           reference?: string | null
