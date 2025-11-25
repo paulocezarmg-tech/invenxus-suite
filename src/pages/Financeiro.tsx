@@ -30,6 +30,7 @@ export default function Financeiro() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [activeTab, setActiveTab] = useState("movimentacoes");
+  const [filterMode, setFilterMode] = useState<string>("all"); // all, vendas, custos, lucro
   const { toast } = useToast();
   const { userRole, isAdmin, isSuperAdmin, isLoading: isLoadingRole } = useUserRole();
 
@@ -59,7 +60,7 @@ export default function Financeiro() {
   });
 
   const { data: movements, isLoading, refetch } = useQuery({
-    queryKey: ["financeiro", filterType, filterProduct, startDate, endDate],
+    queryKey: ["financeiro", filterType, filterProduct, startDate, endDate, filterMode],
     queryFn: async () => {
       let query = supabase
         .from("financeiro")
@@ -73,7 +74,17 @@ export default function Financeiro() {
         `)
         .order("data", { ascending: false });
 
-      if (filterType !== "all") {
+      // Apply filterMode first
+      if (filterMode === "vendas") {
+        query = query.eq("tipo", "saida");
+      } else if (filterMode === "custos") {
+        // Show all movements but focus on costs
+        // We keep all types to show costs
+      } else if (filterMode === "lucro") {
+        query = query.eq("tipo", "saida").gt("lucro_liquido", 0);
+      }
+
+      if (filterType !== "all" && filterMode === "all") {
         query = query.eq("tipo", filterType);
       }
 
@@ -390,7 +401,13 @@ export default function Financeiro() {
 
         {/* Cards de Métricas */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+        <Card 
+          className="border-0 shadow-card hover:shadow-elevated transition-all cursor-pointer hover:scale-[1.02]"
+          onClick={() => {
+            setFilterMode(filterMode === "vendas" ? "all" : "vendas");
+            setFilterType("all");
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Faturamento Total</CardTitle>
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -401,11 +418,19 @@ export default function Financeiro() {
             <div className="text-3xl font-bold tracking-tight">
               {formatCurrency(totalFaturamento)}
             </div>
-            <p className="text-sm text-muted-foreground">Total de vendas realizadas</p>
+            <p className="text-sm text-muted-foreground">
+              {filterMode === "vendas" ? "Filtrando vendas" : "Total de vendas realizadas"}
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+        <Card 
+          className="border-0 shadow-card hover:shadow-elevated transition-all cursor-pointer hover:scale-[1.02]"
+          onClick={() => {
+            setFilterMode(filterMode === "custos" ? "all" : "custos");
+            setFilterType("all");
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Custo Total</CardTitle>
             <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -416,11 +441,19 @@ export default function Financeiro() {
             <div className="text-3xl font-bold tracking-tight text-destructive">
               {formatCurrency(totalCusto)}
             </div>
-            <p className="text-sm text-muted-foreground">Custos + despesas operacionais</p>
+            <p className="text-sm text-muted-foreground">
+              {filterMode === "custos" ? "Filtrando custos" : "Custos + despesas operacionais"}
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+        <Card 
+          className="border-0 shadow-card hover:shadow-elevated transition-all cursor-pointer hover:scale-[1.02]"
+          onClick={() => {
+            setFilterMode(filterMode === "lucro" ? "all" : "lucro");
+            setFilterType("all");
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Lucro Líquido</CardTitle>
             <div className={`h-10 w-10 rounded-full flex items-center justify-center ${lucroLiquido >= 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
@@ -431,11 +464,21 @@ export default function Financeiro() {
             <div className={`text-3xl font-bold tracking-tight ${lucroLiquido >= 0 ? 'text-success' : 'text-destructive'}`}>
               {formatCurrency(lucroLiquido)}
             </div>
-            <p className="text-sm text-muted-foreground">Faturamento - custos totais</p>
+            <p className="text-sm text-muted-foreground">
+              {filterMode === "lucro" ? "Filtrando com lucro" : "Faturamento - custos totais"}
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
+        <Card 
+          className="border-0 shadow-card hover:shadow-elevated transition-all cursor-pointer hover:scale-[1.02]"
+          onClick={() => {
+            const now = new Date();
+            setStartDate(format(startOfMonth(now), "yyyy-MM-dd"));
+            setEndDate(format(endOfMonth(now), "yyyy-MM-dd"));
+            setFilterMode("all");
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Margem de Lucro</CardTitle>
             <div className={`h-10 w-10 rounded-full flex items-center justify-center ${margemLucro >= 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
@@ -446,7 +489,9 @@ export default function Financeiro() {
             <div className={`text-3xl font-bold tracking-tight ${margemLucro >= 0 ? 'text-success' : 'text-destructive'}`}>
               {margemLucro.toFixed(1)}%
             </div>
-            <p className="text-sm text-muted-foreground">Percentual de lucro sobre vendas</p>
+            <p className="text-sm text-muted-foreground">
+              {startDate && endDate ? "Clique para mês atual" : "Percentual de lucro sobre vendas"}
+            </p>
           </CardContent>
         </Card>
       </div>
