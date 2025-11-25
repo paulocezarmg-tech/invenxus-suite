@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, DollarSign, TrendingUp, TrendingDown, Percent, Pencil, Trash2, FileText, Download, BarChart3 } from "lucide-react";
 import { FinanceiroDialog } from "@/components/financeiro/FinanceiroDialog";
 import { MigrateButton } from "@/components/financeiro/MigrateButton";
+import { DashboardFinanceiro } from "@/components/financeiro/DashboardFinanceiro";
 import { formatCurrency } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns";
@@ -388,7 +389,11 @@ export default function Financeiro() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <TabsList className="grid w-full max-w-md grid-cols-2 h-11">
+        <TabsList className="grid w-full max-w-md grid-cols-3 h-11">
+          <TabsTrigger value="dashboard" className="text-sm font-medium">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Dashboard
+          </TabsTrigger>
           <TabsTrigger value="movimentacoes" className="text-sm font-medium">
             <FileText className="h-4 w-4 mr-2" />
             Movimentações
@@ -495,6 +500,11 @@ export default function Financeiro() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Aba Dashboard */}
+      <TabsContent value="dashboard" className="space-y-6">
+        <DashboardFinanceiro />
+      </TabsContent>
 
       {/* Aba de Movimentações */}
       <TabsContent value="movimentacoes" className="space-y-6">
