@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, DollarSign, TrendingUp, TrendingDown, Percent, Pencil, Trash2, FileText, Download, BarChart3 } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, TrendingDown, Percent, Pencil, Trash2, FileText, Download, BarChart3, Sparkles } from "lucide-react";
 import { FinanceiroDialog } from "@/components/financeiro/FinanceiroDialog";
 import { MigrateButton } from "@/components/financeiro/MigrateButton";
 import { DashboardFinanceiro } from "@/components/financeiro/DashboardFinanceiro";
+import { IAFinanceiraDialog } from "@/components/financeiro/IAFinanceiraDialog";
 import { formatCurrency } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns";
@@ -32,6 +33,7 @@ export default function Financeiro() {
   const [endDate, setEndDate] = useState<string>("");
   const [activeTab, setActiveTab] = useState("movimentacoes");
   const [filterMode, setFilterMode] = useState<string>("all"); // all, vendas, custos, lucro
+  const [isIADialogOpen, setIsIADialogOpen] = useState(false);
   const { toast } = useToast();
   const { userRole, isAdmin, isSuperAdmin, isLoading: isLoadingRole } = useUserRole();
 
@@ -380,6 +382,14 @@ export default function Financeiro() {
           </div>
           <div className="flex gap-3">
             <MigrateButton />
+            <Button 
+              onClick={() => setIsIADialogOpen(true)} 
+              variant="outline" 
+              className="h-11 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Gerar análise da IA
+            </Button>
             <Button onClick={() => { setSelectedMovement(null); setIsDialogOpen(true); }} className="h-11">
               <Plus className="h-4 w-4 mr-2" />
               Nova Movimentação
@@ -839,6 +849,22 @@ export default function Financeiro() {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         movement={selectedMovement}
+        onSuccess={() => {
+          refetch();
+          setIsDialogOpen(false);
+          setSelectedMovement(null);
+        }}
+      />
+
+      <IAFinanceiraDialog
+        open={isIADialogOpen}
+        onOpenChange={setIsIADialogOpen}
+        startDate={startDate || format(subMonths(new Date(), 1), "yyyy-MM-dd")}
+        endDate={endDate || format(new Date(), "yyyy-MM-dd")}
+      />
+    </div>
+  );
+}
         onSuccess={() => {
           refetch();
           setIsDialogOpen(false);
