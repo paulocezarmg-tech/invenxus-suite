@@ -862,15 +862,6 @@ export default function Financeiro() {
         startDate={startDate || format(subMonths(new Date(), 1), "yyyy-MM-dd")}
         endDate={endDate || format(new Date(), "yyyy-MM-dd")}
       />
-    </div>
-  );
-}
-        onSuccess={() => {
-          refetch();
-          setIsDialogOpen(false);
-          setSelectedMovement(null);
-        }}
-      />
       </div>
     </div>
   );
