@@ -13,6 +13,7 @@ import { FinanceiroDialog } from "@/components/financeiro/FinanceiroDialog";
 import { MigrateButton } from "@/components/financeiro/MigrateButton";
 import { DashboardFinanceiro } from "@/components/financeiro/DashboardFinanceiro";
 import { IAFinanceiraDialog } from "@/components/financeiro/IAFinanceiraDialog";
+import { MapaLucro } from "@/components/financeiro/MapaLucro";
 import { formatCurrency } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns";
@@ -399,7 +400,7 @@ export default function Financeiro() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <TabsList className="grid w-full max-w-md grid-cols-3 h-11">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4 h-11">
           <TabsTrigger value="dashboard" className="text-sm font-medium">
             <BarChart3 className="h-4 w-4 mr-2" />
             Dashboard
@@ -407,6 +408,10 @@ export default function Financeiro() {
           <TabsTrigger value="movimentacoes" className="text-sm font-medium">
             <FileText className="h-4 w-4 mr-2" />
             Movimentações
+          </TabsTrigger>
+          <TabsTrigger value="mapa" className="text-sm font-medium">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Mapa de Lucro
           </TabsTrigger>
           <TabsTrigger value="relatorios" className="text-sm font-medium">
             <BarChart3 className="h-4 w-4 mr-2" />
@@ -708,6 +713,11 @@ export default function Financeiro() {
           </div>
         </CardContent>
       </Card>
+      </TabsContent>
+
+      {/* Aba Mapa de Lucro */}
+      <TabsContent value="mapa" className="space-y-6">
+        <MapaLucro />
       </TabsContent>
 
       {/* Aba de Relatórios */}
