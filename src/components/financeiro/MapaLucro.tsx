@@ -7,11 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { formatCurrency } from "@/lib/formatters";
 import { format, subDays, startOfMonth } from "date-fns";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
-import { TrendingUp, TrendingDown, DollarSign, Target } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Target, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 type ClassificationType = "Estrela" | "Estável" | "Sombra" | "Problemático";
@@ -37,6 +39,10 @@ export function MapaLucro() {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [selectedItem, setSelectedItem] = useState<ProductPerformance | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
+  const [priceRecommendation, setPriceRecommendation] = useState<any>(null);
+  const [newPrice, setNewPrice] = useState<string>("");
+  const [isApplyingPrice, setIsApplyingPrice] = useState(false);
 
   const dateRange = useMemo(() => {
     if (startDate && endDate) {
@@ -218,7 +224,92 @@ export function MapaLucro() {
 
   const handleItemClick = (item: ProductPerformance) => {
     setSelectedItem(item);
+    setPriceRecommendation(null);
+    setNewPrice("");
     setIsDetailOpen(true);
+  };
+
+  const handleCalculateIdealPrice = async () => {
+    if (!selectedItem) return;
+
+    setIsCalculatingPrice(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast.error("Você precisa estar autenticado");
+        return;
+      }
+
+      // Calcular custo médio do item
+      const custoMedio = selectedItem.faturamento > 0 
+        ? (selectedItem.faturamento - selectedItem.lucro) / selectedItem.quantidade 
+        : 0;
+
+      const { data, error } = await supabase.functions.invoke("calcular-preco-ideal", {
+        body: {
+          itemId: selectedItem.id,
+          itemName: selectedItem.name,
+          itemType: selectedItem.type,
+          currentPrice: selectedItem.ticketMedio,
+          currentCost: custoMedio,
+          currentMargin: selectedItem.margem,
+          salesHistory: selectedItem.dailyData,
+        },
+      });
+
+      if (error) throw error;
+
+      setPriceRecommendation(data);
+      setNewPrice(data.preco_recomendado.toFixed(2));
+      toast.success("Preço ideal calculado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao calcular preço ideal:", error);
+      toast.error("Erro ao calcular preço ideal. Tente novamente.");
+    } finally {
+      setIsCalculatingPrice(false);
+    }
+  };
+
+  const handleApplyPrice = async () => {
+    if (!selectedItem || !newPrice || !priceRecommendation) return;
+
+    setIsApplyingPrice(true);
+    try {
+      const priceValue = parseFloat(newPrice);
+      if (isNaN(priceValue) || priceValue <= 0) {
+        toast.error("Preço inválido");
+        return;
+      }
+
+      // Atualizar preço do produto ou kit
+      const table = selectedItem.type === "kit" ? "kits" : "products";
+      const { error: updateError } = await supabase
+        .from(table)
+        .update({ preco_venda: priceValue })
+        .eq("id", selectedItem.id);
+
+      if (updateError) throw updateError;
+
+      // Marcar recomendação como aplicada
+      if (priceRecommendation.recomendacao_id) {
+        await supabase
+          .from("recomendacoes_preco")
+          .update({ 
+            aplicado: true, 
+            data_aplicacao: new Date().toISOString() 
+          })
+          .eq("id", priceRecommendation.recomendacao_id);
+      }
+
+      toast.success(`Preço atualizado para ${formatCurrency(priceValue)}!`);
+      setIsDetailOpen(false);
+      setPriceRecommendation(null);
+    } catch (error) {
+      console.error("Erro ao aplicar preço:", error);
+      toast.error("Erro ao aplicar preço. Tente novamente.");
+    } finally {
+      setIsApplyingPrice(false);
+    }
   };
 
   const getClassificationBadge = (classificacao: ClassificationType) => {
@@ -436,8 +527,106 @@ export function MapaLucro() {
               </Card>
 
               <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Sugestão de Preço com IA</CardTitle>
+                  <Button
+                    onClick={handleCalculateIdealPrice}
+                    disabled={isCalculatingPrice}
+                    size="sm"
+                    className="gap-2"
+                  >
+                    {isCalculatingPrice ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Calculando...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Calcular Preço Ideal
+                      </>
+                    )}
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {!priceRecommendation ? (
+                    <p className="text-sm text-muted-foreground">
+                      Clique no botão acima para que a IA analise o histórico de vendas e sugira o preço ideal para
+                      maximizar lucro mantendo boa rotatividade.
+                    </p>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="text-sm text-muted-foreground">Preço Atual</div>
+                            <div className="text-xl font-bold">{formatCurrency(selectedItem.ticketMedio)}</div>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="text-sm text-muted-foreground">Preço Recomendado</div>
+                            <div className="text-xl font-bold text-primary">
+                              {formatCurrency(priceRecommendation.preco_recomendado)}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {priceRecommendation.lucro_potencial && (
+                        <Card className="bg-muted/50">
+                          <CardContent className="pt-6">
+                            <div className="text-sm text-muted-foreground">Lucro Potencial Estimado</div>
+                            <div className="text-xl font-bold text-success">
+                              {formatCurrency(priceRecommendation.lucro_potencial)}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Impacto na demanda: {priceRecommendation.impacto_demanda}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      <div className="prose prose-sm max-w-none">
+                        <div className="whitespace-pre-wrap text-sm">{priceRecommendation.analise_completa}</div>
+                      </div>
+
+                      <div className="space-y-3 pt-4 border-t">
+                        <Label htmlFor="newPrice">Aplicar novo preço</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="newPrice"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={newPrice}
+                            onChange={(e) => setNewPrice(e.target.value)}
+                            placeholder="0.00"
+                            className="flex-1"
+                          />
+                          <Button onClick={handleApplyPrice} disabled={isApplyingPrice || !newPrice}>
+                            {isApplyingPrice ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Aplicando...
+                              </>
+                            ) : (
+                              "Aplicar Preço"
+                            )}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Este preço será atualizado no cadastro do {selectedItem.type === "kit" ? "kit" : "produto"}.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
                 <CardHeader>
-                  <CardTitle>Recomendação</CardTitle>
+                  <CardTitle>Recomendação de Desempenho</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {selectedItem.classificacao === "Estrela" && (

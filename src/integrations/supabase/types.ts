@@ -745,6 +745,57 @@ export type Database = {
           },
         ]
       }
+      recomendacoes_preco: {
+        Row: {
+          analise_completa: string
+          aplicado: boolean
+          created_at: string
+          data_aplicacao: string | null
+          id: string
+          impacto_demanda: string | null
+          lucro_potencial: number | null
+          organization_id: string
+          preco_atual: number
+          preco_recomendado: number
+          produto_id: string | null
+          tipo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analise_completa: string
+          aplicado?: boolean
+          created_at?: string
+          data_aplicacao?: string | null
+          id?: string
+          impacto_demanda?: string | null
+          lucro_potencial?: number | null
+          organization_id: string
+          preco_atual: number
+          preco_recomendado: number
+          produto_id?: string | null
+          tipo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analise_completa?: string
+          aplicado?: boolean
+          created_at?: string
+          data_aplicacao?: string | null
+          id?: string
+          impacto_demanda?: string | null
+          lucro_potencial?: number | null
+          organization_id?: string
+          preco_atual?: number
+          preco_recomendado?: number
+          produto_id?: string | null
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       relatorio_configuracoes: {
         Row: {
           created_at: string
