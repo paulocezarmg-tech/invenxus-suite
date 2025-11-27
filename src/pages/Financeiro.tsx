@@ -114,29 +114,7 @@ export default function Financeiro() {
     },
   });
 
-  // Redirect if not admin or superadmin - AFTER all hooks
-  if (!isLoadingRole && !isAdmin() && !isSuperAdmin()) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          <h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2>
-          <p className="text-muted-foreground">
-            Esta funcionalidade está disponível apenas para administradores.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoadingRole) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Carregando...</div>
-      </div>
-    );
-  }
-
-  // Calcular métricas de lucro real
+  // Calcular métricas de lucro real - ANTES dos early returns para manter hooks consistentes
   const totalFaturamento = movements?.reduce((sum, m) => {
     if (m.tipo === "saida") {
       return sum + (parseFloat(m.valor?.toString() || "0"));
@@ -152,7 +130,7 @@ export default function Financeiro() {
 
   const margemLucro = totalFaturamento > 0 ? (lucroLiquido / totalFaturamento) * 100 : 0;
 
-  // Dados para gráficos de relatórios
+  // Dados para gráficos de relatórios - ANTES dos early returns
   const chartData = useMemo(() => {
     if (!movements) return { monthly: [], products: [], daily: [] };
 
@@ -203,6 +181,28 @@ export default function Financeiro() {
 
     return { monthly, products: productsArray, daily: [] };
   }, [movements, products]);
+
+  // Verificações de permissão DEPOIS de todos os hooks
+  if (!isLoadingRole && !isAdmin() && !isSuperAdmin()) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2>
+          <p className="text-muted-foreground">
+            Esta funcionalidade está disponível apenas para administradores.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoadingRole) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-muted-foreground">Carregando...</div>
+      </div>
+    );
+  }
 
   const exportPDF = async () => {
     try {
