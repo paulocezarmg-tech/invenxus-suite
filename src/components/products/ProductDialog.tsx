@@ -5,6 +5,7 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { useOrganization } from "@/hooks/useOrganization";
+import { IAPrecoIdealDialog } from "@/components/financeiro/IAPrecoIdealDialog";
 
 const productSchema = z.object({
   sku: z.string().optional(),
@@ -60,6 +62,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCustomUnit, setIsCustomUnit] = useState(false);
   const [customUnit, setCustomUnit] = useState("");
+  const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
 
@@ -465,6 +468,18 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
                       <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} />
                     </FormControl>
                     <FormMessage />
+                    {product && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-2 gap-2"
+                        onClick={() => setPriceDialogOpen(true)}
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        Gerar Preço Ideal com IA
+                      </Button>
+                    )}
                   </FormItem>
                 )}
               />
@@ -572,6 +587,23 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
           </form>
         </Form>
       </DialogContent>
+
+      {product && (
+        <IAPrecoIdealDialog
+          open={priceDialogOpen}
+          onOpenChange={setPriceDialogOpen}
+          itemId={product.id}
+          itemName={product.name}
+          itemType="produto"
+          currentPrice={product.preco_venda || 0}
+          currentCost={product.custo_unitario || product.cost || 0}
+          currentMargin={product.preco_venda ? ((product.preco_venda - (product.custo_unitario || product.cost || 0)) / product.preco_venda) * 100 : 0}
+          onPriceApplied={() => {
+            queryClient.invalidateQueries({ queryKey: ["products"] });
+            setPriceDialogOpen(false);
+          }}
+        />
+      )}
     </Dialog>
   );
 }

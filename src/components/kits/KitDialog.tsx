@@ -31,10 +31,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Sparkles } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useOrganization } from "@/hooks/useOrganization";
 import { formatCurrency } from "@/lib/formatters";
+import { IAPrecoIdealDialog } from "@/components/financeiro/IAPrecoIdealDialog";
 
 const kitSchema = z.object({
   sku: z.string().min(1, "SKU é obrigatório"),
@@ -67,6 +68,7 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [kitItems, setKitItems] = useState<KitItem[]>([]);
   const [custosAdicionais, setCustosAdicionais] = useState<CustoAdicional[]>([]);
+  const [priceDialogOpen, setPriceDialogOpen] = useState(false);
   const { data: organizationId } = useOrganization();
 
   const form = useForm<KitFormData>({
@@ -476,6 +478,18 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
                       </div>
                     </FormControl>
                     <FormMessage />
+                    {kit && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-2 gap-2"
+                        onClick={() => setPriceDialogOpen(true)}
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        Gerar Preço Ideal com IA
+                      </Button>
+                    )}
                   </FormItem>
                 )}
               />
@@ -591,6 +605,24 @@ export function KitDialog({ open, onOpenChange, kit }: KitDialogProps) {
           </form>
         </Form>
       </DialogContent>
+
+      {kit && (
+        <IAPrecoIdealDialog
+          open={priceDialogOpen}
+          onOpenChange={setPriceDialogOpen}
+          itemId={kit.id}
+          itemName={kit.name}
+          itemType="kit"
+          currentPrice={kit.preco_venda || 0}
+          currentCost={custoTotal}
+          currentMargin={margemLucro}
+          onPriceApplied={() => {
+            queryClient.invalidateQueries({ queryKey: ["kits"] });
+            queryClient.invalidateQueries({ queryKey: ["kits-with-cost"] });
+            setPriceDialogOpen(false);
+          }}
+        />
+      )}
     </Dialog>
   );
 }
