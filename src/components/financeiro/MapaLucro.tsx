@@ -13,8 +13,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { formatCurrency } from "@/lib/formatters";
 import { format, subDays, startOfMonth } from "date-fns";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
-import { TrendingUp, TrendingDown, DollarSign, Target, Sparkles, Loader2 } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Target, Sparkles, Loader2, Zap } from "lucide-react";
 import { toast } from "sonner";
+import { IAPrecoIdealDialog } from "./IAPrecoIdealDialog";
 
 type ClassificationType = "Estrela" | "Estável" | "Sombra" | "Problemático";
 
@@ -43,6 +44,8 @@ export function MapaLucro() {
   const [priceRecommendation, setPriceRecommendation] = useState<any>(null);
   const [newPrice, setNewPrice] = useState<string>("");
   const [isApplyingPrice, setIsApplyingPrice] = useState(false);
+  const [priceDialogOpen, setPriceDialogOpen] = useState(false);
+  const [selectedPriceItem, setSelectedPriceItem] = useState<ProductPerformance | null>(null);
 
   const dateRange = useMemo(() => {
     if (startDate && endDate) {
@@ -240,7 +243,6 @@ export function MapaLucro() {
         return;
       }
 
-      // Calcular custo médio do item
       const custoMedio = selectedItem.faturamento > 0 
         ? (selectedItem.faturamento - selectedItem.lucro) / selectedItem.quantidade 
         : 0;
@@ -281,7 +283,6 @@ export function MapaLucro() {
         return;
       }
 
-      // Atualizar preço do produto ou kit
       const table = selectedItem.type === "kit" ? "kits" : "products";
       const { error: updateError } = await supabase
         .from(table)
@@ -290,7 +291,6 @@ export function MapaLucro() {
 
       if (updateError) throw updateError;
 
-      // Marcar recomendação como aplicada
       if (priceRecommendation.recomendacao_id) {
         await supabase
           .from("recomendacoes_preco")
@@ -457,22 +457,69 @@ export function MapaLucro() {
                 <TableHead className="text-right">Qtd. Vendida</TableHead>
                 <TableHead className="text-right">Ticket Médio</TableHead>
                 <TableHead>Classificação</TableHead>
+                <TableHead className="text-center">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {performanceData.map((item) => (
-                <TableRow
-                  key={item.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleItemClick(item)}
-                >
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(item.faturamento)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(item.lucro)}</TableCell>
-                  <TableCell className="text-right">{item.margem.toFixed(1)}%</TableCell>
-                  <TableCell className="text-right">{item.quantidade}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(item.ticketMedio)}</TableCell>
-                  <TableCell>{getClassificationBadge(item.classificacao)}</TableCell>
+                <TableRow key={item.id} className="hover:bg-muted/50">
+                  <TableCell 
+                    className="font-medium cursor-pointer"
+                    onClick={() => handleItemClick(item)}
+                  >
+                    {item.name}
+                  </TableCell>
+                  <TableCell 
+                    className="text-right cursor-pointer"
+                    onClick={() => handleItemClick(item)}
+                  >
+                    {formatCurrency(item.faturamento)}
+                  </TableCell>
+                  <TableCell 
+                    className="text-right cursor-pointer"
+                    onClick={() => handleItemClick(item)}
+                  >
+                    {formatCurrency(item.lucro)}
+                  </TableCell>
+                  <TableCell 
+                    className="text-right cursor-pointer"
+                    onClick={() => handleItemClick(item)}
+                  >
+                    {item.margem.toFixed(1)}%
+                  </TableCell>
+                  <TableCell 
+                    className="text-right cursor-pointer"
+                    onClick={() => handleItemClick(item)}
+                  >
+                    {item.quantidade}
+                  </TableCell>
+                  <TableCell 
+                    className="text-right cursor-pointer"
+                    onClick={() => handleItemClick(item)}
+                  >
+                    {formatCurrency(item.ticketMedio)}
+                  </TableCell>
+                  <TableCell 
+                    className="cursor-pointer"
+                    onClick={() => handleItemClick(item)}
+                  >
+                    {getClassificationBadge(item.classificacao)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPriceItem(item);
+                        setPriceDialogOpen(true);
+                      }}
+                      className="gap-1"
+                    >
+                      <Zap className="h-3 w-3" />
+                      Calcular Preço Ideal
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -659,6 +706,23 @@ export function MapaLucro() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de cálculo de preço ideal */}
+      {selectedPriceItem && (
+        <IAPrecoIdealDialog
+          open={priceDialogOpen}
+          onOpenChange={setPriceDialogOpen}
+          itemId={selectedPriceItem.id}
+          itemName={selectedPriceItem.name}
+          itemType={selectedPriceItem.type}
+          currentPrice={selectedPriceItem.ticketMedio}
+          currentCost={selectedPriceItem.faturamento - selectedPriceItem.lucro}
+          currentMargin={selectedPriceItem.margem}
+          onPriceApplied={() => {
+            toast.success("Dados atualizados!");
+          }}
+        />
+      )}
     </div>
   );
 }
