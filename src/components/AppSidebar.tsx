@@ -1,4 +1,4 @@
-import { Home, Package, TrendingUp, FileText, Settings, LogOut, Boxes, Warehouse, Shield, DollarSign, Receipt, Brain } from "lucide-react";
+import { Home, Package, TrendingUp, FileText, Settings, LogOut, Boxes, Warehouse, Shield, DollarSign, Receipt, Brain, CreditCard } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import stockmasterLogo from "@/assets/stockmaster-logo.png";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
@@ -6,10 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+
 export function AppSidebar() {
-  const {
-    state
-  } = useSidebar();
+  const { state } = useSidebar();
   const navigate = useNavigate();
   const collapsed = state === "collapsed";
 
@@ -46,51 +45,22 @@ export function AppSidebar() {
     },
   });
 
-  const baseMenuItems = [{
-    title: "Dashboard",
-    url: "/",
-    icon: Home
-  }, {
-    title: "Produtos",
-    url: "/products",
-    icon: Package
-  }, {
-    title: "Kits",
-    url: "/kits",
-    icon: Boxes
-  }, {
-    title: "Movimentações",
-    url: "/movements",
-    icon: TrendingUp
-  }, {
-    title: "Estoque",
-    url: "/stock",
-    icon: Warehouse
-  }, {
-    title: "Configurações",
-    url: "/settings",
-    icon: Settings
-  }];
+  const baseMenuItems = [
+    { title: "Dashboard", url: "/", icon: Home },
+    { title: "Produtos", url: "/products", icon: Package },
+    { title: "Kits", url: "/kits", icon: Boxes },
+    { title: "Movimentações", url: "/movements", icon: TrendingUp },
+    { title: "Estoque", url: "/stock", icon: Warehouse },
+    { title: "Assinatura", url: "/subscription", icon: CreditCard },
+    { title: "Configurações", url: "/settings", icon: Settings },
+  ];
 
   // Items only for admin and superadmin
   const adminMenuItems = [
-    {
-      title: "Financeiro",
-      url: "/financeiro",
-      icon: DollarSign
-    }, {
-      title: "Contas a Pagar/Receber",
-      url: "/contas",
-      icon: Receipt
-    }, {
-      title: "Previsão de Estoque",
-      url: "/previsao-estoque",
-      icon: Brain
-    }, {
-      title: "Relatórios",
-      url: "/reports",
-      icon: FileText
-    }
+    { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+    { title: "Contas a Pagar/Receber", url: "/contas", icon: Receipt },
+    { title: "Previsão de Estoque", url: "/previsao-estoque", icon: Brain },
+    { title: "Relatórios", url: "/reports", icon: FileText },
   ];
 
   let menuItems = [...baseMenuItems];
@@ -104,6 +74,7 @@ export function AppSidebar() {
   if (userRole === "superadmin") {
     menuItems = [...menuItems, { title: "Administração", url: "/admin", icon: Shield }];
   }
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -113,14 +84,22 @@ export function AppSidebar() {
       toast.error("Erro ao fazer logout");
     }
   };
-  return <Sidebar className="border-r border-border">
+
+  return (
+    <Sidebar className="border-r border-border">
       <SidebarHeader className="border-b border-border p-4">
         <div className="flex items-center gap-3">
-          <img src={stockmasterLogo} alt="StockMaster CMS Logo" className={collapsed ? "h-12 w-12 object-contain" : "h-16 w-auto object-contain"} />
-          {!collapsed && <div>
+          <img
+            src={stockmasterLogo}
+            alt="StockMaster CMS Logo"
+            className={collapsed ? "h-12 w-12 object-contain" : "h-16 w-auto object-contain"}
+          />
+          {!collapsed && (
+            <div>
               <h2 className="font-semibold text-xl my-0 px-0 mx-0 py-0 text-left">StockMaster</h2>
               <p className="text-muted-foreground text-lg">CMS</p>
-            </div>}
+            </div>
+          )}
         </div>
       </SidebarHeader>
 
@@ -129,16 +108,24 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map(item => <SidebarMenuItem key={item.title}>
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end className={({
-                  isActive
-                }) => isActive ? "flex items-center gap-3 bg-primary/10 text-primary font-medium" : "flex items-center gap-3 hover:bg-accent/50"}>
+                    <NavLink
+                      to={item.url}
+                      end
+                      className={({ isActive }) =>
+                        isActive
+                          ? "flex items-center gap-3 bg-primary/10 text-primary font-medium"
+                          : "flex items-center gap-3 hover:bg-accent/50"
+                      }
+                    >
                       <item.icon className="h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
-                </SidebarMenuItem>)}
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -150,5 +137,6 @@ export function AppSidebar() {
           {!collapsed && <span>Sair</span>}
         </Button>
       </SidebarFooter>
-    </Sidebar>;
+    </Sidebar>
+  );
 }

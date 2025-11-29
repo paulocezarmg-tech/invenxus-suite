@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useOrganization } from "@/hooks/useOrganization";
+import { usePlanLimits } from "@/hooks/usePlanLimits";
 import {
   Select,
   SelectContent,
@@ -36,6 +37,7 @@ const Movements = () => {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
+  const { canCreateMovement } = usePlanLimits();
 
   const handleDateChange = (from: Date | null, to: Date | null) => {
     setDateFrom(from);
@@ -214,6 +216,7 @@ const Movements = () => {
           <Button
             className="gap-2 w-full sm:w-auto"
             onClick={() => {
+              if (!canCreateMovement()) return;
               setSelectedMovement(null);
               setDialogOpen(true);
             }}
