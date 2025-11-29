@@ -18,6 +18,7 @@ import Admin from "./pages/Admin";
 import Financeiro from "./pages/Financeiro";
 import Contas from "./pages/Contas";
 import PrevisaoEstoque from "./pages/PrevisaoEstoque";
+import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 
@@ -103,6 +104,14 @@ const App = () => (
             element={
               <Layout>
                 <PrevisaoEstoque />
+              </Layout>
+            }
+          />
+          <Route
+            path="/subscription"
+            element={
+              <Layout>
+                <Subscription />
               </Layout>
             }
           />

@@ -559,6 +559,51 @@ export type Database = {
         }
         Relationships: []
       }
+      plans: {
+        Row: {
+          ai_features: Json | null
+          created_at: string
+          description: string | null
+          id: string
+          max_companies: number
+          max_movements: number
+          max_products: number
+          max_users: number
+          name: string
+          price: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ai_features?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_companies?: number
+          max_movements?: number
+          max_products?: number
+          max_users?: number
+          name: string
+          price?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_features?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_companies?: number
+          max_movements?: number
+          max_products?: number
+          max_users?: number
+          name?: string
+          price?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       previsoes_estoque: {
         Row: {
           created_at: string
@@ -839,6 +884,59 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          last_payment_date: string | null
+          organization_id: string
+          payment_status: string | null
+          plan_id: string
+          renewal_date: string
+          start_date: string
+          status: string
+          trial_end_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_payment_date?: string | null
+          organization_id: string
+          payment_status?: string | null
+          plan_id: string
+          renewal_date: string
+          start_date?: string
+          status?: string
+          trial_end_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_payment_date?: string | null
+          organization_id?: string
+          payment_status?: string | null
+          plan_id?: string
+          renewal_date?: string
+          start_date?: string
+          status?: string
+          trial_end_date?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
             referencedColumns: ["id"]
           },
         ]
