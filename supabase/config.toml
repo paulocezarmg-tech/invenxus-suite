@@ -29,3 +29,9 @@ verify_jwt = false
 
 [functions.calcular-preco-ideal]
 verify_jwt = true
+
+[functions.create-subscription]
+verify_jwt = true
+
+[functions.mp-webhook]
+verify_jwt = false
