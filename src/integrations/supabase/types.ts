@@ -559,6 +559,50 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_history: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          payment_date: string | null
+          payment_id: string | null
+          preapproval_id: string
+          status: string
+          subscription_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_date?: string | null
+          payment_id?: string | null
+          preapproval_id: string
+          status: string
+          subscription_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_date?: string | null
+          payment_id?: string | null
+          preapproval_id?: string
+          status?: string
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_history_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           ai_features: Json | null
@@ -569,6 +613,7 @@ export type Database = {
           max_movements: number
           max_products: number
           max_users: number
+          mp_preapproval_template_id: string | null
           name: string
           price: number
           status: string
@@ -583,6 +628,7 @@ export type Database = {
           max_movements?: number
           max_products?: number
           max_users?: number
+          mp_preapproval_template_id?: string | null
           name: string
           price?: number
           status?: string
@@ -597,6 +643,7 @@ export type Database = {
           max_movements?: number
           max_products?: number
           max_users?: number
+          mp_preapproval_template_id?: string | null
           name?: string
           price?: number
           status?: string
@@ -893,9 +940,11 @@ export type Database = {
           created_at: string
           id: string
           last_payment_date: string | null
+          mp_status: string | null
           organization_id: string
           payment_status: string | null
           plan_id: string
+          preapproval_id: string | null
           renewal_date: string
           start_date: string
           status: string
@@ -907,9 +956,11 @@ export type Database = {
           created_at?: string
           id?: string
           last_payment_date?: string | null
+          mp_status?: string | null
           organization_id: string
           payment_status?: string | null
           plan_id: string
+          preapproval_id?: string | null
           renewal_date: string
           start_date?: string
           status?: string
@@ -921,9 +972,11 @@ export type Database = {
           created_at?: string
           id?: string
           last_payment_date?: string | null
+          mp_status?: string | null
           organization_id?: string
           payment_status?: string | null
           plan_id?: string
+          preapproval_id?: string | null
           renewal_date?: string
           start_date?: string
           status?: string

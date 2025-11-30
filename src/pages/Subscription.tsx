@@ -3,17 +3,20 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { usePlanLimits } from "@/hooks/usePlanLimits";
-import { Loader2, Sparkles, Users, Package, TrendingUp, Building2, Calendar } from "lucide-react";
+import { Loader2, Sparkles, Users, Package, TrendingUp, Building2, Calendar, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { PaymentHistory } from "@/components/subscription/PaymentHistory";
 
 export default function Subscription() {
   const { limits, usage, subscription, isLoading } = usePlanLimits();
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const { data: plans } = useQuery({
     queryKey: ["plans"],
@@ -57,6 +60,65 @@ export default function Subscription() {
 
   const calculatePercentage = (current: number, max: number) => {
     return Math.min((current / max) * 100, 100);
+  };
+
+  const handleSubscribePlan = async (plan: any) => {
+    setIsProcessing(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Você precisa estar logado para assinar um plano");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!profile) {
+        toast.error("Perfil não encontrado");
+        return;
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      const response = await supabase.functions.invoke("create-subscription", {
+        body: {
+          plan_id: plan.id,
+          customer_email: user.email,
+          amount: plan.price,
+          frequency: 1,
+          frequency_type: "months",
+          description: `Assinatura ${plan.name} - StockMaster`,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.error) {
+        console.error("Erro ao criar assinatura:", response.error);
+        toast.error("Erro ao criar assinatura. Tente novamente.");
+        return;
+      }
+
+      const { init_point, sandbox_init_point } = response.data;
+      const checkoutUrl = init_point || sandbox_init_point;
+
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
+      } else {
+        toast.error("URL de checkout não encontrada");
+      }
+    } catch (error) {
+      console.error("Erro ao processar assinatura:", error);
+      toast.error("Erro ao processar assinatura");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -268,8 +330,23 @@ export default function Subscription() {
                       </div>
                     )}
                   </div>
-                  <Button className="w-full mt-4" variant={plan.price === 0 ? "outline" : "default"}>
-                    Selecionar Plano
+                  <Button 
+                    className="w-full mt-4" 
+                    variant={plan.price === 0 ? "outline" : "default"}
+                    onClick={() => handleSubscribePlan(plan)}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processando...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Assinar Plano
+                      </>
+                    )}
                   </Button>
                 </CardContent>
               </Card>
@@ -277,6 +354,8 @@ export default function Subscription() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <PaymentHistory />
     </div>
   );
 }

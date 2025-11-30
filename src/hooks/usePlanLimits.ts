@@ -47,7 +47,7 @@ export function usePlanLimits() {
           plan:plans(*)
         `)
         .eq("organization_id", organizationId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -88,6 +88,16 @@ export function usePlanLimits() {
 
   const checkLimit = (type: keyof PlanLimits): boolean => {
     if (!subscription?.plan || !usage) return true;
+
+    // Verificar se a assinatura está expirada ou com pagamento pendente há mais de 3 dias
+    const subscriptionInfo = getSubscriptionInfo();
+    if (subscriptionInfo) {
+      if (subscriptionInfo.status === 'expired' || 
+          subscriptionInfo.status === 'cancelled' ||
+          (subscriptionInfo.paymentStatus === 'failed' && subscriptionInfo.daysUntilExpiry < -3)) {
+        return false; // Bloquear ações se assinatura expirada ou pagamento falhou há mais de 3 dias
+      }
+    }
 
     const plan = subscription.plan as any;
     const limits: PlanLimits = {
