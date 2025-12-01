@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, Pencil, Trash2, Activity, TrendingUp, TrendingDown } from "lucide-react";
 import { MovementDialog } from "@/components/movements/MovementDialog";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
@@ -34,6 +35,7 @@ const Movements = () => {
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
   const [dateTo, setDateTo] = useState<Date | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
 
@@ -168,6 +170,36 @@ const Movements = () => {
     }
   };
 
+  const handleDeleteMultiple = async () => {
+    if (!confirm(`Tem certeza que deseja excluir ${selectedIds.length} movimentação(ões)?`)) return;
+
+    try {
+      const { error } = await supabase.from("movements").delete().in("id", selectedIds);
+      if (error) throw error;
+
+      toast.success("Movimentações excluídas com sucesso");
+      setSelectedIds([]);
+      queryClient.invalidateQueries({ queryKey: ["movements"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao excluir movimentações");
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === movements?.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(movements?.map(m => m.id) || []);
+    }
+  };
+
+  const handleSelectOne = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
   useEffect(() => {
     if (!organizationId) return;
     const channel = supabase
@@ -211,6 +243,12 @@ const Movements = () => {
               <SelectItem value="TRANSFER">Transferências</SelectItem>
             </SelectContent>
           </Select>
+          {selectedIds.length > 0 && userRole === "superadmin" && (
+            <Button onClick={handleDeleteMultiple} variant="destructive" className="gap-2 w-full sm:w-auto">
+              <Trash2 className="h-4 w-4" />
+              Excluir ({selectedIds.length})
+            </Button>
+          )}
           <Button
             className="gap-2 w-full sm:w-auto"
             onClick={() => {
@@ -273,6 +311,14 @@ const Movements = () => {
           <Table>
           <TableHeader>
             <TableRow>
+              {userRole === "superadmin" && (
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectedIds.length === movements?.length && movements?.length > 0}
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
+              )}
               <TableHead>Data/Hora</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Produto</TableHead>
@@ -293,6 +339,14 @@ const Movements = () => {
             ) : movements && movements.length > 0 ? (
               movements.map((movement: any) => (
                 <TableRow key={movement.id}>
+                  {userRole === "superadmin" && (
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.includes(movement.id)}
+                        onCheckedChange={() => handleSelectOne(movement.id)}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="font-mono text-sm">
                     {format(new Date(movement.created_at), "dd/MM/yyyy HH:mm", {
                       locale: ptBR,

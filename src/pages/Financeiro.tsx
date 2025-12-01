@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, DollarSign, TrendingUp, TrendingDown, Percent, Pencil, Trash2, FileText, Download, BarChart3, Sparkles } from "lucide-react";
 import { FinanceiroDialog } from "@/components/financeiro/FinanceiroDialog";
@@ -33,8 +34,9 @@ export default function Financeiro() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [activeTab, setActiveTab] = useState("movimentacoes");
-  const [filterMode, setFilterMode] = useState<string>("all"); // all, vendas, custos, lucro
+  const [filterMode, setFilterMode] = useState<string>("all");
   const [isIADialogOpen, setIsIADialogOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const { toast } = useToast();
   const { userRole, isAdmin, isSuperAdmin, isLoading: isLoadingRole } = useUserRole();
 
@@ -353,10 +355,7 @@ export default function Financeiro() {
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir esta movimentação?")) return;
 
-    const { error } = await supabase
-      .from("financeiro")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("financeiro").delete().eq("id", id);
 
     if (error) {
       toast({
@@ -371,6 +370,41 @@ export default function Financeiro() {
       });
       refetch();
     }
+  };
+
+  const handleDeleteMultiple = async () => {
+    if (!confirm(`Tem certeza que deseja excluir ${selectedIds.length} movimentação(ões)?`)) return;
+
+    const { error } = await supabase.from("financeiro").delete().in("id", selectedIds);
+
+    if (error) {
+      toast({
+        title: "Erro ao excluir",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Movimentações excluídas",
+        description: "As movimentações foram excluídas com sucesso.",
+      });
+      setSelectedIds([]);
+      refetch();
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === movements?.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(movements?.map(m => m.id) || []);
+    }
+  };
+
+  const handleSelectOne = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
   };
 
   return (
