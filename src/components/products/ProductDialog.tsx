@@ -5,7 +5,7 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Upload, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -63,6 +63,8 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
   const [isCustomUnit, setIsCustomUnit] = useState(false);
   const [customUnit, setCustomUnit] = useState("");
   const [priceDialogOpen, setPriceDialogOpen] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(product?.image_url || null);
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
 
@@ -137,6 +139,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
         location_id: product.location_id || "",
         supplier_id: product.supplier_id || "",
       });
+      setImagePreview(product.image_url || null);
     } else {
       form.reset({
         sku: "",
@@ -150,10 +153,33 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
         location_id: "",
         supplier_id: "",
       });
+      setImagePreview(null);
     }
     setIsCustomUnit(false);
     setCustomUnit("");
+    setImageFile(null);
   }, [product, form]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("A imagem deve ter no máximo 5MB");
+        return;
+      }
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
 
   const onSubmit = async (data: ProductFormData) => {
     setIsSubmitting(true);
@@ -217,6 +243,40 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
           return;
         }
       }
+
+      // Upload image if there's a new file
+      let imageUrl = product?.image_url || null;
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${organizationId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(fileName, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(fileName);
+        
+        imageUrl = publicUrl;
+
+        // Delete old image if exists
+        if (product?.image_url) {
+          const oldPath = product.image_url.split('/product-images/')[1];
+          if (oldPath) {
+            await supabase.storage.from('product-images').remove([oldPath]);
+          }
+        }
+      } else if (!imagePreview && product?.image_url) {
+        // User removed the image
+        const oldPath = product.image_url.split('/product-images/')[1];
+        if (oldPath) {
+          await supabase.storage.from('product-images').remove([oldPath]);
+        }
+        imageUrl = null;
+      }
       
       const productData = {
         sku: sku,
@@ -231,6 +291,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
         location_id: data.location_id || null,
         supplier_id: data.supplier_id || null,
         organization_id: organizationId,
+        image_url: imageUrl,
       };
 
       if (product) {
@@ -357,6 +418,42 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
                 </FormItem>
               )}
             />
+
+            <div className="space-y-2">
+              <FormLabel>Imagem do Produto</FormLabel>
+              {imagePreview ? (
+                <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-muted border">
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2"
+                    onClick={removeImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center w-full">
+                  <label className="flex flex-col items-center justify-center w-full aspect-video border-2 border-dashed rounded-lg cursor-pointer bg-muted/10 hover:bg-muted/20 transition-colors">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <Upload className="w-10 h-10 mb-3 text-muted-foreground" />
+                      <p className="mb-2 text-sm text-muted-foreground">
+                        <span className="font-semibold">Clique para fazer upload</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">PNG, JPG ou WEBP (máx. 5MB)</p>
+                    </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/png,image/jpeg,image/jpg,image/webp"
+                      onChange={handleImageChange}
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
