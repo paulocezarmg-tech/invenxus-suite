@@ -3,11 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Users, Building2, Edit, Trash2, CreditCard } from "lucide-react";
+import { Loader2, Plus, Users, Building2, Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { OrganizationDialog } from "@/components/admin/OrganizationDialog";
 import { OrganizationMembersDialog } from "@/components/admin/OrganizationMembersDialog";
-import PlansManagement from "@/components/subscription/PlansManagement";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -171,10 +170,6 @@ export default function Admin() {
             <Users className="h-4 w-4" />
             Membros
           </TabsTrigger>
-          <TabsTrigger value="plans" className="gap-2">
-            <CreditCard className="h-4 w-4" />
-            Planos
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="organizations">
@@ -260,10 +255,6 @@ export default function Admin() {
           <div className="text-center py-8">
             <p className="text-muted-foreground">Selecione uma organização acima para gerenciar seus membros</p>
           </div>
-        </TabsContent>
-
-        <TabsContent value="plans">
-          <PlansManagement />
         </TabsContent>
       </Tabs>
 
