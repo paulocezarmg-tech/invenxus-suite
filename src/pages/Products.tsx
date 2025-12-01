@@ -17,7 +17,6 @@ import { Plus, Search, Pencil, Trash2, Package, TrendingDown, AlertCircle, Dolla
 import { ProductDialog } from "@/components/products/ProductDialog";
 import { toast } from "sonner";
 import { useOrganization } from "@/hooks/useOrganization";
-import { usePlanLimits } from "@/hooks/usePlanLimits";
 import { formatNumber } from "@/lib/formatters";
 
 const Products = () => {
@@ -27,7 +26,6 @@ const Products = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
-  const { canCreateProduct } = usePlanLimits();
 
   // Check user role - get highest privilege role
   const { data: currentUser, isLoading: isLoadingRole } = useQuery({
@@ -217,7 +215,6 @@ const Products = () => {
           <Button
             className="h-11 gap-2"
             onClick={() => {
-              if (!canCreateProduct()) return;
               setSelectedProduct(null);
               setDialogOpen(true);
             }}

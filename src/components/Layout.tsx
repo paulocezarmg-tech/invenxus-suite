@@ -6,7 +6,6 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
-import PlanBanner from "@/components/subscription/PlanBanner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, User } from "lucide-react";
@@ -97,7 +96,6 @@ export const Layout = ({ children }: LayoutProps) => {
           </header>
           <main className="flex-1 overflow-auto">
             <div className="container mx-auto p-6">
-              <PlanBanner />
               {children}
             </div>
           </main>
