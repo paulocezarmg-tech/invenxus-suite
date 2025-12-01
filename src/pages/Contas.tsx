@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ContasDialog } from "@/components/contas/ContasDialog";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import {
@@ -35,6 +36,7 @@ export default function Contas() {
   const [tipoFilter, setTipoFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoriaFilter, setCategoriaFilter] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const { toast } = useToast();
   const { userRole, isAdmin, isSuperAdmin, isLoading: isLoadingRole } = useUserRole();
 
@@ -159,6 +161,50 @@ export default function Contas() {
     }
   };
 
+  const handleDeleteMultiple = async () => {
+    if (!isAdmin() && !isSuperAdmin()) {
+      toast({
+        title: "Acesso negado",
+        description: "Apenas administradores podem excluir contas.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (confirm(`Tem certeza que deseja excluir ${selectedIds.length} conta(s)?`)) {
+      const { error } = await supabase.from("contas").delete().in("id", selectedIds);
+
+      if (error) {
+        toast({
+          title: "Erro ao excluir",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Contas excluídas",
+          description: "As contas foram excluídas com sucesso.",
+        });
+        setSelectedIds([]);
+        refetch();
+      }
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === contas?.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(contas?.map(c => c.id) || []);
+    }
+  };
+
+  const handleSelectOne = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
   const handleMarkAsPaid = async (conta: any) => {
     const { error } = await supabase
       .from("contas")
@@ -237,6 +283,12 @@ export default function Contas() {
               <Bell className="mr-2 h-4 w-4" />
               Enviar Alertas
             </Button>
+            {selectedIds.length > 0 && (
+              <Button onClick={handleDeleteMultiple} variant="destructive" className="h-11">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Excluir ({selectedIds.length})
+              </Button>
+            )}
             <Button
               onClick={() => {
                 setSelectedConta(null);
@@ -385,6 +437,14 @@ export default function Contas() {
           <Table>
             <TableHeader>
               <TableRow>
+                {(isAdmin() || isSuperAdmin()) && (
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedIds.length === contas?.length && contas?.length > 0}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </TableHead>
+                )}
                 <TableHead>Vencimento</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Descrição</TableHead>
@@ -397,6 +457,14 @@ export default function Contas() {
             <TableBody>
               {contas?.map((conta) => (
                 <TableRow key={conta.id}>
+                  {(isAdmin() || isSuperAdmin()) && (
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.includes(conta.id)}
+                        onCheckedChange={() => handleSelectOne(conta.id)}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>
                     {format(parseISO(conta.data_vencimento), "dd/MM/yyyy", {
                       locale: ptBR,

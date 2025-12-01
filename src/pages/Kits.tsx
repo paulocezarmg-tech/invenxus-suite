@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, Package, Search } from "lucide-react";
 import { toast } from "sonner";
 import { KitDialog } from "@/components/kits/KitDialog";
@@ -23,6 +24,7 @@ export default function Kits() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedKit, setSelectedKit] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
 
@@ -84,10 +86,45 @@ export default function Kits() {
     },
   });
 
+  const deleteMultipleMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("kits").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["kits"] });
+      setSelectedIds([]);
+      toast.success("Kits excluídos com sucesso");
+    },
+    onError: () => {
+      toast.error("Erro ao excluir kits");
+    },
+  });
+
   const handleDelete = (id: string) => {
     if (confirm("Tem certeza que deseja excluir este kit?")) {
       deleteMutation.mutate(id);
     }
+  };
+
+  const handleDeleteMultiple = () => {
+    if (confirm(`Tem certeza que deseja excluir ${selectedIds.length} kit(s)?`)) {
+      deleteMultipleMutation.mutate(selectedIds);
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === kits?.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(kits?.map(k => k.id) || []);
+    }
+  };
+
+  const handleSelectOne = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
   };
 
   const handleEdit = (kit: any) => {
@@ -113,10 +150,18 @@ export default function Kits() {
             </p>
           </div>
           {canManage && (
-            <Button onClick={handleAdd} className="h-11 gap-2">
-              <Plus className="h-4 w-4" />
-              Novo Kit
-            </Button>
+            <div className="flex gap-2">
+              {selectedIds.length > 0 && (
+                <Button onClick={handleDeleteMultiple} variant="destructive" className="h-11 gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Excluir Selecionados ({selectedIds.length})
+                </Button>
+              )}
+              <Button onClick={handleAdd} className="h-11 gap-2">
+                <Plus className="h-4 w-4" />
+                Novo Kit
+              </Button>
+            </div>
           )}
         </div>
 
@@ -139,6 +184,14 @@ export default function Kits() {
               <Table>
           <TableHeader>
             <TableRow>
+              {canManage && (
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectedIds.length === kits?.length && kits?.length > 0}
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
+              )}
               <TableHead>SKU</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Descrição</TableHead>
@@ -157,6 +210,14 @@ export default function Kits() {
             ) : kits && kits.length > 0 ? (
               kits.map((kit) => (
                 <TableRow key={kit.id}>
+                  {canManage && (
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.includes(kit.id)}
+                        onCheckedChange={() => handleSelectOne(kit.id)}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="font-mono">{kit.sku}</TableCell>
                   <TableCell className="font-medium">{kit.name}</TableCell>
                   <TableCell className="text-muted-foreground">

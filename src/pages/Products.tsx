@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, Pencil, Trash2, Package, TrendingDown, AlertCircle, DollarSign, ImageIcon } from "lucide-react";
 import { ProductDialog } from "@/components/products/ProductDialog";
 import { toast } from "sonner";
@@ -24,6 +25,7 @@ const Products = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
 
@@ -194,6 +196,37 @@ const Products = () => {
     }
   };
 
+  const handleDeleteMultiple = async () => {
+    if (!confirm(`Tem certeza que deseja excluir ${selectedIds.length} produto(s)?`)) return;
+
+    try {
+      const { error } = await supabase.from("products").delete().in("id", selectedIds);
+      if (error) throw error;
+
+      toast.success("Produtos excluídos com sucesso");
+      setSelectedIds([]);
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product-stats"] });
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao excluir produtos");
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === products?.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(products?.map(p => p.id) || []);
+    }
+  };
+
+  const handleSelectOne = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+
   if (isLoadingRole) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -212,16 +245,24 @@ const Products = () => {
               Gerenciar catálogo de produtos
             </p>
           </div>
-          <Button
-            className="h-11 gap-2"
-            onClick={() => {
-              setSelectedProduct(null);
-              setDialogOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            Novo Produto
-          </Button>
+          <div className="flex gap-2">
+            {selectedIds.length > 0 && userRole === "superadmin" && (
+              <Button onClick={handleDeleteMultiple} variant="destructive" className="h-11 gap-2">
+                <Trash2 className="h-4 w-4" />
+                Excluir Selecionados ({selectedIds.length})
+              </Button>
+            )}
+            <Button
+              className="h-11 gap-2"
+              onClick={() => {
+                setSelectedProduct(null);
+                setDialogOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              Novo Produto
+            </Button>
+          </div>
         </div>
 
         {/* Metrics Cards */}
@@ -298,6 +339,14 @@ const Products = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  {userRole === "superadmin" && (
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedIds.length === products?.length && products?.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
+                  )}
                   <TableHead className="min-w-[60px]">Imagem</TableHead>
                   <TableHead className="min-w-[100px]">SKU</TableHead>
                   <TableHead className="min-w-[150px]">Nome</TableHead>
@@ -320,6 +369,14 @@ const Products = () => {
                 ) : products && products.length > 0 ? (
                   products.map((product: any) => (
                     <TableRow key={product.id}>
+                      {userRole === "superadmin" && (
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.includes(product.id)}
+                            onCheckedChange={() => handleSelectOne(product.id)}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell>
                         <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex items-center justify-center">
                           {product.image_url ? (
