@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, Package, TrendingDown, AlertCircle, DollarSign } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Package, TrendingDown, AlertCircle, DollarSign, ImageIcon } from "lucide-react";
 import { ProductDialog } from "@/components/products/ProductDialog";
 import { toast } from "sonner";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -298,6 +298,7 @@ const Products = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="min-w-[60px]">Imagem</TableHead>
                   <TableHead className="min-w-[100px]">SKU</TableHead>
                   <TableHead className="min-w-[150px]">Nome</TableHead>
                   <TableHead className="min-w-[120px]">Categoria</TableHead>
@@ -319,6 +320,15 @@ const Products = () => {
                 ) : products && products.length > 0 ? (
                   products.map((product: any) => (
                     <TableRow key={product.id}>
+                      <TableCell>
+                        <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex items-center justify-center">
+                          {product.image_url ? (
+                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="font-mono text-xs">{product.sku}</TableCell>
                       <TableCell>
                         <div>
@@ -386,6 +396,11 @@ const Products = () => {
           products.map((product: any) => (
             <Card key={product.id} className="border-0 shadow-card">
               <CardContent className="p-4 space-y-3">
+                {product.image_url && (
+                  <div className="w-full aspect-video rounded-lg overflow-hidden bg-muted">
+                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                  </div>
+                )}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-base truncate">{product.name}</div>
