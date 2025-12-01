@@ -84,6 +84,10 @@ export function MapaLucro() {
 
       const { data, error } = await query;
       if (error) throw error;
+      
+      console.log("MapaLucro - Dados financeiros encontrados:", data?.length || 0);
+      console.log("MapaLucro - Período:", dateRange);
+      
       return data || [];
     },
   });
@@ -109,10 +113,19 @@ export function MapaLucro() {
   const performanceData = useMemo(() => {
     if (!financialData || !products || !kits) return [];
 
+    console.log("MapaLucro - Processando dados:", {
+      financialData: financialData.length,
+      products: products.length,
+      kits: kits.length
+    });
+
     const itemsMap = new Map<string, ProductPerformance>();
 
     financialData.forEach((mov) => {
-      if (!mov.produto_id) return;
+      if (!mov.produto_id) {
+        console.log("MapaLucro - Movimento sem produto_id:", mov);
+        return;
+      }
 
       const isKit = mov.descricao?.includes("Kit:") || false;
       if (tipo === "produtos" && isKit) return;
