@@ -5,13 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { MovementsReportTable } from "@/components/reports/MovementsReportTable";
-import { Download, FileText, Package, TrendingUp, Activity } from "lucide-react";
+import { Download, FileText, Package, TrendingUp, Activity, DollarSign, Users, Box, AlertTriangle, BarChart3, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import logo from "@/assets/stockmaster-logo.png";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useUserRole } from "@/hooks/useUserRole";
+import { 
+  exportFinancialReport,
+  exportAccountsReport,
+  exportSuppliersReport,
+  exportKitsReport,
+  exportCriticalStockReport,
+  exportPerformanceReport
+} from "@/lib/report-exports";
+import { addPDFHeader, addPDFFooter, addPDFSummary, getPDFTableStyles } from "@/lib/pdf-helpers";
 
 const Reports = () => {
   const [isExporting, setIsExporting] = useState(false);
@@ -180,38 +189,19 @@ const Reports = () => {
       if (error) throw error;
 
       const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.width;
-      
-      // Header with logo and info
-      doc.addImage(logo, "PNG", 14, 12, 25, 25);
-      
-      doc.setFontSize(26);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(30, 64, 175); // Dark blue
-      doc.text("StockMaster CMS", 45, 22);
-      
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(71, 85, 105);
-      doc.text("Relatório de Inventário", 45, 32);
-      
-      // Info box
-      doc.setDrawColor(229, 231, 235);
-      doc.setFillColor(249, 250, 251);
-      doc.roundedRect(14, 40, pageWidth - 28, 10, 2, 2, 'FD');
-      
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(107, 114, 128);
-      doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`, 18, 46);
-      doc.text(`Total de Produtos: ${data.length}`, pageWidth - 55, 46);
-
-      // Calculate totals
       const totalValue = data.reduce((sum: number, p: any) => sum + Number(p.cost) * Number(p.quantity), 0);
+      
+      const startY = addPDFHeader({
+        doc,
+        title: "Relatório de Inventário",
+        stats: [
+          { label: "Total de Produtos", value: data.length },
+          { label: "Valor Total", value: `R$ ${totalValue.toFixed(2)}` }
+        ]
+      });
 
-      // Add table
       autoTable(doc, {
-        startY: 56,
+        startY,
         head: [["SKU", "Nome", "Cód. Barras", "Qtd", "Qtd Min", "Custo", "Un", "Categoria", "Local", "Fornecedor"]],
         body: data.map((p: any) => [
           p.sku,
@@ -225,23 +215,7 @@ const Reports = () => {
           p.locations?.name || "-",
           p.suppliers?.name || "-",
         ]),
-        styles: { 
-          fontSize: 8,
-          cellPadding: 4,
-          lineColor: [229, 231, 235],
-          lineWidth: 0.5,
-          valign: 'middle',
-        },
-        headStyles: { 
-          fillColor: [59, 130, 246],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold',
-          halign: 'center',
-          fontSize: 9,
-        },
-        alternateRowStyles: {
-          fillColor: [249, 250, 251],
-        },
+        ...getPDFTableStyles(),
         columnStyles: {
           0: { cellWidth: 18 },
           1: { cellWidth: 35 },
@@ -255,37 +229,16 @@ const Reports = () => {
           9: { cellWidth: 22 },
         },
         didDrawPage: (data) => {
-          // Footer
           const pageCount = (doc as any).internal.getNumberOfPages();
-          doc.setFontSize(8);
-          doc.setTextColor(156, 163, 175);
-          doc.text(
-            `Página ${data.pageNumber} de ${pageCount}`,
-            pageWidth / 2,
-            doc.internal.pageSize.height - 10,
-            { align: 'center' }
-          );
+          addPDFFooter(doc, data.pageNumber, pageCount);
         },
       });
 
-      // Add summary at the end
       const finalY = (doc as any).lastAutoTable.finalY + 10;
-      if (finalY < doc.internal.pageSize.height - 30) {
-        doc.setDrawColor(229, 231, 235);
-        doc.setFillColor(249, 250, 251);
-        doc.roundedRect(14, finalY, pageWidth - 28, 18, 2, 2, 'FD');
-        
-        doc.setFontSize(11);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(30, 64, 175);
-        doc.text("Resumo do Inventário", 18, finalY + 8);
-        
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(71, 85, 105);
-        doc.text(`Total de Produtos: ${data.length}`, 18, finalY + 14);
-        doc.text(`Valor Total em Estoque: R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, pageWidth / 2 + 10, finalY + 14);
-      }
+      addPDFSummary(doc, finalY, "Resumo do Inventário", [
+        { label: "Total de Produtos", value: data.length },
+        { label: "Valor Total em Estoque", value: `R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` },
+      ]);
 
       doc.save(`inventario_${new Date().toISOString().split("T")[0]}.pdf`);
       toast.success("Relatório PDF exportado com sucesso");
@@ -304,7 +257,6 @@ const Reports = () => {
     
     setIsExporting(true);
     try {
-      // Build query for movements with date filter
       let movementsQuery = supabase
         .from("movements")
         .select(`
@@ -329,19 +281,14 @@ const Reports = () => {
       }
 
       const { data: movements, error } = await movementsQuery;
-
       if (error) throw error;
 
-      // Get unique products from movements
       const productIds = [...new Set(movements?.filter((m: any) => m.product_id).map((m: any) => m.product_id))];
-      
-      // Get initial stock for each product (before the date range)
       const initialStocks: Record<string, number> = {};
       
       for (const productId of productIds) {
         if (!productId) continue;
         
-        // Get current stock
         const { data: productData } = await supabase
           .from("products")
           .select("quantity")
@@ -352,16 +299,13 @@ const Reports = () => {
         
         let currentStock = Number(productData.quantity);
         
-        // If there's a date filter, calculate what the stock was at the start
         if (dateFrom) {
-          // Get all movements after the start date to reverse them
           const { data: futureMovements } = await supabase
             .from("movements")
             .select("type, quantity")
             .eq("product_id", productId)
             .gte("created_at", dateFrom.toISOString());
           
-          // Reverse the movements to get initial stock
           futureMovements?.forEach((m: any) => {
             if (m.type === "IN") {
               currentStock -= Number(m.quantity);
@@ -374,21 +318,15 @@ const Reports = () => {
         initialStocks[productId] = currentStock;
       }
 
-      // Process movements to add running balance
       const processedMovements = movements?.map((m: any, index: number) => {
         const productId = m.product_id;
         
         if (!productId) {
-          return {
-            ...m,
-            saldo: null
-          };
+          return { ...m, saldo: null };
         }
         
-        // Calculate running balance
         let saldo = initialStocks[productId] || 0;
         
-        // Apply all movements up to this one
         for (let i = 0; i <= index; i++) {
           const mov = movements[i];
           if (mov.product_id === productId) {
@@ -400,42 +338,22 @@ const Reports = () => {
           }
         }
         
-        return {
-          ...m,
-          saldo
-        };
+        return { ...m, saldo };
       }) || [];
 
       const doc = new jsPDF('landscape');
       const pageWidth = doc.internal.pageSize.width;
-      
-      // Header with logo and info
-      doc.addImage(logo, "PNG", 14, 12, 25, 25);
-      
-      doc.setFontSize(26);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(30, 64, 175); // Dark blue
-      doc.text("StockMaster CMS", 45, 22);
-      
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(71, 85, 105);
-      doc.text("Relatório de Movimentações", 45, 32);
-      
-      // Info box
-      doc.setDrawColor(229, 231, 235);
-      doc.setFillColor(249, 250, 251);
-      doc.roundedRect(14, 40, pageWidth - 28, 10, 2, 2, 'FD');
-      
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(107, 114, 128);
-      doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`, 18, 46);
-      doc.text(`Total de Movimentações: ${processedMovements.length}`, pageWidth - 80, 46);
+      const startY = addPDFHeader({
+        doc,
+        title: "Relatório de Movimentações",
+        subtitle: dateFrom && dateTo 
+          ? `Período: ${dateFrom.toLocaleDateString("pt-BR")} - ${dateTo.toLocaleDateString("pt-BR")}`
+          : "Todos os períodos",
+        stats: [{ label: "Total", value: processedMovements.length }]
+      });
 
-      // Add table with balance column
       autoTable(doc, {
-        startY: 56,
+        startY,
         head: [["Data e Hora", "Tipo", "Produto", "Qtd", "Origem", "Destino", "Saldo", "Obs"]],
         body: processedMovements.map((m: any) => [
           new Date(m.created_at).toLocaleString("pt-BR", { 
@@ -453,25 +371,7 @@ const Reports = () => {
           m.saldo !== null ? m.saldo.toString() : "-",
           m.note || "-",
         ]),
-        styles: { 
-          fontSize: 8,
-          cellPadding: 4,
-          lineColor: [229, 231, 235],
-          lineWidth: 0.5,
-          valign: 'middle',
-          halign: 'left',
-        },
-        headStyles: { 
-          fillColor: [59, 130, 246],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold',
-          halign: 'center',
-          valign: 'middle',
-          fontSize: 9,
-        },
-        alternateRowStyles: {
-          fillColor: [249, 250, 251],
-        },
+        ...getPDFTableStyles(),
         columnStyles: {
           0: { cellWidth: 35, fontSize: 7 },
           1: { halign: 'center', cellWidth: 22 },
@@ -483,17 +383,16 @@ const Reports = () => {
           7: { cellWidth: 45 },
         },
         didDrawCell: (data) => {
-          // Color code for movement types
           if (data.section === 'body' && data.column.index === 1) {
             const cellValue = data.cell.raw as string;
             if (cellValue === "Entrada") {
-              doc.setFillColor(220, 252, 231); // Green
+              doc.setFillColor(220, 252, 231);
               doc.setTextColor(22, 163, 74);
             } else if (cellValue === "Saída") {
-              doc.setFillColor(254, 226, 226); // Red
+              doc.setFillColor(254, 226, 226);
               doc.setTextColor(220, 38, 38);
             } else if (cellValue === "Transferência") {
-              doc.setFillColor(219, 234, 254); // Blue
+              doc.setFillColor(219, 234, 254);
               doc.setTextColor(59, 130, 246);
             }
             doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
@@ -615,68 +514,198 @@ const Reports = () => {
         <DateRangeFilter onDateChange={handleDateChange} />
       </div>
 
-      {/* Opções de Exportação - Compacto */}
-      <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-        <CardContent className="pt-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 mb-3">
-                <Package className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold text-sm">Inventário</h3>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={exportInventoryPDF} 
-                  disabled={isExporting} 
-                  className="flex-1 h-9 text-xs gap-1.5"
-                  size="sm"
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  PDF
-                </Button>
-                <Button 
-                  onClick={exportInventory} 
-                  disabled={isExporting} 
-                  variant="outline" 
-                  className="flex-1 h-9 text-xs gap-1.5"
-                  size="sm"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  CSV
-                </Button>
-              </div>
+      {/* Opções de Exportação - Grid Completo */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Inventário</CardTitle>
             </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 mb-3">
-                <Activity className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold text-sm">Movimentações</h3>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={exportMovementsPDF} 
-                  disabled={isExporting} 
-                  className="flex-1 h-9 text-xs gap-1.5"
-                  size="sm"
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  PDF
-                </Button>
-                <Button 
-                  onClick={exportMovements} 
-                  disabled={isExporting} 
-                  variant="outline" 
-                  className="flex-1 h-9 text-xs gap-1.5"
-                  size="sm"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  CSV
-                </Button>
-              </div>
+            <CardDescription className="text-xs">Produtos em estoque</CardDescription>
+          </CardHeader>
+          <CardContent className="flex gap-2">
+            <Button 
+              onClick={exportInventoryPDF} 
+              disabled={isExporting} 
+              className="flex-1 h-9 text-xs"
+              size="sm"
+            >
+              <FileText className="h-3.5 w-3.5 mr-1" />
+              PDF
+            </Button>
+            <Button 
+              onClick={exportInventory} 
+              disabled={isExporting} 
+              variant="outline" 
+              className="flex-1 h-9 text-xs"
+              size="sm"
+            >
+              <Download className="h-3.5 w-3.5 mr-1" />
+              CSV
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Movimentações</CardTitle>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <CardDescription className="text-xs">Entradas e saídas</CardDescription>
+          </CardHeader>
+          <CardContent className="flex gap-2">
+            <Button 
+              onClick={exportMovementsPDF} 
+              disabled={isExporting} 
+              className="flex-1 h-9 text-xs"
+              size="sm"
+            >
+              <FileText className="h-3.5 w-3.5 mr-1" />
+              PDF
+            </Button>
+            <Button 
+              onClick={exportMovements} 
+              disabled={isExporting} 
+              variant="outline" 
+              className="flex-1 h-9 text-xs"
+              size="sm"
+            >
+              <Download className="h-3.5 w-3.5 mr-1" />
+              CSV
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Financeiro</CardTitle>
+            </div>
+            <CardDescription className="text-xs">Receitas e despesas</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => organizationId && exportFinancialReport(organizationId, dateFrom, dateTo)} 
+              disabled={isExporting || !organizationId} 
+              className="w-full h-9 text-xs"
+              size="sm"
+            >
+              <FileText className="h-3.5 w-3.5 mr-1" />
+              Exportar PDF
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Contas</CardTitle>
+            </div>
+            <CardDescription className="text-xs">Pagar e receber</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => organizationId && exportAccountsReport(organizationId, dateFrom, dateTo)} 
+              disabled={isExporting || !organizationId} 
+              className="w-full h-9 text-xs"
+              size="sm"
+            >
+              <FileText className="h-3.5 w-3.5 mr-1" />
+              Exportar PDF
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Fornecedores</CardTitle>
+            </div>
+            <CardDescription className="text-xs">Cadastro completo</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => organizationId && exportSuppliersReport(organizationId)} 
+              disabled={isExporting || !organizationId} 
+              className="w-full h-9 text-xs"
+              size="sm"
+            >
+              <FileText className="h-3.5 w-3.5 mr-1" />
+              Exportar PDF
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Box className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Kits</CardTitle>
+            </div>
+            <CardDescription className="text-xs">Produtos agrupados</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => organizationId && exportKitsReport(organizationId)} 
+              disabled={isExporting || !organizationId} 
+              className="w-full h-9 text-xs"
+              size="sm"
+            >
+              <FileText className="h-3.5 w-3.5 mr-1" />
+              Exportar PDF
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              <CardTitle className="text-base">Estoque Crítico</CardTitle>
+            </div>
+            <CardDescription className="text-xs">Produtos em falta</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => organizationId && exportCriticalStockReport(organizationId)} 
+              disabled={isExporting || !organizationId} 
+              className="w-full h-9 text-xs"
+              size="sm"
+              variant="outline"
+            >
+              <FileText className="h-3.5 w-3.5 mr-1" />
+              Exportar PDF
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-success" />
+              <CardTitle className="text-base">Performance</CardTitle>
+            </div>
+            <CardDescription className="text-xs">Métricas gerais</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => organizationId && exportPerformanceReport(organizationId, dateFrom, dateTo)} 
+              disabled={isExporting || !organizationId} 
+              className="w-full h-9 text-xs"
+              size="sm"
+              variant="outline"
+            >
+              <FileText className="h-3.5 w-3.5 mr-1" />
+              Exportar PDF
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
