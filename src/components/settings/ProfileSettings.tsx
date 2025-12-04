@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Upload } from "lucide-react";
+import { Upload, User, Mail, Phone, Lock, Camera, Save, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 
@@ -19,6 +19,15 @@ const profileSchema = z.object({
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
+
+// Phone mask for Brazilian format
+const formatPhone = (value: string) => {
+  const numbers = value.replace(/\D/g, "");
+  if (numbers.length <= 2) return numbers;
+  if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+  if (numbers.length <= 11) return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+  return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+};
 
 export function ProfileSettings() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,7 +65,7 @@ export function ProfileSettings() {
       form.reset({
         name: currentUser.profile?.name || "",
         email: currentUser.email || "",
-        phone: currentUser.profile?.phone || "",
+        phone: currentUser.profile?.phone ? formatPhone(currentUser.profile.phone) : "",
         password: "",
       });
       setAvatarPreview(currentUser.profile?.avatar_url || "");
@@ -73,6 +82,11 @@ export function ProfileSettings() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhone(e.target.value);
+    form.setValue("phone", formatted);
   };
 
   const onSubmit = async (data: ProfileFormData) => {
@@ -98,12 +112,15 @@ export function ProfileSettings() {
         avatarUrl = publicUrl;
       }
 
+      // Remove mask from phone before saving
+      const cleanPhone = data.phone?.replace(/\D/g, "") || null;
+
       // Update profile
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           name: data.name,
-          phone: data.phone || null,
+          phone: cleanPhone,
           avatar_url: avatarUrl,
         })
         .eq('user_id', currentUser.id);
@@ -158,29 +175,22 @@ export function ProfileSettings() {
   };
 
   return (
-    <div className="rounded-lg border border-border bg-card/50 p-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold">Meu Perfil</h2>
-        <p className="text-sm text-muted-foreground">
-          Gerencie suas informações pessoais
-        </p>
-      </div>
-
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Avatar */}
-        <div className="flex items-center gap-6">
-          <Avatar className="h-24 w-24">
-            <AvatarImage src={avatarPreview} />
-            <AvatarFallback className="bg-primary/10 text-primary text-2xl">
-              {currentUser?.profile?.name?.charAt(0).toUpperCase() || "?"}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <Label htmlFor="avatar" className="cursor-pointer">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-md bg-muted hover:bg-muted/80 transition-colors">
-                <Upload className="h-4 w-4" />
-                Alterar foto
-              </div>
+    <div className="max-w-2xl mx-auto">
+      {/* Header Card with Avatar */}
+      <div className="rounded-xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-8 mb-6">
+        <div className="flex flex-col sm:flex-row items-center gap-6">
+          <div className="relative group">
+            <Avatar className="h-28 w-28 ring-4 ring-primary/20 ring-offset-2 ring-offset-background shadow-xl">
+              <AvatarImage src={avatarPreview} className="object-cover" />
+              <AvatarFallback className="bg-primary text-primary-foreground text-3xl font-bold">
+                {currentUser?.profile?.name?.charAt(0).toUpperCase() || "?"}
+              </AvatarFallback>
+            </Avatar>
+            <Label 
+              htmlFor="avatar" 
+              className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            >
+              <Camera className="h-8 w-8 text-white" />
               <Input
                 id="avatar"
                 type="file"
@@ -189,79 +199,164 @@ export function ProfileSettings() {
                 onChange={handleAvatarChange}
               />
             </Label>
+          </div>
+          <div className="text-center sm:text-left">
+            <h2 className="text-2xl font-bold text-foreground">
+              {currentUser?.profile?.name || "Seu Nome"}
+            </h2>
+            <p className="text-muted-foreground">{currentUser?.email}</p>
+            <div className="flex items-center justify-center sm:justify-start gap-2 mt-3">
+              <Label htmlFor="avatar-btn" className="cursor-pointer">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-colors text-sm font-medium">
+                  <Upload className="h-4 w-4" />
+                  Alterar foto
+                </div>
+                <Input
+                  id="avatar-btn"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </Label>
+            </div>
             <p className="text-xs text-muted-foreground mt-2">
               JPG, PNG ou GIF. Máximo 5MB.
             </p>
           </div>
         </div>
+      </div>
 
-        {/* Name */}
-        <div className="space-y-2">
-          <Label htmlFor="name">Nome completo</Label>
-          <Input
-            id="name"
-            {...form.register("name")}
-            placeholder="Seu nome"
-            className="bg-background"
-          />
-          {form.formState.errors.name && (
-            <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
-          )}
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Personal Info Section */}
+        <div className="rounded-xl border border-border bg-card p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <User className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">Informações Pessoais</h3>
+              <p className="text-sm text-muted-foreground">Atualize seus dados básicos</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-medium">Nome completo</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="name"
+                  {...form.register("name")}
+                  placeholder="Seu nome completo"
+                  className="pl-10 bg-background h-11"
+                />
+              </div>
+              {form.formState.errors.name && (
+                <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-sm font-medium">Telefone</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="phone"
+                  value={form.watch("phone") || ""}
+                  onChange={handlePhoneChange}
+                  placeholder="(00) 00000-0000"
+                  className="pl-10 bg-background h-11"
+                  maxLength={16}
+                />
+              </div>
+              {form.formState.errors.phone && (
+                <p className="text-sm text-destructive">{form.formState.errors.phone.message}</p>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Email */}
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            {...form.register("email")}
-            placeholder="seu@email.com"
-            className="bg-background"
-          />
-          {form.formState.errors.email && (
-            <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
-          )}
+        {/* Account Section */}
+        <div className="rounded-xl border border-border bg-card p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+              <Mail className="h-5 w-5 text-blue-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">Conta</h3>
+              <p className="text-sm text-muted-foreground">Gerencie seu email de acesso</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="email"
+                type="email"
+                {...form.register("email")}
+                placeholder="seu@email.com"
+                className="pl-10 bg-background h-11"
+              />
+            </div>
+            {form.formState.errors.email && (
+              <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
+            )}
+          </div>
         </div>
 
-        {/* Phone */}
-        <div className="space-y-2">
-          <Label htmlFor="phone">Telefone</Label>
-          <Input
-            id="phone"
-            {...form.register("phone")}
-            placeholder="(00) 00000-0000"
-            className="bg-background"
-          />
-          {form.formState.errors.phone && (
-            <p className="text-sm text-destructive">{form.formState.errors.phone.message}</p>
-          )}
+        {/* Security Section */}
+        <div className="rounded-xl border border-border bg-card p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <Shield className="h-5 w-5 text-amber-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">Segurança</h3>
+              <p className="text-sm text-muted-foreground">Altere sua senha de acesso</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-sm font-medium">Nova senha</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="password"
+                type="password"
+                {...form.register("password")}
+                placeholder="••••••••"
+                className="pl-10 bg-background h-11"
+              />
+            </div>
+            {form.formState.errors.password && (
+              <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Mínimo de 6 caracteres. Deixe em branco se não quiser alterar.
+            </p>
+          </div>
         </div>
 
-        {/* Password */}
-        <div className="space-y-2">
-          <Label htmlFor="password">Nova senha</Label>
-          <Input
-            id="password"
-            type="password"
-            {...form.register("password")}
-            placeholder="Deixe em branco para manter a atual"
-            className="bg-background"
-          />
-          {form.formState.errors.password && (
-            <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            Mínimo de 6 caracteres. Deixe em branco se não quiser alterar.
-          </p>
-        </div>
-
+        {/* Submit Button */}
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="bg-success hover:bg-success/90 text-white"
+          className="w-full h-12 bg-success hover:bg-success/90 text-white font-medium text-base shadow-lg shadow-success/25"
         >
-          {isSubmitting ? "Salvando..." : "Salvar alterações"}
+          {isSubmitting ? (
+            <span className="flex items-center gap-2">
+              <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Salvando...
+            </span>
+          ) : (
+            <span className="flex items-center gap-2">
+              <Save className="h-5 w-5" />
+              Salvar alterações
+            </span>
+          )}
         </Button>
       </form>
     </div>
