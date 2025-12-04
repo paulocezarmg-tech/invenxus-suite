@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Tags, Search, FileText } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -25,7 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -48,6 +48,7 @@ export function CategoriesSettings() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
 
@@ -86,6 +87,11 @@ export function CategoriesSettings() {
       return data;
     },
   });
+
+  const filteredCategories = categories?.filter(category =>
+    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    category.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   useEffect(() => {
     if (editingCategory) {
@@ -154,65 +160,128 @@ export function CategoriesSettings() {
 
   return (
     <>
-      <div className="space-y-4">
-        {userRole !== "operador" && (
-          <Button onClick={() => handleOpenDialog()} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Nova Categoria
-          </Button>
-        )}
+      <Card className="border-border/50 shadow-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20">
+                <Tags className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Categorias</CardTitle>
+                <CardDescription>Gerencie as categorias de produtos</CardDescription>
+              </div>
+            </div>
+            {userRole !== "operador" && (
+              <Button onClick={() => handleOpenDialog()} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Nova Categoria
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Search Bar */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar categoria..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-background/50 border-border/50"
+            />
+          </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Descrição</TableHead>
-              {userRole !== "operador" && <TableHead className="w-[100px]">Ações</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={3} className="text-center">
-                  Carregando...
-                </TableCell>
-              </TableRow>
-            ) : categories && categories.length > 0 ? (
-              categories.map((category) => (
-                <TableRow key={category.id}>
-                  <TableCell className="font-medium">{category.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{category.description || "-"}</TableCell>
-                  {userRole !== "operador" && (
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(category)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(category.id)}>
-                          <Trash2 className="h-4 w-4 text-danger" />
-                        </Button>
+          <div className="rounded-lg border border-border/50 overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-border/50">
+                  <TableHead className="text-muted-foreground font-medium">Nome</TableHead>
+                  <TableHead className="text-muted-foreground font-medium">Descrição</TableHead>
+                  {userRole !== "operador" && <TableHead className="w-[100px] text-muted-foreground font-medium">Ações</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                      Carregando...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredCategories && filteredCategories.length > 0 ? (
+                  filteredCategories.map((category) => (
+                    <TableRow key={category.id} className="border-border/50">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-primary/10">
+                            <Tags className="h-4 w-4 text-primary" />
+                          </div>
+                          <span className="font-medium">{category.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          {category.description ? (
+                            <>
+                              <FileText className="h-4 w-4 text-muted-foreground/50" />
+                              <span className="line-clamp-1">{category.description}</span>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground/50">-</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      {userRole !== "operador" && (
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => handleOpenDialog(category)}
+                              className="h-8 w-8 hover:bg-primary/10"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => handleDelete(category.id)}
+                              className="h-8 w-8 hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <Tags className="h-8 w-8 text-muted-foreground/50" />
+                        <span>Nenhuma categoria encontrada</span>
                       </div>
                     </TableCell>
-                  )}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
-                  Nenhuma categoria encontrada
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingCategory ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Tags className="h-5 w-5 text-primary" />
+              </div>
+              {editingCategory ? "Editar Categoria" : "Nova Categoria"}
+            </DialogTitle>
             <DialogDescription>
-              {editingCategory ? "Atualize as informações" : "Adicione uma nova categoria"}
+              {editingCategory ? "Atualize as informações da categoria" : "Adicione uma nova categoria de produtos"}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -224,7 +293,10 @@ export function CategoriesSettings() {
                   <FormItem>
                     <FormLabel>Nome *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nome da categoria" {...field} />
+                      <div className="relative">
+                        <Tags className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Nome da categoria" className="pl-10" {...field} />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -237,13 +309,17 @@ export function CategoriesSettings() {
                   <FormItem>
                     <FormLabel>Descrição</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Descrição da categoria" {...field} />
+                      <Textarea 
+                        placeholder="Descrição da categoria (opcional)" 
+                        className="min-h-[100px] resize-none"
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <DialogFooter>
+              <DialogFooter className="gap-2 sm:gap-0">
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>

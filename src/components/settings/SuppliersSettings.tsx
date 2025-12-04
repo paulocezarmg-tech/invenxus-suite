@@ -6,7 +6,7 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, Building2, Upload, History } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Upload, History, Search, Phone, Mail, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import {
@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -63,6 +64,7 @@ export function SuppliersSettings() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [selectedSupplierForHistory, setSelectedSupplierForHistory] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
 
@@ -104,6 +106,12 @@ export function SuppliersSettings() {
       return data;
     },
   });
+
+  const filteredSuppliers = suppliers?.filter(supplier =>
+    supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    supplier.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    supplier.cnpj?.includes(searchTerm.replace(/\D/g, ''))
+  );
 
   useEffect(() => {
     if (editingSupplier) {
@@ -242,103 +250,201 @@ export function SuppliersSettings() {
     }
   };
 
+  const formatPhoneMask = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    let formatted = '';
+    if (numbers.length > 0) {
+      formatted = '(' + numbers.substring(0, 2);
+      if (numbers.length > 2) {
+        formatted += ') ' + numbers.substring(2, 7);
+      }
+      if (numbers.length > 7) {
+        formatted += '-' + numbers.substring(7, 11);
+      }
+    }
+    return formatted;
+  };
+
   return (
     <>
-      <div className="space-y-4">
-        {userRole !== "operador" && (
-          <Button onClick={() => handleOpenDialog()} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Novo Fornecedor
-          </Button>
-        )}
+      <Card className="border-border/50 shadow-sm">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20">
+                <Building2 className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Fornecedores</CardTitle>
+                <CardDescription>Gerencie seus fornecedores e parceiros</CardDescription>
+              </div>
+            </div>
+            {userRole !== "operador" && (
+              <Button onClick={() => handleOpenDialog()} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Novo Fornecedor
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Search Bar */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar fornecedor..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-background/50 border-border/50"
+            />
+          </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[60px]">Logo</TableHead>
-              <TableHead>Nome</TableHead>
-              <TableHead>CNPJ</TableHead>
-              <TableHead>Contato</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Telefone</TableHead>
-              <TableHead>Status</TableHead>
-              {userRole !== "operador" && <TableHead className="w-[120px]">Ações</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center">
-                  Carregando...
-                </TableCell>
-              </TableRow>
-            ) : suppliers && suppliers.length > 0 ? (
-              suppliers.map((supplier) => (
-                <TableRow key={supplier.id}>
-                  <TableCell>
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={supplier.logo_url || ""} alt={supplier.name} />
-                      <AvatarFallback>
-                        <Building2 className="h-5 w-5" />
-                      </AvatarFallback>
-                    </Avatar>
-                  </TableCell>
-                  <TableCell className="font-medium">{supplier.name}</TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {supplier.cnpj ? formatCNPJ(supplier.cnpj) : "-"}
-                  </TableCell>
-                  <TableCell>{supplier.contact || "-"}</TableCell>
-                  <TableCell>{supplier.email || "-"}</TableCell>
-                  <TableCell>{formatPhone(supplier.phone)}</TableCell>
-                  <TableCell>
-                    {supplier.active ? (
-                      <Badge className="bg-success">Ativo</Badge>
-                    ) : (
-                      <Badge variant="destructive">Inativo</Badge>
-                    )}
-                  </TableCell>
-                  {userRole !== "operador" && (
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => {
-                            setSelectedSupplierForHistory(supplier);
-                            setHistoryDialogOpen(true);
-                          }}
-                          title="Ver histórico"
-                        >
-                          <History className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(supplier)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(supplier.id)}>
-                          <Trash2 className="h-4 w-4 text-danger" />
-                        </Button>
+          <div className="rounded-lg border border-border/50 overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-border/50">
+                  <TableHead className="w-[60px] text-muted-foreground font-medium">Logo</TableHead>
+                  <TableHead className="text-muted-foreground font-medium">Nome</TableHead>
+                  <TableHead className="text-muted-foreground font-medium">CNPJ</TableHead>
+                  <TableHead className="text-muted-foreground font-medium">Contato</TableHead>
+                  <TableHead className="text-muted-foreground font-medium">Email</TableHead>
+                  <TableHead className="text-muted-foreground font-medium">Telefone</TableHead>
+                  <TableHead className="text-muted-foreground font-medium">Status</TableHead>
+                  {userRole !== "operador" && <TableHead className="w-[120px] text-muted-foreground font-medium">Ações</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      Carregando...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredSuppliers && filteredSuppliers.length > 0 ? (
+                  filteredSuppliers.map((supplier) => (
+                    <TableRow key={supplier.id} className="border-border/50">
+                      <TableCell>
+                        <Avatar className="h-10 w-10 border border-border/50">
+                          <AvatarImage src={supplier.logo_url || ""} alt={supplier.name} />
+                          <AvatarFallback className="bg-primary/10">
+                            <Building2 className="h-5 w-5 text-primary" />
+                          </AvatarFallback>
+                        </Avatar>
+                      </TableCell>
+                      <TableCell className="font-medium">{supplier.name}</TableCell>
+                      <TableCell>
+                        {supplier.cnpj ? (
+                          <code className="text-xs font-mono bg-muted/50 px-2 py-1 rounded">
+                            {formatCNPJ(supplier.cnpj)}
+                          </code>
+                        ) : (
+                          <span className="text-muted-foreground/50">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {supplier.contact ? (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <User className="h-3.5 w-3.5" />
+                            <span>{supplier.contact}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground/50">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {supplier.email ? (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Mail className="h-3.5 w-3.5" />
+                            <span className="truncate max-w-[150px]">{supplier.email}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground/50">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {supplier.phone ? (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Phone className="h-3.5 w-3.5" />
+                            <span>{formatPhone(supplier.phone)}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground/50">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {supplier.active ? (
+                          <Badge className="bg-success/10 text-success border-success/20 hover:bg-success/20">
+                            Ativo
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
+                            Inativo
+                          </Badge>
+                        )}
+                      </TableCell>
+                      {userRole !== "operador" && (
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => {
+                                setSelectedSupplierForHistory(supplier);
+                                setHistoryDialogOpen(true);
+                              }}
+                              title="Ver histórico"
+                              className="h-8 w-8 hover:bg-primary/10"
+                            >
+                              <History className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => handleOpenDialog(supplier)}
+                              className="h-8 w-8 hover:bg-primary/10"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => handleDelete(supplier.id)}
+                              className="h-8 w-8 hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <Building2 className="h-8 w-8 text-muted-foreground/50" />
+                        <span>Nenhum fornecedor encontrado</span>
                       </div>
                     </TableCell>
-                  )}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
-                  Nenhum fornecedor encontrado
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingSupplier ? "Editar Fornecedor" : "Novo Fornecedor"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Building2 className="h-5 w-5 text-primary" />
+              </div>
+              {editingSupplier ? "Editar Fornecedor" : "Novo Fornecedor"}
+            </DialogTitle>
             <DialogDescription>
-              {editingSupplier ? "Atualize as informações" : "Adicione um novo fornecedor"}
+              {editingSupplier ? "Atualize as informações do fornecedor" : "Adicione um novo fornecedor"}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -346,10 +452,10 @@ export function SuppliersSettings() {
               <div className="space-y-2">
                 <Label>Logo da Empresa</Label>
                 <div className="flex items-center gap-4">
-                  <Avatar className="h-20 w-20">
+                  <Avatar className="h-16 w-16 border border-border/50">
                     <AvatarImage src={logoPreview || ""} alt="Logo" />
-                    <AvatarFallback>
-                      <Building2 className="h-10 w-10" />
+                    <AvatarFallback className="bg-primary/10">
+                      <Building2 className="h-8 w-8 text-primary" />
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
@@ -360,7 +466,7 @@ export function SuppliersSettings() {
                       className="cursor-pointer"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Formatos aceitos: JPG, PNG, WEBP (máx. 5MB)
+                      JPG, PNG, WEBP (máx. 5MB)
                     </p>
                   </div>
                 </div>
@@ -373,7 +479,10 @@ export function SuppliersSettings() {
                   <FormItem>
                     <FormLabel>Nome *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nome do fornecedor" {...field} />
+                      <div className="relative">
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Nome do fornecedor" className="pl-10" {...field} />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -394,6 +503,7 @@ export function SuppliersSettings() {
                           field.onChange(masked);
                         }}
                         maxLength={18}
+                        className="font-mono"
                       />
                     </FormControl>
                     <FormMessage />
@@ -407,7 +517,10 @@ export function SuppliersSettings() {
                   <FormItem>
                     <FormLabel>Pessoa de Contato</FormLabel>
                     <FormControl>
-                      <Input placeholder="João Silva" {...field} />
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="João Silva" className="pl-10" {...field} />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -420,7 +533,10 @@ export function SuppliersSettings() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="contato@fornecedor.com" {...field} />
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input type="email" placeholder="contato@fornecedor.com" className="pl-10" {...field} />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -433,31 +549,24 @@ export function SuppliersSettings() {
                   <FormItem>
                     <FormLabel>Telefone</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="(11) 98765-4321" 
-                        {...field}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, '');
-                          let formatted = '';
-                          if (value.length > 0) {
-                            formatted = '(' + value.substring(0, 2);
-                            if (value.length > 2) {
-                              formatted += ')' + value.substring(2, 7);
-                            }
-                            if (value.length > 7) {
-                              formatted += '-' + value.substring(7, 11);
-                            }
-                          }
-                          field.onChange(formatted);
-                        }}
-                        maxLength={14}
-                      />
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          placeholder="(00) 00000-0000" 
+                          className="pl-10"
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(formatPhoneMask(e.target.value));
+                          }}
+                          maxLength={15}
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <DialogFooter>
+              <DialogFooter className="gap-2 sm:gap-0">
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
@@ -474,7 +583,12 @@ export function SuppliersSettings() {
       <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
         <DialogContent className="max-w-6xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>Histórico de Compras</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <History className="h-5 w-5 text-primary" />
+              </div>
+              Histórico de Compras
+            </DialogTitle>
             <DialogDescription>
               Histórico de compras do fornecedor {selectedSupplierForHistory?.name}
             </DialogDescription>
