@@ -1,16 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.21.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface AcceptInviteRequest {
-  inviteId: string;
-  name: string;
-  password: string;
-}
+// Input validation schema
+const AcceptInviteSchema = z.object({
+  inviteId: z.string().uuid({ message: "ID do convite inválido" }),
+  name: z.string().trim().min(1, "Nome é obrigatório").max(100, "Nome muito longo"),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres").max(100, "Senha muito longa"),
+});
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
@@ -18,7 +20,20 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { inviteId, name, password }: AcceptInviteRequest = await req.json();
+    // Parse and validate input
+    const body = await req.json();
+    const validationResult = AcceptInviteSchema.safeParse(body);
+    
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors.map(e => e.message).join(", ");
+      console.error('Validation error:', errorMessage);
+      return new Response(
+        JSON.stringify({ success: false, error: errorMessage }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    const { inviteId, name, password } = validationResult.data;
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -39,15 +54,25 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (inviteError || !invite) {
-      throw new Error('Convite não encontrado');
+      console.error('Invite not found:', inviteId);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Convite não encontrado' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      );
     }
 
     if (invite.status !== 'pending') {
-      throw new Error('Este convite já foi usado ou cancelado');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Este convite já foi usado ou cancelado' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
 
     if (new Date(invite.expires_at) < new Date()) {
-      throw new Error('Este convite expirou');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Este convite expirou' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
 
     // Check if user exists
@@ -69,7 +94,10 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (updateError) {
         console.error('Error updating user:', updateError);
-        throw new Error('Erro ao atualizar senha do usuário');
+        return new Response(
+          JSON.stringify({ success: false, error: 'Erro ao atualizar senha do usuário' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
       }
 
       userId = existingUser.id;
@@ -84,11 +112,17 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (createError) {
         console.error('Error creating user:', createError);
-        throw new Error('Erro ao criar usuário');
+        return new Response(
+          JSON.stringify({ success: false, error: 'Erro ao criar usuário' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
       }
 
       if (!newUser.user) {
-        throw new Error('Erro ao criar usuário');
+        return new Response(
+          JSON.stringify({ success: false, error: 'Erro ao criar usuário' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
       }
 
       userId = newUser.user.id;
@@ -114,7 +148,10 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (memberError) {
         console.error('Organization member error:', memberError);
-        throw new Error('Erro ao vincular usuário à organização');
+        return new Response(
+          JSON.stringify({ success: false, error: 'Erro ao vincular usuário à organização' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
       }
     }
 
@@ -137,7 +174,10 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (profileError) {
         console.error('Profile error:', profileError);
-        throw new Error('Erro ao criar perfil do usuário');
+        return new Response(
+          JSON.stringify({ success: false, error: 'Erro ao criar perfil do usuário' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
       }
     } else {
       // Update profile
@@ -173,7 +213,10 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (roleError) {
         console.error('Role error:', roleError);
-        throw new Error('Erro ao atribuir permissões ao usuário');
+        return new Response(
+          JSON.stringify({ success: false, error: 'Erro ao atribuir permissões ao usuário' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
       }
     }
 
@@ -205,6 +248,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    console.log('Invite accepted successfully for user:', userId);
+
     return new Response(
       JSON.stringify({ 
         success: true,
@@ -222,7 +267,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Erro ao processar solicitação' 
+        error: 'Erro ao processar solicitação' 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
