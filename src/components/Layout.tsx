@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, User } from "lucide-react";
+import { Loader2, User, Menu } from "lucide-react";
 
 interface LayoutProps {
   children: ReactNode;
@@ -67,7 +67,12 @@ export const Layout = ({ children }: LayoutProps) => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+          </div>
+          <p className="text-sm text-muted-foreground animate-pulse">Carregando...</p>
+        </div>
       </div>
     );
   }
@@ -80,22 +85,39 @@ export const Layout = ({ children }: LayoutProps) => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <div className="flex-1 flex flex-col">
-          <header className="h-12 border-b border-border flex items-center justify-between px-4 sticky top-0 bg-background z-10">
-            <SidebarTrigger className="hover:bg-accent/50 rounded-md p-1.5" />
-            <div className="flex items-center gap-3">
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Premium Header */}
+          <header className="h-16 border-b border-border/50 flex items-center justify-between px-6 sticky top-0 bg-background/80 backdrop-blur-xl z-50">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger className="hover:bg-accent/50 rounded-lg p-2 transition-all duration-200 hover:scale-105">
+                <Menu className="h-5 w-5" />
+              </SidebarTrigger>
+            </div>
+            
+            <div className="flex items-center gap-2">
               <NotificationBell />
               <ThemeToggle />
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.name || "Usuário"} />
-                <AvatarFallback>
-                  <User className="h-4 w-4" />
-                </AvatarFallback>
-              </Avatar>
+              
+              {/* User Avatar with status indicator */}
+              <div className="relative ml-2">
+                <Avatar className="h-9 w-9 ring-2 ring-primary/20 ring-offset-2 ring-offset-background transition-all duration-300 hover:ring-primary/40">
+                  <AvatarImage 
+                    src={profile?.avatar_url || undefined} 
+                    alt={profile?.name || "Usuário"} 
+                  />
+                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                    {profile?.name ? profile.name.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
+                  </AvatarFallback>
+                </Avatar>
+                {/* Online indicator */}
+                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-success ring-2 ring-background" />
+              </div>
             </div>
           </header>
+          
+          {/* Main Content */}
           <main className="flex-1 overflow-auto">
-            <div className="container mx-auto p-6">
+            <div className="p-6 lg:p-8">
               {children}
             </div>
           </main>

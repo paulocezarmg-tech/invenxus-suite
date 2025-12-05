@@ -1,15 +1,17 @@
-import { Home, Package, TrendingUp, FileText, Settings, LogOut, Boxes, Warehouse, Shield, DollarSign, Receipt, Brain } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { Home, Package, TrendingUp, FileText, Settings, LogOut, Boxes, Warehouse, Shield, DollarSign, Receipt, Brain, ChevronRight } from "lucide-react";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import stockmasterLogo from "@/assets/stockmaster-logo.png";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const navigate = useNavigate();
+  const location = useLocation();
   const collapsed = state === "collapsed";
 
   const { data: userRole } = useQuery({
@@ -25,7 +27,6 @@ export function AppSidebar() {
 
       if (!data || data.length === 0) return null;
 
-      // Priority order: superadmin > admin > almoxarife > auditor > operador
       const rolePriority: Record<string, number> = {
         superadmin: 5,
         admin: 4,
@@ -34,7 +35,6 @@ export function AppSidebar() {
         operador: 1,
       };
 
-      // Get the highest priority role
       const highestRole = data.reduce((highest, current) => {
         const currentPriority = rolePriority[current.role] || 0;
         const highestPriority = rolePriority[highest.role] || 0;
@@ -54,7 +54,6 @@ export function AppSidebar() {
     { title: "Configurações", url: "/settings", icon: Settings },
   ];
 
-  // Items only for admin and superadmin
   const adminMenuItems = [
     { title: "Financeiro", url: "/financeiro", icon: DollarSign },
     { title: "Contas a Pagar/Receber", url: "/contas", icon: Receipt },
@@ -64,12 +63,10 @@ export function AppSidebar() {
 
   let menuItems = [...baseMenuItems];
   
-  // Add admin items if user is admin or superadmin
   if (userRole === "admin" || userRole === "superadmin") {
     menuItems = [...baseMenuItems.slice(0, 5), ...adminMenuItems, ...baseMenuItems.slice(5)];
   }
 
-  // Add administration if superadmin
   if (userRole === "superadmin") {
     menuItems = [...menuItems, { title: "Administração", url: "/admin", icon: Shield }];
   }
@@ -85,55 +82,96 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="border-r border-border">
-      <SidebarHeader className="border-b border-border p-4">
+    <Sidebar className="border-r-0 gradient-sidebar">
+      {/* Header with Logo */}
+      <SidebarHeader className="border-b border-sidebar-border/50 p-5">
         <div className="flex items-center gap-3">
-          <img
-            src={stockmasterLogo}
-            alt="StockMaster CMS Logo"
-            className={collapsed ? "h-12 w-12 object-contain" : "h-16 w-auto object-contain"}
-          />
+          <div className="relative">
+            <div className="absolute inset-0 bg-primary/20 rounded-xl blur-lg" />
+            <img
+              src={stockmasterLogo}
+              alt="StockMaster CMS Logo"
+              className={cn(
+                "relative object-contain transition-all duration-300",
+                collapsed ? "h-10 w-10" : "h-14 w-auto"
+              )}
+            />
+          </div>
           {!collapsed && (
-            <div>
-              <h2 className="font-semibold text-xl my-0 px-0 mx-0 py-0 text-left">StockMaster</h2>
-              <p className="text-muted-foreground text-lg">CMS</p>
+            <div className="flex flex-col">
+              <h2 className="font-bold text-lg text-sidebar-foreground tracking-tight">
+                StockMaster
+              </h2>
+              <span className="text-xs font-medium text-sidebar-foreground/60 tracking-widest uppercase">
+                CMS
+              </span>
             </div>
           )}
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="px-3 py-4">
         <SidebarGroup>
-          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-foreground/50 text-[10px] font-semibold uppercase tracking-widest mb-3 px-3">
+            Menu Principal
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end
-                      className={({ isActive }) =>
-                        isActive
-                          ? "flex items-center gap-3 bg-primary/10 text-primary font-medium"
-                          : "flex items-center gap-3 hover:bg-accent/50"
-                      }
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+            <SidebarMenu className="space-y-1">
+              {menuItems.map((item) => {
+                const isActive = location.pathname === item.url;
+                
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end
+                        className={cn(
+                          "relative flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm",
+                          "transition-all duration-200 group",
+                          isActive
+                            ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-primary/25"
+                            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                        )}
+                      >
+                        <item.icon className={cn(
+                          "h-5 w-5 shrink-0 transition-transform duration-200",
+                          !isActive && "group-hover:scale-110"
+                        )} />
+                        {!collapsed && (
+                          <>
+                            <span className="flex-1">{item.title}</span>
+                            {isActive && (
+                              <ChevronRight className="h-4 w-4 opacity-70" />
+                            )}
+                          </>
+                        )}
+                        
+                        {/* Active indicator bar */}
+                        {isActive && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-sidebar-primary-foreground rounded-r-full" />
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border p-4">
-        <Button variant="ghost" className="w-full justify-start gap-3" onClick={handleLogout}>
-          <LogOut className="h-4 w-4" />
-          {!collapsed && <span>Sair</span>}
+      <SidebarFooter className="border-t border-sidebar-border/50 p-4">
+        <Button 
+          variant="ghost" 
+          className={cn(
+            "w-full justify-start gap-3 text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10",
+            "transition-all duration-200 rounded-lg py-2.5"
+          )}
+          onClick={handleLogout}
+        >
+          <LogOut className="h-5 w-5" />
+          {!collapsed && <span className="font-medium">Sair</span>}
         </Button>
       </SidebarFooter>
     </Sidebar>
