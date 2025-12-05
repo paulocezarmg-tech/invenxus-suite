@@ -7,9 +7,10 @@ import { StockChart } from "@/components/dashboard/StockChart";
 import { SalesVsPurchasesChart } from "@/components/dashboard/SalesVsPurchasesChart";
 import { CriticalStock } from "@/components/dashboard/CriticalStock";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
-import { Package, DollarSign, AlertTriangle, TrendingUp, TrendingDown, Clock, Brain } from "lucide-react";
+import { Package, DollarSign, AlertTriangle, TrendingUp, TrendingDown, Clock, Brain, Sparkles } from "lucide-react";
 import { useOrganization } from "@/hooks/useOrganization";
 import { formatCurrency } from "@/lib/formatters";
+
 const Dashboard = () => {
   const queryClient = useQueryClient();
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
@@ -227,7 +228,7 @@ const Dashboard = () => {
 
       // Por padrão, o card mostra o valor ATUAL do estoque
       // Se o usuário selecionar um período, calculamos o valor do estoque
-      // na data final do filtro, “voltando no tempo” a partir da quantidade atual
+      // na data final do filtro, "voltando no tempo" a partir da quantidade atual
       let totalValue = 0;
 
       // Considera também o caso em que só há uma data selecionada (from)
@@ -330,60 +331,98 @@ const Dashboard = () => {
   });
 
   if (isLoadingRole) {
-    return <div className="flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Carregando...</div>
-      </div>;
-  }
-  return <div className="min-h-screen bg-background">
-    <div className="p-8 space-y-8">
-      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-bold tracking-tight">Dashboard</h1>
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
           </div>
-          {userProfile?.name && <p className="text-xl font-semibold text-foreground">{getGreeting()}, {userProfile.name}! 👋
-            </p>}
-          <p className="text-base text-muted-foreground">
+          <p className="text-sm text-muted-foreground animate-pulse">Carregando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+      {/* Header Section */}
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-foreground">
+              Dashboard
+            </h1>
+            <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+          </div>
+          {userProfile?.name && (
+            <p className="text-lg font-medium text-foreground/80">
+              {getGreeting()}, <span className="text-primary">{userProfile.name}</span>! 👋
+            </p>
+          )}
+          <p className="text-muted-foreground">
             Visão geral do estoque e movimentações
           </p>
         </div>
         <DateRangeFilter onDateChange={handleDateChange} />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      {/* Main KPI Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {(userRole === "admin" || userRole === "superadmin") && (
           <KPICard 
             title="Valor Total em Estoque" 
             value={formatCurrency(stats?.totalValue || 0)} 
             icon={DollarSign} 
-            description="Valor total de produtos" 
+            description="Valor total de produtos"
+            variant="success"
           />
         )}
-        <KPICard title="Itens Críticos" value={stats?.criticalItems || 0} icon={AlertTriangle} description="Abaixo do estoque mínimo" />
-        <KPICard title="Movimentações Hoje" value={stats?.todayMovements || 0} icon={TrendingUp} description="Entradas e saídas do dia" />
-        <KPICard title="Produtos Sem Estoque" value={stats?.zeroStock || 0} icon={Package} description="Produtos com quantidade zero" />
+        <KPICard 
+          title="Itens Críticos" 
+          value={stats?.criticalItems || 0} 
+          icon={AlertTriangle} 
+          description="Abaixo do estoque mínimo"
+          variant="warning"
+        />
+        <KPICard 
+          title="Movimentações Hoje" 
+          value={stats?.todayMovements || 0} 
+          icon={TrendingUp} 
+          description="Entradas e saídas do dia"
+          variant="info"
+        />
+        <KPICard 
+          title="Produtos Sem Estoque" 
+          value={stats?.zeroStock || 0} 
+          icon={Package} 
+          description="Produtos com quantidade zero"
+          variant="danger"
+        />
       </div>
 
       {/* Financial KPI Cards - Only for admin and superadmin */}
       {userRole && ['admin', 'superadmin'].includes(userRole) && financialStats && (
-        <div className="grid gap-6 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KPICard
             title="Saldo Total"
             value={formatCurrency(financialStats.saldo)}
             icon={DollarSign}
             description="No período selecionado"
+            variant={financialStats.saldo >= 0 ? "success" : "danger"}
           />
           <KPICard
             title="Total Comprado"
             value={formatCurrency(financialStats.entradas)}
             icon={TrendingUp}
             description="Total de compras"
+            variant="info"
           />
           <KPICard
             title="Total Vendido"
             value={formatCurrency(financialStats.saidas)}
             icon={TrendingDown}
             description="Total de vendas"
+            variant="success"
           />
           {contasAVencer && (
             <KPICard
@@ -391,6 +430,7 @@ const Dashboard = () => {
               value={`${contasAVencer.count} - ${formatCurrency(contasAVencer.total)}`}
               icon={Clock}
               description="Próximos 7 dias"
+              variant="warning"
             />
           )}
         </div>
@@ -398,17 +438,19 @@ const Dashboard = () => {
 
       {/* Previsão de Estoque Card - Para todos os usuários */}
       {previsoesRisco !== undefined && previsoesRisco > 0 && (
-        <div className="grid gap-6">
+        <div className="grid gap-4">
           <KPICard
-            title="📦 Produtos em Risco de Ruptura"
+            title="Produtos em Risco de Ruptura"
             value={previsoesRisco}
             icon={Brain}
             description="Menos de 7 dias de estoque (IA)"
+            variant="warning"
           />
         </div>
       )}
 
-      <div className="grid gap-6 md:grid-cols-2">
+      {/* Charts Section */}
+      <div className="grid gap-6 lg:grid-cols-2">
         <StockChart />
         <CriticalStock />
       </div>
@@ -420,6 +462,7 @@ const Dashboard = () => {
 
       <RecentMovements />
     </div>
-  </div>;
+  );
 };
+
 export default Dashboard;
