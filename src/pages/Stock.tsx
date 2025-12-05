@@ -170,112 +170,125 @@ export default function Stock() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="p-8 space-y-8 animate-fade-in">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight">Estoque em Tempo Real</h1>
-          <p className="text-base text-muted-foreground">
-            Visualize seu estoque atualizado automaticamente
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
+      <div className="p-6 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
+        {/* Header Premium */}
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/25">
+            <Package className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">Estoque em Tempo Real</h1>
+            <p className="text-sm md:text-base text-muted-foreground">
+              Visualize seu estoque atualizado automaticamente
+            </p>
+          </div>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="grid gap-6 md:grid-cols-4">
-          <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Total de Produtos</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Package className="h-5 w-5 text-primary" />
+        {/* Statistics Cards Premium */}
+        <div className="grid gap-4 md:gap-6 grid-cols-2 lg:grid-cols-4">
+          <Card className="group relative overflow-hidden border-0 bg-card/80 backdrop-blur-sm shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Total de Produtos</CardTitle>
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-1 ring-primary/10">
+                <Package className="h-5 w-5 md:h-6 md:w-6 text-primary" />
               </div>
             </CardHeader>
             <CardContent className="space-y-1">
-              <div className="text-3xl font-bold tracking-tight">{totalProducts}</div>
+              <div className="text-2xl md:text-4xl font-bold tracking-tight">{totalProducts}</div>
+              <p className="text-xs text-muted-foreground">itens ativos</p>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Estoque Crítico</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-warning" />
+          <Card className="group relative overflow-hidden border-0 bg-card/80 backdrop-blur-sm shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-warning/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Estoque Crítico</CardTitle>
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-gradient-to-br from-warning/20 to-warning/5 flex items-center justify-center ring-1 ring-warning/10">
+                <AlertTriangle className="h-5 w-5 md:h-6 md:w-6 text-warning" />
               </div>
             </CardHeader>
             <CardContent className="space-y-1">
-              <div className="text-3xl font-bold tracking-tight text-warning">{criticalStock}</div>
+              <div className="text-2xl md:text-4xl font-bold tracking-tight text-warning">{criticalStock}</div>
+              <p className="text-xs text-muted-foreground">produtos em alerta</p>
             </CardContent>
           </Card>
 
-        <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
-            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Sem Estoque</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-            </div>
+          <Card className="group relative overflow-hidden border-0 bg-card/80 backdrop-blur-sm shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-danger/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Sem Estoque</CardTitle>
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-gradient-to-br from-danger/20 to-danger/5 flex items-center justify-center ring-1 ring-danger/10">
+                <AlertTriangle className="h-5 w-5 md:h-6 md:w-6 text-danger" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="text-2xl md:text-4xl font-bold tracking-tight text-danger">{outOfStock}</div>
+              <p className="text-xs text-muted-foreground">produtos zerados</p>
+            </CardContent>
+          </Card>
+
+          {userRole && userRole !== "operador" && (
+            <Card className="group relative overflow-hidden border-0 bg-card/80 backdrop-blur-sm shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute inset-0 bg-gradient-to-br from-success/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Valor Total</CardTitle>
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center ring-1 ring-success/10">
+                  <CheckCircle className="h-5 w-5 md:h-6 md:w-6 text-success" />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-1">
+                <div className="text-xl md:text-3xl font-bold tracking-tight text-success">
+                  {new Intl.NumberFormat("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  }).format(totalValue)}
+                </div>
+                <p className="text-xs text-muted-foreground">em estoque</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Search Premium */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome, SKU ou código de barras..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-11 h-11 bg-card/80 backdrop-blur-sm border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+          />
+        </div>
+
+        {/* Products Table Premium */}
+        <Card className="border-0 bg-card/80 backdrop-blur-sm shadow-card overflow-hidden">
+          <CardHeader className="border-b border-border/50 bg-muted/30">
+            <CardTitle className="text-lg font-semibold">Lista de Produtos</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-1">
-            <div className="text-3xl font-bold tracking-tight text-destructive">{outOfStock}</div>
-          </CardContent>
-        </Card>
-
-        {userRole && userRole !== "operador" && (
-          <Card className="border-0 shadow-card hover:shadow-elevated transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Valor Total</CardTitle>
-              <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center">
-                <CheckCircle className="h-5 w-5 text-success" />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              <div className="text-3xl font-bold tracking-tight text-success">
-                {new Intl.NumberFormat("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                }).format(totalValue)}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome, SKU ou código de barras..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      {/* Products Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de Produtos</CardTitle>
-        </CardHeader>
-        <CardContent>
+          <CardContent className="p-0">
           {isLoading ? (
-            <div className="space-y-2">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-md border">
+              <div className="p-6 space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-14 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : (
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[80px]">SKU</TableHead>
-                    <TableHead>Produto</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Localização</TableHead>
-                    <TableHead className="text-center">Quantidade</TableHead>
-                    <TableHead className="text-center">Qtd. Mínima</TableHead>
-                    <TableHead>Status</TableHead>
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableHead className="w-[80px] font-semibold">SKU</TableHead>
+                    <TableHead className="font-semibold">Produto</TableHead>
+                    <TableHead className="font-semibold">Categoria</TableHead>
+                    <TableHead className="font-semibold">Localização</TableHead>
+                    <TableHead className="text-center font-semibold">Quantidade</TableHead>
+                    <TableHead className="text-center font-semibold">Qtd. Mínima</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
                     {userRole && userRole !== "operador" && (
                       <>
-                        <TableHead className="text-right">Valor Unitário</TableHead>
-                        <TableHead className="text-right">Valor Total</TableHead>
+                        <TableHead className="text-right font-semibold">Valor Unitário</TableHead>
+                        <TableHead className="text-right font-semibold">Valor Total</TableHead>
                       </>
                     )}
                   </TableRow>
@@ -283,8 +296,8 @@ export default function Stock() {
                 <TableBody>
                   {filteredProducts && filteredProducts.length > 0 ? (
                     filteredProducts.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell className="font-medium">{product.sku}</TableCell>
+                      <TableRow key={product.id} className="hover:bg-muted/20 transition-colors">
+                        <TableCell className="font-mono text-sm">{product.sku}</TableCell>
                         <TableCell className="font-medium">{product.name}</TableCell>
                         <TableCell className="text-muted-foreground">{product.category?.name || "-"}</TableCell>
                         <TableCell className="text-muted-foreground">{product.location?.name || "-"}</TableCell>
@@ -299,13 +312,13 @@ export default function Stock() {
                         </TableCell>
                         {userRole && userRole !== "operador" && (
                           <>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right tabular-nums">
                               {new Intl.NumberFormat("pt-BR", {
                                 style: "currency",
                                 currency: "BRL",
                               }).format(Number(product.cost))}
                             </TableCell>
-                            <TableCell className="text-right font-medium">
+                            <TableCell className="text-right font-medium tabular-nums text-success">
                               {new Intl.NumberFormat("pt-BR", {
                                 style: "currency",
                                 currency: "BRL",
@@ -317,17 +330,19 @@ export default function Stock() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={userRole && userRole !== "operador" ? 9 : 7} className="text-center text-muted-foreground">
-                        Nenhum produto encontrado
+                      <TableCell colSpan={userRole && userRole !== "operador" ? 9 : 7} className="h-32 text-center text-muted-foreground">
+                        <div className="flex flex-col items-center gap-2">
+                          <Package className="h-8 w-8 text-muted-foreground/50" />
+                          <span>Nenhum produto encontrado</span>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
