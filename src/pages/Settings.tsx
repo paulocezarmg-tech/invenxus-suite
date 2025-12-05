@@ -9,7 +9,7 @@ import { UsersSettings } from "@/components/settings/UsersSettings";
 import { InvitesSettings } from "@/components/settings/InvitesSettings";
 import { ProfileSettings } from "@/components/settings/ProfileSettings";
 import { ReportSettings } from "@/components/settings/ReportSettings";
-import { Users, UserPlus, User, FileText } from "lucide-react";
+import { Users, UserPlus, User, FileText, Settings as SettingsIcon, FolderOpen, MapPin, Building2 } from "lucide-react";
 
 const Settings = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -61,85 +61,113 @@ const Settings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="p-8 space-y-8 animate-fade-in">
-        <Tabs defaultValue={defaultTab} className="w-full space-y-8">
-          <TabsList className="inline-flex h-12 items-center justify-start gap-2 rounded-lg bg-card p-1 border-0 shadow-card">
-            <TabsTrigger 
-              value="profile"
-              className="inline-flex items-center gap-2 rounded-md px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <User className="h-4 w-4" />
-              Meu Perfil
-            </TabsTrigger>
-            <TabsTrigger 
-              value="reports"
-              className="inline-flex items-center gap-2 rounded-md px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <FileText className="h-4 w-4" />
-              Relatórios
-            </TabsTrigger>
-            {userRole !== "operador" && (
-              <>
-                <TabsTrigger 
-                  value="users" 
-                  className="inline-flex items-center gap-2 rounded-md px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  <Users className="h-4 w-4" />
-                  Usuários
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="invites"
-                  className="inline-flex items-center gap-2 rounded-md px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  Convites
-                </TabsTrigger>
-                <TabsTrigger value="categories" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Categorias</TabsTrigger>
-                <TabsTrigger value="locations" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Locais</TabsTrigger>
-                <TabsTrigger value="suppliers" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Fornecedores</TabsTrigger>
-              </>
-            )}
-          </TabsList>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
+      <div className="p-6 md:p-8 space-y-6 md:space-y-8 animate-fade-in">
+        {/* Header Premium */}
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/25">
+            <SettingsIcon className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">Configurações</h1>
+            <p className="text-sm md:text-base text-muted-foreground">
+              Gerencie sua conta e preferências do sistema
+            </p>
+          </div>
+        </div>
 
-        <TabsContent value="profile" className="mt-6">
-          <ProfileSettings />
-        </TabsContent>
+        <Tabs defaultValue={defaultTab} className="w-full space-y-6">
+          <div className="overflow-x-auto pb-2 -mx-6 px-6 md:mx-0 md:px-0">
+            <TabsList className="inline-flex h-auto items-center justify-start gap-1 md:gap-2 rounded-2xl bg-card/80 backdrop-blur-sm p-1.5 border-0 shadow-card min-w-max">
+              <TabsTrigger 
+                value="profile"
+                className="inline-flex items-center gap-2 rounded-xl px-3 md:px-4 py-2.5 text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/25"
+              >
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">Meu Perfil</span>
+                <span className="sm:hidden">Perfil</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="reports"
+                className="inline-flex items-center gap-2 rounded-xl px-3 md:px-4 py-2.5 text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/25"
+              >
+                <FileText className="h-4 w-4" />
+                <span>Relatórios</span>
+              </TabsTrigger>
+              {userRole !== "operador" && (
+                <>
+                  <TabsTrigger 
+                    value="users" 
+                    className="inline-flex items-center gap-2 rounded-xl px-3 md:px-4 py-2.5 text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/25"
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>Usuários</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="invites"
+                    className="inline-flex items-center gap-2 rounded-xl px-3 md:px-4 py-2.5 text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/25"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <span>Convites</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="categories" 
+                    className="inline-flex items-center gap-2 rounded-xl px-3 md:px-4 py-2.5 text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/25"
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                    <span>Categorias</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="locations" 
+                    className="inline-flex items-center gap-2 rounded-xl px-3 md:px-4 py-2.5 text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/25"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    <span>Locais</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="suppliers" 
+                    className="inline-flex items-center gap-2 rounded-xl px-3 md:px-4 py-2.5 text-sm font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-primary/90 data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/25"
+                  >
+                    <Building2 className="h-4 w-4" />
+                    <span>Fornecedores</span>
+                  </TabsTrigger>
+                </>
+              )}
+            </TabsList>
+          </div>
 
-        <TabsContent value="reports" className="mt-6">
-          <ReportSettings />
-        </TabsContent>
+          <TabsContent value="profile" className="mt-0">
+            <ProfileSettings />
+          </TabsContent>
 
-        {userRole !== "operador" && (
-          <>
-            <TabsContent value="users" className="mt-6">
-              <UsersSettings />
-            </TabsContent>
+          <TabsContent value="reports" className="mt-0">
+            <ReportSettings />
+          </TabsContent>
 
-            <TabsContent value="invites" className="mt-6">
-              <InvitesSettings />
-            </TabsContent>
+          {userRole !== "operador" && (
+            <>
+              <TabsContent value="users" className="mt-0">
+                <UsersSettings />
+              </TabsContent>
 
-            <TabsContent value="categories" className="mt-6">
-              <div className="rounded-lg border border-border bg-card/50 p-6">
+              <TabsContent value="invites" className="mt-0">
+                <InvitesSettings />
+              </TabsContent>
+
+              <TabsContent value="categories" className="mt-0">
                 <CategoriesSettings />
-              </div>
-            </TabsContent>
+              </TabsContent>
 
-            <TabsContent value="locations" className="mt-6">
-              <div className="rounded-lg border border-border bg-card/50 p-6">
+              <TabsContent value="locations" className="mt-0">
                 <LocationsSettings />
-              </div>
-            </TabsContent>
+              </TabsContent>
 
-            <TabsContent value="suppliers" className="mt-6">
-              <div className="rounded-lg border border-border bg-card/50 p-6">
+              <TabsContent value="suppliers" className="mt-0">
                 <SuppliersSettings />
-              </div>
-            </TabsContent>
-          </>
-        )}
-      </Tabs>
+              </TabsContent>
+            </>
+          )}
+        </Tabs>
       </div>
     </div>
   );

@@ -222,92 +222,117 @@ const Movements = () => {
   }, [organizationId, queryClient]);
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6 overflow-x-hidden" >
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Movimentações</h1>
-          <p className="text-sm md:text-base text-muted-foreground">
-            Registrar entradas, saídas e transferências
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-          <DateRangeFilter onDateChange={handleDateChange} />
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os tipos</SelectItem>
-              <SelectItem value="IN">Entradas</SelectItem>
-              <SelectItem value="OUT">Saídas</SelectItem>
-              <SelectItem value="TRANSFER">Transferências</SelectItem>
-            </SelectContent>
-          </Select>
-          {selectedIds.length > 0 && userRole === "superadmin" && (
-            <Button onClick={handleDeleteMultiple} variant="destructive" className="gap-2 w-full sm:w-auto">
-              <Trash2 className="h-4 w-4" />
-              Excluir ({selectedIds.length})
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
+      <div className="p-4 md:p-8 space-y-6 md:space-y-8 overflow-x-hidden animate-fade-in">
+        {/* Header Premium */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/25">
+              <Activity className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">Movimentações</h1>
+              <p className="text-sm md:text-base text-muted-foreground">
+                Registrar entradas, saídas e transferências
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <DateRangeFilter onDateChange={handleDateChange} />
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-full sm:w-[180px] h-11 bg-card/80 backdrop-blur-sm border-border/50">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="IN">Entradas</SelectItem>
+                <SelectItem value="OUT">Saídas</SelectItem>
+                <SelectItem value="TRANSFER">Transferências</SelectItem>
+              </SelectContent>
+            </Select>
+            {selectedIds.length > 0 && userRole === "superadmin" && (
+              <Button onClick={handleDeleteMultiple} variant="destructive" className="gap-2 w-full sm:w-auto h-11 shadow-lg shadow-destructive/25">
+                <Trash2 className="h-4 w-4" />
+                Excluir ({selectedIds.length})
+              </Button>
+            )}
+            <Button
+              className="gap-2 w-full sm:w-auto h-11 bg-gradient-to-r from-primary to-primary/90 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all"
+              onClick={() => {
+                setSelectedMovement(null);
+                setDialogOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Nova Movimentação</span>
+              <span className="inline sm:hidden">Lançar</span>
             </Button>
-          )}
-          <Button
-            className="gap-2 w-full sm:w-auto"
-            onClick={() => {
-              setSelectedMovement(null);
-              setDialogOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Nova Movimentação</span>
-            <span className="inline sm:hidden">Lançar</span>
-          </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Metrics Cards */}
-      <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between py-2 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Total de Movimentações</CardTitle>
-            <Activity className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-          </CardHeader>
-          <CardContent className="py-2 md:py-3">
-            <div className="text-xl md:text-3xl font-bold">{stats?.total || 0}</div>
-          </CardContent>
-        </Card>
+        {/* Metrics Cards Premium */}
+        <div className="grid gap-4 md:gap-6 grid-cols-2 lg:grid-cols-4">
+          <Card className="group relative overflow-hidden border-0 bg-card/80 backdrop-blur-sm shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Total</CardTitle>
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-1 ring-primary/10">
+                <Activity className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="text-2xl md:text-4xl font-bold tracking-tight">{stats?.total || 0}</div>
+              <p className="text-xs text-muted-foreground">movimentações</p>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between py-2 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Entradas</CardTitle>
-            <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-success" />
-          </CardHeader>
-          <CardContent className="py-2 md:py-3">
-            <div className="text-xl md:text-3xl font-bold text-success">{stats?.entries || 0}</div>
-          </CardContent>
-        </Card>
+          <Card className="group relative overflow-hidden border-0 bg-card/80 backdrop-blur-sm shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-success/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Entradas</CardTitle>
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center ring-1 ring-success/10">
+                <TrendingUp className="h-5 w-5 md:h-6 md:w-6 text-success" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="text-2xl md:text-4xl font-bold tracking-tight text-success">{stats?.entries || 0}</div>
+              <p className="text-xs text-muted-foreground">registros</p>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between py-2 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Saídas</CardTitle>
-            <TrendingDown className="h-4 w-4 md:h-5 md:w-5 text-danger" />
-          </CardHeader>
-          <CardContent className="py-2 md:py-3">
-            <div className="text-xl md:text-3xl font-bold text-danger">{stats?.exits || 0}</div>
-          </CardContent>
-        </Card>
+          <Card className="group relative overflow-hidden border-0 bg-card/80 backdrop-blur-sm shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-danger/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Saídas</CardTitle>
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-gradient-to-br from-danger/20 to-danger/5 flex items-center justify-center ring-1 ring-danger/10">
+                <TrendingDown className="h-5 w-5 md:h-6 md:w-6 text-danger" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="text-2xl md:text-4xl font-bold tracking-tight text-danger">{stats?.exits || 0}</div>
+              <p className="text-xs text-muted-foreground">registros</p>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-gradient-to-br from-card to-card/50 border-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between py-2 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Transferências</CardTitle>
-            <ArrowRightLeft className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-          </CardHeader>
-          <CardContent className="py-2 md:py-3">
-            <div className="text-xl md:text-3xl font-bold text-primary">{stats?.transfers || 0}</div>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="group relative overflow-hidden border-0 bg-card/80 backdrop-blur-sm shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-1">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Transferências</CardTitle>
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-1 ring-primary/10">
+                <ArrowRightLeft className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="text-2xl md:text-4xl font-bold tracking-tight text-primary">{stats?.transfers || 0}</div>
+              <p className="text-xs text-muted-foreground">registros</p>
+            </CardContent>
+          </Card>
+        </div>
 
-      <div className="rounded-lg border border-border bg-card/50 shadow-card overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Table Premium */}
+        <Card className="border-0 bg-card/80 backdrop-blur-sm shadow-card overflow-hidden">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
           <Table>
           <TableHeader>
             <TableRow>
@@ -412,14 +437,16 @@ const Movements = () => {
             )}
           </TableBody>
         </Table>
-        </div>
-      </div>
+            </div>
+          </CardContent>
+        </Card>
 
       <MovementDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         movement={selectedMovement}
       />
+      </div>
     </div>
   );
 };
