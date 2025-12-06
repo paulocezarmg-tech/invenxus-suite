@@ -7,9 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, DollarSign, TrendingUp, TrendingDown, Percent, Pencil, Trash2, FileText, Download, BarChart3, Sparkles } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, TrendingDown, Percent, Pencil, Trash2, FileText, Download, BarChart3, Sparkles, Wallet, PiggyBank, Target } from "lucide-react";
 import { FinanceiroDialog } from "@/components/financeiro/FinanceiroDialog";
 import { MigrateButton } from "@/components/financeiro/MigrateButton";
 import { DashboardFinanceiro } from "@/components/financeiro/DashboardFinanceiro";
@@ -17,14 +16,12 @@ import { IAFinanceiraDialog } from "@/components/financeiro/IAFinanceiraDialog";
 import { MapaLucro } from "@/components/financeiro/MapaLucro";
 import { formatCurrency } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
-import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useUserRole } from "@/hooks/useUserRole";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-
-const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
 export default function Financeiro() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -85,7 +82,6 @@ export default function Financeiro() {
         query = query.eq("tipo", "saida");
       } else if (filterMode === "custos") {
         // Show all movements but focus on costs
-        // We keep all types to show costs
       } else if (filterMode === "lucro") {
         query = query.eq("tipo", "saida").gt("lucro_liquido", 0);
       }
@@ -95,7 +91,6 @@ export default function Financeiro() {
       }
 
       if (filterProduct !== "all") {
-        // Buscar tanto pelo produto_id quanto pela descrição que contém o nome
         const selectedItem = [...(products || []), ...(kits || [])].find(item => item.id === filterProduct);
         if (selectedItem) {
           query = query.or(`produto_id.eq.${filterProduct},descricao.ilike.%${selectedItem.name}%`);
@@ -116,7 +111,7 @@ export default function Financeiro() {
     },
   });
 
-  // Calcular métricas de lucro real - ANTES dos early returns para manter hooks consistentes
+  // Calculate metrics
   const totalFaturamento = movements?.reduce((sum, m) => {
     if (m.tipo === "saida") {
       return sum + (parseFloat(m.valor?.toString() || "0"));
@@ -129,14 +124,12 @@ export default function Financeiro() {
   }, 0) || 0;
 
   const lucroLiquido = totalFaturamento - totalCusto;
-
   const margemLucro = totalFaturamento > 0 ? (lucroLiquido / totalFaturamento) * 100 : 0;
 
-  // Dados para gráficos de relatórios - ANTES dos early returns
+  // Chart data
   const chartData = useMemo(() => {
-    if (!movements) return { monthly: [], products: [], daily: [] };
+    if (!movements) return { monthly: [], products: [] };
 
-    // Agrupar por mês
     const monthlyData: Record<string, { faturamento: number; custo: number; lucro: number }> = {};
     
     movements.forEach(m => {
@@ -160,7 +153,6 @@ export default function Financeiro() {
       lucro: data.lucro,
     }));
 
-    // Agrupar por produto (top 5)
     const productData: Record<string, { lucro: number; vendas: number; nome: string }> = {};
     
     movements.forEach(m => {
@@ -181,14 +173,17 @@ export default function Financeiro() {
       .sort((a, b) => b.lucro - a.lucro)
       .slice(0, 5);
 
-    return { monthly, products: productsArray, daily: [] };
+    return { monthly, products: productsArray };
   }, [movements, products]);
 
-  // Verificações de permissão DEPOIS de todos os hooks
+  // Permission checks after hooks
   if (!isLoadingRole && !isAdmin() && !isSuperAdmin()) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <div className="text-center space-y-4 p-8">
+          <div className="h-20 w-20 rounded-3xl bg-destructive/10 flex items-center justify-center mx-auto">
+            <Wallet className="h-10 w-10 text-destructive" />
+          </div>
           <h2 className="text-2xl font-bold text-destructive">Acesso Negado</h2>
           <p className="text-muted-foreground">
             Esta funcionalidade está disponível apenas para administradores.
@@ -200,8 +195,11 @@ export default function Financeiro() {
 
   if (isLoadingRole) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-muted-foreground">Carregando...</div>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <span className="text-muted-foreground">Carregando...</span>
+        </div>
       </div>
     );
   }
@@ -216,26 +214,14 @@ export default function Financeiro() {
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       
-      // Logo
-      try {
-        const logoImg = new Image();
-        logoImg.src = "/src/assets/stockmaster-logo.png";
-        doc.addImage(logoImg, "PNG", 14, 10, 30, 30);
-      } catch (error) {
-        console.log("Logo não encontrado");
-      }
-
-      // Título
       doc.setFontSize(22);
       doc.setTextColor(16, 185, 129);
       doc.text("Relatório Financeiro", pageWidth / 2, 25, { align: "center" });
 
-      // Data de geração
       doc.setFontSize(10);
       doc.setTextColor(100);
       doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, pageWidth / 2, 32, { align: "center" });
 
-      // Resumo Financeiro
       doc.setFontSize(14);
       doc.setTextColor(40);
       doc.text("Resumo Financeiro", 14, 50);
@@ -256,7 +242,6 @@ export default function Financeiro() {
         margin: { left: 14, right: 14 },
       });
 
-      // Evolução Mensal
       if (chartData.monthly.length > 0) {
         const finalY = (doc as any).lastAutoTable.finalY || 55;
         doc.setFontSize(14);
@@ -280,11 +265,9 @@ export default function Financeiro() {
         });
       }
 
-      // Top 5 Produtos Mais Lucrativos
       if (chartData.products.length > 0) {
         const finalY = (doc as any).lastAutoTable.finalY || 120;
         
-        // Verificar se precisa de nova página
         if (finalY > 220) {
           doc.addPage();
           doc.setFontSize(14);
@@ -329,7 +312,6 @@ export default function Financeiro() {
         }
       }
 
-      // Salvar PDF
       const fileName = `relatorio-financeiro-${format(new Date(), "dd-MM-yyyy")}.pdf`;
       doc.save(fileName);
 
@@ -372,540 +354,608 @@ export default function Financeiro() {
     }
   };
 
-  const handleDeleteMultiple = async () => {
-    if (!confirm(`Tem certeza que deseja excluir ${selectedIds.length} movimentação(ões)?`)) return;
-
-    const { error } = await supabase.from("financeiro").delete().in("id", selectedIds);
-
-    if (error) {
-      toast({
-        title: "Erro ao excluir",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Movimentações excluídas",
-        description: "As movimentações foram excluídas com sucesso.",
-      });
-      setSelectedIds([]);
-      refetch();
-    }
-  };
-
-  const handleSelectAll = () => {
-    if (selectedIds.length === movements?.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(movements?.map(m => m.id) || []);
-    }
-  };
-
-  const handleSelectOne = (id: string) => {
-    setSelectedIds(prev =>
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-8 space-y-8">
-        <div className="flex flex-col gap-6 md:flex-row md:justify-between md:items-start">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold tracking-tight">Painel de Lucro Real</h1>
-            <p className="text-base text-muted-foreground">Controle completo de custos e lucratividade</p>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="container mx-auto p-8 space-y-8 animate-fade-in">
+        {/* Premium Header */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-success/5 rounded-3xl" />
+          <div className="relative flex flex-col gap-6 md:flex-row md:justify-between md:items-start p-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-success to-success/80 flex items-center justify-center shadow-lg shadow-success/25">
+                  <Wallet className="h-6 w-6 text-primary-foreground" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                    Painel Financeiro
+                  </h1>
+                  <p className="text-base text-muted-foreground">
+                    Controle completo de custos e lucratividade
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 flex-wrap">
+              <MigrateButton />
+              <Button 
+                onClick={() => setIsIADialogOpen(true)} 
+                variant="outline" 
+                className="h-12 border-primary/50 text-primary hover:bg-primary/10 rounded-xl gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                Análise IA
+              </Button>
+              <Button 
+                onClick={() => { setSelectedMovement(null); setIsDialogOpen(true); }} 
+                className="h-12 gap-2 rounded-xl bg-gradient-to-r from-primary to-primary/90 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all"
+              >
+                <Plus className="h-4 w-4" />
+                Nova Movimentação
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <MigrateButton />
-            <Button 
-              onClick={() => setIsIADialogOpen(true)} 
-              variant="outline" 
-              className="h-11 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+        </div>
+
+        {/* Tabs Premium */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <TabsList className="inline-flex h-14 items-center justify-center rounded-2xl bg-muted/50 p-1.5 backdrop-blur-sm border border-border/50">
+            <TabsTrigger 
+              value="dashboard" 
+              className="rounded-xl px-6 py-3 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
             >
-              <Sparkles className="h-4 w-4 mr-2" />
-              Gerar análise da IA
-            </Button>
-            <Button onClick={() => { setSelectedMovement(null); setIsDialogOpen(true); }} className="h-11">
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Movimentação
-            </Button>
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger 
+              value="movimentacoes" 
+              className="rounded-xl px-6 py-3 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Movimentações
+            </TabsTrigger>
+            <TabsTrigger 
+              value="mapa" 
+              className="rounded-xl px-6 py-3 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+            >
+              <Target className="h-4 w-4 mr-2" />
+              Mapa de Lucro
+            </TabsTrigger>
+            <TabsTrigger 
+              value="relatorios" 
+              className="rounded-xl px-6 py-3 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+            >
+              <PiggyBank className="h-4 w-4 mr-2" />
+              Relatórios
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Metric Cards */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <Card 
+              className="group relative overflow-hidden border-0 bg-gradient-to-br from-card to-card/80 shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+              onClick={() => {
+                setFilterMode(filterMode === "vendas" ? "all" : "vendas");
+                setFilterType("all");
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Faturamento Total</CardTitle>
+                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                  <DollarSign className="h-6 w-6 text-primary" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold tracking-tight">{formatCurrency(totalFaturamento)}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {filterMode === "vendas" ? "Filtrando vendas" : "Total de vendas realizadas"}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card 
+              className="group relative overflow-hidden border-0 bg-gradient-to-br from-card to-card/80 shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+              onClick={() => {
+                setFilterMode(filterMode === "custos" ? "all" : "custos");
+                setFilterType("all");
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-destructive/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Custo Total</CardTitle>
+                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-destructive/20 to-destructive/10 flex items-center justify-center">
+                  <TrendingDown className="h-6 w-6 text-destructive" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold tracking-tight text-destructive">{formatCurrency(totalCusto)}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {filterMode === "custos" ? "Filtrando custos" : "Custos + despesas operacionais"}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card 
+              className="group relative overflow-hidden border-0 bg-gradient-to-br from-card to-card/80 shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+              onClick={() => {
+                setFilterMode(filterMode === "lucro" ? "all" : "lucro");
+                setFilterType("all");
+              }}
+            >
+              <div className={`absolute inset-0 bg-gradient-to-br ${lucroLiquido >= 0 ? 'from-success/5' : 'from-destructive/5'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Lucro Líquido</CardTitle>
+                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${lucroLiquido >= 0 ? 'bg-gradient-to-br from-success/20 to-success/10' : 'bg-gradient-to-br from-destructive/20 to-destructive/10'}`}>
+                  <TrendingUp className={`h-6 w-6 ${lucroLiquido >= 0 ? 'text-success' : 'text-destructive'}`} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-3xl font-bold tracking-tight ${lucroLiquido >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  {formatCurrency(lucroLiquido)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {filterMode === "lucro" ? "Filtrando com lucro" : "Faturamento - custos totais"}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card 
+              className="group relative overflow-hidden border-0 bg-gradient-to-br from-card to-card/80 shadow-card hover:shadow-elevated transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+              onClick={() => {
+                const now = new Date();
+                setStartDate(format(startOfMonth(now), "yyyy-MM-dd"));
+                setEndDate(format(endOfMonth(now), "yyyy-MM-dd"));
+                setFilterMode("all");
+              }}
+            >
+              <div className={`absolute inset-0 bg-gradient-to-br ${margemLucro >= 0 ? 'from-success/5' : 'from-destructive/5'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Margem de Lucro</CardTitle>
+                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${margemLucro >= 0 ? 'bg-gradient-to-br from-success/20 to-success/10' : 'bg-gradient-to-br from-destructive/20 to-destructive/10'}`}>
+                  <Percent className={`h-6 w-6 ${margemLucro >= 0 ? 'text-success' : 'text-destructive'}`} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-3xl font-bold tracking-tight ${margemLucro >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  {margemLucro.toFixed(1)}%
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {startDate && endDate ? "Clique para mês atual" : "Percentual de lucro sobre vendas"}
+                </p>
+              </CardContent>
+            </Card>
           </div>
-        </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4 h-11">
-          <TabsTrigger value="dashboard" className="text-sm font-medium">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Dashboard
-          </TabsTrigger>
-          <TabsTrigger value="movimentacoes" className="text-sm font-medium">
-            <FileText className="h-4 w-4 mr-2" />
-            Movimentações
-          </TabsTrigger>
-          <TabsTrigger value="mapa" className="text-sm font-medium">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Mapa de Lucro
-          </TabsTrigger>
-          <TabsTrigger value="relatorios" className="text-sm font-medium">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Relatórios
-          </TabsTrigger>
-        </TabsList>
+          {/* Dashboard Tab */}
+          <TabsContent value="dashboard" className="space-y-6">
+            <DashboardFinanceiro />
+          </TabsContent>
 
-        {/* Cards de Métricas */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card 
-          className="border-0 shadow-card hover:shadow-elevated transition-all cursor-pointer hover:scale-[1.02]"
-          onClick={() => {
-            setFilterMode(filterMode === "vendas" ? "all" : "vendas");
-            setFilterType("all");
-          }}
-        >
-          <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
-            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Faturamento Total</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <DollarSign className="h-5 w-5 text-primary" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <div className="text-3xl font-bold tracking-tight">
-              {formatCurrency(totalFaturamento)}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {filterMode === "vendas" ? "Filtrando vendas" : "Total de vendas realizadas"}
-            </p>
-          </CardContent>
-        </Card>
+          {/* Movements Tab */}
+          <TabsContent value="movimentacoes" className="space-y-6">
+            {/* Filters */}
+            <Card className="border-0 shadow-card bg-gradient-to-br from-card to-card/80">
+              <CardHeader className="pb-4 border-b border-border/50">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary" />
+                  Filtros
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Tipo</label>
+                    <Select value={filterType} onValueChange={setFilterType}>
+                      <SelectTrigger className="h-11 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="entrada">Compras</SelectItem>
+                        <SelectItem value="saida">Vendas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-        <Card 
-          className="border-0 shadow-card hover:shadow-elevated transition-all cursor-pointer hover:scale-[1.02]"
-          onClick={() => {
-            setFilterMode(filterMode === "custos" ? "all" : "custos");
-            setFilterType("all");
-          }}
-        >
-          <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
-            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Custo Total</CardTitle>
-            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
-              <TrendingDown className="h-5 w-5 text-destructive" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <div className="text-3xl font-bold tracking-tight text-destructive">
-              {formatCurrency(totalCusto)}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {filterMode === "custos" ? "Filtrando custos" : "Custos + despesas operacionais"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="border-0 shadow-card hover:shadow-elevated transition-all cursor-pointer hover:scale-[1.02]"
-          onClick={() => {
-            setFilterMode(filterMode === "lucro" ? "all" : "lucro");
-            setFilterType("all");
-          }}
-        >
-          <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
-            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Lucro Líquido</CardTitle>
-            <div className={`h-10 w-10 rounded-full flex items-center justify-center ${lucroLiquido >= 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
-              <TrendingUp className={`h-5 w-5 ${lucroLiquido >= 0 ? 'text-success' : 'text-destructive'}`} />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <div className={`text-3xl font-bold tracking-tight ${lucroLiquido >= 0 ? 'text-success' : 'text-destructive'}`}>
-              {formatCurrency(lucroLiquido)}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {filterMode === "lucro" ? "Filtrando com lucro" : "Faturamento - custos totais"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="border-0 shadow-card hover:shadow-elevated transition-all cursor-pointer hover:scale-[1.02]"
-          onClick={() => {
-            const now = new Date();
-            setStartDate(format(startOfMonth(now), "yyyy-MM-dd"));
-            setEndDate(format(endOfMonth(now), "yyyy-MM-dd"));
-            setFilterMode("all");
-          }}
-        >
-          <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
-            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Margem de Lucro</CardTitle>
-            <div className={`h-10 w-10 rounded-full flex items-center justify-center ${margemLucro >= 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
-              <Percent className={`h-5 w-5 ${margemLucro >= 0 ? 'text-success' : 'text-destructive'}`} />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <div className={`text-3xl font-bold tracking-tight ${margemLucro >= 0 ? 'text-success' : 'text-destructive'}`}>
-              {margemLucro.toFixed(1)}%
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {startDate && endDate ? "Clique para mês atual" : "Percentual de lucro sobre vendas"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Aba Dashboard */}
-      <TabsContent value="dashboard" className="space-y-6">
-        <DashboardFinanceiro />
-      </TabsContent>
-
-      {/* Aba de Movimentações */}
-      <TabsContent value="movimentacoes" className="space-y-6">
-        {/* Filtros */}
-        <Card className="border-0 shadow-card">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-semibold">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo</label>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="entrada">Compras</SelectItem>
-                  <SelectItem value="saida">Vendas</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Produto</label>
-              <Select value={filterProduct} onValueChange={setFilterProduct}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {products && products.length > 0 && (
-                    <>
-                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                        Produtos
-                      </div>
-                      {products.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name}
-                        </SelectItem>
-                      ))}
-                    </>
-                  )}
-                  {kits && kits.length > 0 && (
-                    <>
-                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                        Kits
-                      </div>
-                      {kits.map((kit) => (
-                        <SelectItem key={kit.id} value={kit.id}>
-                          {kit.name}
-                        </SelectItem>
-                      ))}
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Data Inicial</label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Data Final</label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tabela de Movimentações */}
-      <Card className="border-0 shadow-card">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-semibold">Movimentações Financeiras</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Referência</TableHead>
-                  <TableHead className="text-right">Qtd</TableHead>
-                  <TableHead className="text-right">Venda</TableHead>
-                  <TableHead className="text-right">Custo</TableHead>
-                  <TableHead className="text-right">Lucro</TableHead>
-                  <TableHead className="text-right">Custos Adic.</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center">
-                      Carregando...
-                    </TableCell>
-                  </TableRow>
-                ) : movements?.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center">
-                      Nenhuma movimentação encontrada
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  movements?.map((movement) => {
-                    const product = products?.find(p => p.id === movement.produto_id);
-                    const custosAdic = Array.isArray(movement.custos_adicionais) 
-                      ? movement.custos_adicionais.reduce((sum: number, c: any) => sum + (c.valor || 0), 0)
-                      : 0;
-
-                    return (
-                      <TableRow key={movement.id}>
-                        <TableCell className="font-medium">
-                          {format(new Date(movement.data), "dd/MM/yyyy", { locale: ptBR })}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={movement.tipo === "entrada" ? "secondary" : "default"}>
-                            {movement.tipo === "entrada" ? "Compra" : "Venda"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{movement.descricao}</div>
-                            {product && <div className="text-xs text-muted-foreground">{product.name}</div>}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">{movement.quantidade || "-"}</TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency(parseFloat(movement.preco_venda?.toString() || movement.valor?.toString() || "0"))}
-                        </TableCell>
-                        <TableCell className="text-right text-destructive">
-                          {formatCurrency(parseFloat(movement.custo_total?.toString() || "0"))}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className={parseFloat(movement.lucro_liquido?.toString() || "0") >= 0 ? "text-green-500 font-bold" : "text-red-500 font-bold"}>
-                            {formatCurrency(parseFloat(movement.lucro_liquido?.toString() || "0"))}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {custosAdic > 0 ? (
-                            <div className="text-xs">
-                              <div className="font-medium">{formatCurrency(custosAdic)}</div>
-                              {Array.isArray(movement.custos_adicionais) && movement.custos_adicionais.length > 0 && (
-                                <div className="text-muted-foreground">
-                                  {movement.custos_adicionais.map((c: any) => c.descricao).join(", ")}
-                                </div>
-                              )}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Produto</label>
+                    <Select value={filterProduct} onValueChange={setFilterProduct}>
+                      <SelectTrigger className="h-11 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {products && products.length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                              Produtos
                             </div>
-                          ) : (
-                            "-"
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(movement)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            {(userRole === "admin" || userRole === "superadmin") && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDelete(movement.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-      </TabsContent>
+                            {products.map((product) => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.name}
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
+                        {kits && kits.length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                              Kits
+                            </div>
+                            {kits.map((kit) => (
+                              <SelectItem key={kit.id} value={kit.id}>
+                                {kit.name}
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-      {/* Aba Mapa de Lucro */}
-      <TabsContent value="mapa" className="space-y-6">
-        <MapaLucro />
-      </TabsContent>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Data Inicial</label>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="h-11 rounded-xl"
+                    />
+                  </div>
 
-      {/* Aba de Relatórios */}
-      <TabsContent value="relatorios" className="space-y-8">
-        <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-start">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold tracking-tight">Análises e Relatórios</h2>
-            <p className="text-base text-muted-foreground">Visualize tendências e insights do seu negócio</p>
-          </div>
-          <Button onClick={exportPDF} variant="outline" className="h-11">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar PDF
-          </Button>
-        </div>
-
-        {/* Gráfico de Evolução Mensal */}
-        <Card className="border-0 shadow-card">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold">Evolução Mensal</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData.monthly}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" />
-                <YAxis />
-                <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="faturamento" stroke="#10b981" name="Faturamento" strokeWidth={2} />
-                <Line type="monotone" dataKey="custo" stroke="#ef4444" name="Custo Total" strokeWidth={2} />
-                <Line type="monotone" dataKey="lucro" stroke="#3b82f6" name="Lucro Líquido" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Produtos Mais Lucrativos */}
-        <Card className="border-0 shadow-card">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold">Top 5 Produtos Mais Lucrativos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData.products}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="nome" angle={-15} textAnchor="end" height={100} />
-                <YAxis />
-                <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
-                />
-                <Legend />
-                <Bar dataKey="lucro" fill="#10b981" name="Lucro Líquido" />
-                <Bar dataKey="vendas" fill="#3b82f6" name="Faturamento" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Análise de Desempenho */}
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card className="border-0 shadow-card">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg font-semibold">Resumo do Período</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Total de Vendas:</span>
-                <span className="font-bold">{movements?.filter(m => m.tipo === "saida").length || 0}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Total de Compras:</span>
-                <span className="font-bold">{movements?.filter(m => m.tipo === "entrada").length || 0}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Ticket Médio:</span>
-                <span className="font-bold">
-                  {formatCurrency(
-                    movements?.filter(m => m.tipo === "saida").length 
-                      ? totalFaturamento / movements.filter(m => m.tipo === "saida").length 
-                      : 0
-                  )}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Lucro Médio/Venda:</span>
-                <span className="font-bold text-green-500">
-                  {formatCurrency(
-                    movements?.filter(m => m.tipo === "saida").length 
-                      ? lucroLiquido / movements.filter(m => m.tipo === "saida").length 
-                      : 0
-                  )}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-card">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg font-semibold">Indicadores de Performance</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-muted-foreground">ROI (Retorno sobre Investimento)</span>
-                  <span className={`text-sm font-bold ${totalCusto > 0 && (lucroLiquido / totalCusto) * 100 >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {totalCusto > 0 ? `${((lucroLiquido / totalCusto) * 100).toFixed(1)}%` : "0%"}
-                  </span>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Data Final</label>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="h-11 rounded-xl"
+                    />
+                  </div>
                 </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-muted-foreground">Margem Bruta</span>
-                  <span className="text-sm font-bold text-primary">
-                    {margemLucro.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-muted-foreground">Custo / Faturamento</span>
-                  <span className="text-sm font-bold">
-                    {totalFaturamento > 0 ? `${((totalCusto / totalFaturamento) * 100).toFixed(1)}%` : "0%"}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Status</span>
-                  <Badge variant={lucroLiquido >= 0 ? "default" : "destructive"}>
-                    {lucroLiquido >= 0 ? "Lucrativo" : "Prejuízo"}
+              </CardContent>
+            </Card>
+
+            {/* Movements Table */}
+            <Card className="border-0 shadow-card overflow-hidden bg-gradient-to-br from-card to-card/80">
+              <CardHeader className="border-b border-border/50 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    Movimentações Financeiras
+                  </CardTitle>
+                  <Badge variant="secondary" className="rounded-full px-3">
+                    {movements?.length || 0} registros
                   </Badge>
                 </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30 hover:bg-muted/30">
+                        <TableHead className="font-semibold">Data</TableHead>
+                        <TableHead className="font-semibold">Tipo</TableHead>
+                        <TableHead className="font-semibold">Referência</TableHead>
+                        <TableHead className="text-right font-semibold">Qtd</TableHead>
+                        <TableHead className="text-right font-semibold">Venda</TableHead>
+                        <TableHead className="text-right font-semibold">Custo</TableHead>
+                        <TableHead className="text-right font-semibold">Lucro</TableHead>
+                        <TableHead className="text-right font-semibold">Custos Adic.</TableHead>
+                        <TableHead className="text-right font-semibold">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={9} className="h-32">
+                            <div className="flex items-center justify-center gap-3">
+                              <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                              <span className="text-muted-foreground">Carregando movimentações...</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : movements?.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={9} className="h-32">
+                            <div className="flex flex-col items-center justify-center gap-3 text-center">
+                              <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center">
+                                <FileText className="h-8 w-8 text-muted-foreground" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-muted-foreground">Nenhuma movimentação encontrada</p>
+                                <p className="text-sm text-muted-foreground/70">Registre sua primeira movimentação financeira</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        movements?.map((movement, index) => {
+                          const product = products?.find(p => p.id === movement.produto_id);
+                          const custosAdic = Array.isArray(movement.custos_adicionais) 
+                            ? movement.custos_adicionais.reduce((sum: number, c: any) => sum + (c.valor || 0), 0)
+                            : 0;
+
+                          return (
+                            <TableRow 
+                              key={movement.id} 
+                              className="group hover:bg-muted/50 transition-colors"
+                              style={{ animationDelay: `${index * 30}ms` }}
+                            >
+                              <TableCell className="font-medium">
+                                {format(new Date(movement.data), "dd/MM/yyyy", { locale: ptBR })}
+                              </TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant={movement.tipo === "entrada" ? "secondary" : "default"}
+                                  className={`rounded-full ${movement.tipo === "saida" ? 'bg-success/10 text-success border-success/20' : 'bg-primary/10 text-primary border-primary/20'}`}
+                                >
+                                  {movement.tipo === "entrada" ? "Compra" : "Venda"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <div className="font-medium">{movement.descricao}</div>
+                                  {product && <div className="text-xs text-muted-foreground">{product.name}</div>}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">{movement.quantidade || "-"}</TableCell>
+                              <TableCell className="text-right font-medium">
+                                {formatCurrency(parseFloat(movement.preco_venda?.toString() || movement.valor?.toString() || "0"))}
+                              </TableCell>
+                              <TableCell className="text-right text-destructive">
+                                {formatCurrency(parseFloat(movement.custo_total?.toString() || "0"))}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <span className={`font-bold ${parseFloat(movement.lucro_liquido?.toString() || "0") >= 0 ? 'text-success' : 'text-destructive'}`}>
+                                  {formatCurrency(parseFloat(movement.lucro_liquido?.toString() || "0"))}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {custosAdic > 0 ? (
+                                  <div className="text-xs">
+                                    <div className="font-medium">{formatCurrency(custosAdic)}</div>
+                                    {Array.isArray(movement.custos_adicionais) && movement.custos_adicionais.length > 0 && (
+                                      <div className="text-muted-foreground">
+                                        {movement.custos_adicionais.map((c: any) => c.descricao).join(", ")}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  "-"
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-9 w-9 rounded-lg hover:bg-primary/10 hover:text-primary"
+                                    onClick={() => handleEdit(movement)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  {(userRole === "admin" || userRole === "superadmin") && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-9 w-9 rounded-lg hover:bg-destructive/10 hover:text-destructive"
+                                      onClick={() => handleDelete(movement.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Profit Map Tab */}
+          <TabsContent value="mapa" className="space-y-6">
+            <MapaLucro />
+          </TabsContent>
+
+          {/* Reports Tab */}
+          <TabsContent value="relatorios" className="space-y-8">
+            <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
+              <div className="space-y-1">
+                <h2 className="text-2xl font-bold tracking-tight">Análises e Relatórios</h2>
+                <p className="text-muted-foreground">Visualize tendências e insights do seu negócio</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </TabsContent>
-      </Tabs>
+              <Button 
+                onClick={exportPDF} 
+                variant="outline" 
+                className="h-12 rounded-xl gap-2 border-primary/50 hover:bg-primary/10"
+              >
+                <Download className="h-4 w-4" />
+                Exportar PDF
+              </Button>
+            </div>
 
-      <FinanceiroDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        movement={selectedMovement}
-        onSuccess={() => {
-          refetch();
-          setIsDialogOpen(false);
-          setSelectedMovement(null);
-        }}
-      />
+            {/* Monthly Evolution Chart */}
+            <Card className="border-0 shadow-card bg-gradient-to-br from-card to-card/80">
+              <CardHeader className="border-b border-border/50">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  Evolução Mensal
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={chartData.monthly}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="mes" stroke="hsl(var(--muted-foreground))" />
+                    <YAxis stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip 
+                      formatter={(value: number) => formatCurrency(value)}
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      }}
+                    />
+                    <Legend />
+                    <Line type="monotone" dataKey="faturamento" stroke="hsl(var(--primary))" name="Faturamento" strokeWidth={3} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="custo" stroke="hsl(var(--destructive))" name="Custo Total" strokeWidth={3} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="lucro" stroke="hsl(var(--success))" name="Lucro Líquido" strokeWidth={3} dot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
 
-      <IAFinanceiraDialog
-        open={isIADialogOpen}
-        onOpenChange={setIsIADialogOpen}
-        startDate={startDate || format(subMonths(new Date(), 1), "yyyy-MM-dd")}
-        endDate={endDate || format(new Date(), "yyyy-MM-dd")}
-      />
+            {/* Top Products Chart */}
+            <Card className="border-0 shadow-card bg-gradient-to-br from-card to-card/80">
+              <CardHeader className="border-b border-border/50">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  Top 5 Produtos Mais Lucrativos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={chartData.products}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="nome" angle={-15} textAnchor="end" height={100} stroke="hsl(var(--muted-foreground))" />
+                    <YAxis stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip 
+                      formatter={(value: number) => formatCurrency(value)}
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="lucro" fill="hsl(var(--success))" name="Lucro Líquido" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="vendas" fill="hsl(var(--primary))" name="Faturamento" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Performance Cards */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card className="border-0 shadow-card bg-gradient-to-br from-card to-card/80">
+                <CardHeader className="border-b border-border/50">
+                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    Resumo do Período
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-4">
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-muted/30">
+                    <span className="text-muted-foreground">Total de Vendas:</span>
+                    <span className="font-bold text-lg">{movements?.filter(m => m.tipo === "saida").length || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-muted/30">
+                    <span className="text-muted-foreground">Total de Compras:</span>
+                    <span className="font-bold text-lg">{movements?.filter(m => m.tipo === "entrada").length || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-muted/30">
+                    <span className="text-muted-foreground">Ticket Médio:</span>
+                    <span className="font-bold text-lg">
+                      {formatCurrency(
+                        movements?.filter(m => m.tipo === "saida").length 
+                          ? totalFaturamento / movements.filter(m => m.tipo === "saida").length 
+                          : 0
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-success/10">
+                    <span className="text-muted-foreground">Lucro Médio/Venda:</span>
+                    <span className="font-bold text-lg text-success">
+                      {formatCurrency(
+                        movements?.filter(m => m.tipo === "saida").length 
+                          ? lucroLiquido / movements.filter(m => m.tipo === "saida").length 
+                          : 0
+                      )}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-card bg-gradient-to-br from-card to-card/80">
+                <CardHeader className="border-b border-border/50">
+                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                    <Target className="h-5 w-5 text-primary" />
+                    Indicadores de Performance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">ROI (Retorno sobre Investimento)</span>
+                      <span className={`text-sm font-bold ${totalCusto > 0 && (lucroLiquido / totalCusto) * 100 >= 0 ? 'text-success' : 'text-destructive'}`}>
+                        {totalCusto > 0 ? `${((lucroLiquido / totalCusto) * 100).toFixed(1)}%` : "0%"}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all ${totalCusto > 0 && (lucroLiquido / totalCusto) * 100 >= 0 ? 'bg-success' : 'bg-destructive'}`}
+                        style={{ width: `${Math.min(Math.abs((lucroLiquido / totalCusto) * 100), 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Margem de Lucro</span>
+                      <span className={`text-sm font-bold ${margemLucro >= 0 ? 'text-success' : 'text-destructive'}`}>
+                        {margemLucro.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all ${margemLucro >= 0 ? 'bg-success' : 'bg-destructive'}`}
+                        style={{ width: `${Math.min(Math.abs(margemLucro), 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Eficiência de Custos</span>
+                      <span className="text-sm font-bold text-primary">
+                        {totalFaturamento > 0 ? `${((1 - (totalCusto / totalFaturamento)) * 100).toFixed(1)}%` : "0%"}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary rounded-full transition-all"
+                        style={{ width: `${Math.min(Math.max((1 - (totalCusto / totalFaturamento)) * 100, 0), 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        <FinanceiroDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          movement={selectedMovement}
+          onSuccess={() => refetch()}
+        />
+
+        <IAFinanceiraDialog
+          open={isIADialogOpen}
+          onOpenChange={setIsIADialogOpen}
+          startDate={startDate}
+          endDate={endDate}
+        />
       </div>
     </div>
   );
