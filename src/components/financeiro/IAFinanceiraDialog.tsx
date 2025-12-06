@@ -102,7 +102,13 @@ export const IAFinanceiraDialog = ({ open, onOpenChange, startDate, endDate }: I
       // Período
       doc.setFontSize(10);
       doc.setTextColor(100);
-      const periodo = `Período: ${format(new Date(startDate), "dd/MM/yyyy", { locale: ptBR })} a ${format(new Date(endDate), "dd/MM/yyyy", { locale: ptBR })}`;
+      const formatPdfDate = (dateStr: string) => {
+        if (!dateStr) return "N/A";
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return "N/A";
+        return format(date, "dd/MM/yyyy", { locale: ptBR });
+      };
+      const periodo = `Período: ${formatPdfDate(startDate)} a ${formatPdfDate(endDate)}`;
       doc.text(periodo, pageWidth / 2, 28, { align: "center" });
 
       // Data de geração
@@ -146,6 +152,13 @@ export const IAFinanceiraDialog = ({ open, onOpenChange, startDate, endDate }: I
     generateAnalysis(newTonality);
   };
 
+  const formatDateSafe = (dateStr: string) => {
+    if (!dateStr) return "Data não definida";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "Data inválida";
+    return format(date, "dd/MM/yyyy", { locale: ptBR });
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
@@ -156,8 +169,7 @@ export const IAFinanceiraDialog = ({ open, onOpenChange, startDate, endDate }: I
           </DialogTitle>
           <DialogDescription>
             Análise inteligente baseada nos dados reais do período de{" "}
-            {format(new Date(startDate), "dd/MM/yyyy", { locale: ptBR })} a{" "}
-            {format(new Date(endDate), "dd/MM/yyyy", { locale: ptBR })}
+            {formatDateSafe(startDate)} a {formatDateSafe(endDate)}
           </DialogDescription>
         </DialogHeader>
 
