@@ -8,7 +8,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, User, Menu } from "lucide-react";
+import { User, Menu } from "lucide-react";
+import { PageTransition } from "@/components/PageTransition";
 
 interface LayoutProps {
   children: ReactNode;
@@ -118,7 +119,9 @@ export const Layout = ({ children }: LayoutProps) => {
           {/* Main Content */}
           <main className="flex-1 overflow-auto">
             <div className="p-6 lg:p-8">
-              {children}
+              <PageTransition>
+                {children}
+              </PageTransition>
             </div>
           </main>
         </div>
