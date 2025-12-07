@@ -28,6 +28,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useUserRole } from "@/hooks/useUserRole";
+import { formatCurrency } from "@/lib/formatters";
 
 export default function Contas() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -323,7 +324,7 @@ export default function Contas() {
             </CardHeader>
             <CardContent className="space-y-1">
               <div className="text-3xl font-bold tracking-tight">
-                R$ {totalReceber.toFixed(2)}
+                {formatCurrency(totalReceber)}
               </div>
               <p className="text-sm text-muted-foreground">Valores pendentes</p>
             </CardContent>
@@ -340,7 +341,7 @@ export default function Contas() {
             </CardHeader>
             <CardContent className="space-y-1">
               <div className="text-3xl font-bold tracking-tight">
-                R$ {totalPagar.toFixed(2)}
+                {formatCurrency(totalPagar)}
               </div>
               <p className="text-sm text-muted-foreground">Valores pendentes</p>
             </CardContent>
@@ -357,7 +358,7 @@ export default function Contas() {
             </CardHeader>
             <CardContent className="space-y-1">
               <div className="text-3xl font-bold tracking-tight text-warning">
-                R$ {totalVencidas.toFixed(2)}
+                {formatCurrency(totalVencidas)}
               </div>
               <p className="text-sm text-muted-foreground">Atrasadas</p>
             </CardContent>
@@ -374,7 +375,7 @@ export default function Contas() {
             </CardHeader>
             <CardContent className="space-y-1">
               <div className="text-3xl font-bold tracking-tight">
-                R$ {totalPagas.toFixed(2)}
+                {formatCurrency(totalPagas)}
               </div>
               <p className="text-sm text-muted-foreground">Total pago</p>
             </CardContent>
@@ -487,7 +488,7 @@ export default function Contas() {
                     </div>
                   </TableCell>
                   <TableCell>{conta.categoria}</TableCell>
-                  <TableCell>R$ {parseFloat(conta.valor.toString()).toFixed(2)}</TableCell>
+                  <TableCell>{formatCurrency(parseFloat(conta.valor.toString()))}</TableCell>
                   <TableCell>{getStatusBadge(conta.status)}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
