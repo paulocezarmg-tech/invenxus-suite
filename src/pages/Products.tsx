@@ -19,6 +19,7 @@ import { ProductDialog } from "@/components/products/ProductDialog";
 import { toast } from "sonner";
 import { useOrganization } from "@/hooks/useOrganization";
 import { formatNumber } from "@/lib/formatters";
+import { SortableTableHead, useSorting } from "@/components/shared/SortableTableHead";
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -171,6 +172,9 @@ const Products = () => {
     },
     enabled: !!organizationId,
   });
+
+  // Sorting hook
+  const { sortConfig, handleSort, sortedData: sortedProducts } = useSorting(products, "name", "asc");
 
   const getStockBadge = (quantity: number, minQuantity: number) => {
     if (quantity === 0) {
@@ -359,19 +363,35 @@ const Products = () => {
                   {userRole === "superadmin" && (
                     <TableHead className="w-12">
                       <Checkbox
-                        checked={selectedIds.length === products?.length && products?.length > 0}
+                        checked={selectedIds.length === sortedProducts?.length && sortedProducts?.length > 0}
                         onCheckedChange={handleSelectAll}
                       />
                     </TableHead>
                   )}
                   <TableHead className="min-w-[60px]">Imagem</TableHead>
-                  <TableHead className="min-w-[100px]">SKU</TableHead>
-                  <TableHead className="min-w-[150px]">Nome</TableHead>
-                  <TableHead className="min-w-[120px]">Categoria</TableHead>
-                  <TableHead className="min-w-[80px]">Qtd.</TableHead>
-                  <TableHead className="min-w-[80px]">Mín.</TableHead>
-                  <TableHead className="min-w-[150px]">Local</TableHead>
-                  {userRole && userRole !== "operador" && <TableHead className="min-w-[100px]">Custo</TableHead>}
+                  <SortableTableHead sortKey="sku" currentSort={sortConfig} onSort={handleSort} className="min-w-[100px]">
+                    SKU
+                  </SortableTableHead>
+                  <SortableTableHead sortKey="name" currentSort={sortConfig} onSort={handleSort} className="min-w-[150px]">
+                    Nome
+                  </SortableTableHead>
+                  <SortableTableHead sortKey="categories.name" currentSort={sortConfig} onSort={handleSort} className="min-w-[120px]">
+                    Categoria
+                  </SortableTableHead>
+                  <SortableTableHead sortKey="quantity" currentSort={sortConfig} onSort={handleSort} className="min-w-[80px]">
+                    Qtd.
+                  </SortableTableHead>
+                  <SortableTableHead sortKey="min_quantity" currentSort={sortConfig} onSort={handleSort} className="min-w-[80px]">
+                    Mín.
+                  </SortableTableHead>
+                  <SortableTableHead sortKey="locations.name" currentSort={sortConfig} onSort={handleSort} className="min-w-[150px]">
+                    Local
+                  </SortableTableHead>
+                  {userRole && userRole !== "operador" && (
+                    <SortableTableHead sortKey="cost" currentSort={sortConfig} onSort={handleSort} className="min-w-[100px]">
+                      Custo
+                    </SortableTableHead>
+                  )}
                   <TableHead className="min-w-[100px]">Status</TableHead>
                   {userRole === "superadmin" && <TableHead className="min-w-[100px]">Ações</TableHead>}
                 </TableRow>
@@ -379,12 +399,12 @@ const Products = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={userRole === "superadmin" ? 9 : 8} className="text-center">
+                    <TableCell colSpan={userRole === "superadmin" ? 11 : 10} className="text-center">
                       Carregando...
                     </TableCell>
                   </TableRow>
-                ) : products && products.length > 0 ? (
-                  products.map((product: any) => (
+                ) : sortedProducts && sortedProducts.length > 0 ? (
+                  sortedProducts.map((product: any) => (
                     <TableRow key={product.id}>
                       {userRole === "superadmin" && (
                         <TableCell>
@@ -447,7 +467,7 @@ const Products = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={userRole === "superadmin" ? 9 : 8} className="text-center text-muted-foreground">
+                    <TableCell colSpan={userRole === "superadmin" ? 11 : 10} className="text-center text-muted-foreground">
                       Nenhum produto encontrado
                     </TableCell>
                   </TableRow>
@@ -469,8 +489,8 @@ const Products = () => {
                 </div>
               </CardContent>
             </Card>
-          ) : products && products.length > 0 ? (
-            products.map((product: any) => (
+          ) : sortedProducts && sortedProducts.length > 0 ? (
+            sortedProducts.map((product: any) => (
               <Card key={product.id} className="group border-0 bg-card/80 backdrop-blur-sm shadow-card hover:shadow-elevated transition-all duration-300">
                 <CardContent className="p-4 space-y-3">
                   {product.image_url && (
