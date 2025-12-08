@@ -12,9 +12,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Pencil, Trash2, Package, TrendingDown, AlertCircle, DollarSign, ImageIcon } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Package, TrendingDown, AlertCircle, DollarSign, ImageIcon, Filter, X } from "lucide-react";
 import { ProductDialog } from "@/components/products/ProductDialog";
 import { toast } from "sonner";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -23,6 +30,9 @@ import { SortableTableHead, useSorting } from "@/components/shared/SortableTable
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [stockFilter, setStockFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -144,8 +154,41 @@ const Products = () => {
     enabled: !!organizationId,
   });
 
-  const { data: products, isLoading } = useQuery({
-    queryKey: ["products", searchTerm, organizationId],
+  // Fetch categories for filter
+  const { data: categories } = useQuery({
+    queryKey: ["categories", organizationId],
+    queryFn: async () => {
+      if (!organizationId) return [];
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id, name")
+        .eq("organization_id", organizationId)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!organizationId,
+  });
+
+  // Fetch locations for filter
+  const { data: locations } = useQuery({
+    queryKey: ["locations", organizationId],
+    queryFn: async () => {
+      if (!organizationId) return [];
+      const { data, error } = await supabase
+        .from("locations")
+        .select("id, name")
+        .eq("organization_id", organizationId)
+        .eq("active", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!organizationId,
+  });
+
+  const { data: productsData, isLoading } = useQuery({
+    queryKey: ["products", searchTerm, categoryFilter, locationFilter, organizationId],
     queryFn: async () => {
       if (!organizationId) return [];
       
@@ -166,6 +209,14 @@ const Products = () => {
         );
       }
 
+      if (categoryFilter !== "all") {
+        query = query.eq("category_id", categoryFilter);
+      }
+
+      if (locationFilter !== "all") {
+        query = query.eq("location_id", locationFilter);
+      }
+
       const { data, error } = await query;
       if (error) throw error;
       return data;
@@ -173,8 +224,25 @@ const Products = () => {
     enabled: !!organizationId,
   });
 
+  // Apply stock filter client-side
+  const products = productsData?.filter(p => {
+    if (stockFilter === "all") return true;
+    if (stockFilter === "critical") return p.quantity <= p.min_quantity && p.quantity > 0;
+    if (stockFilter === "out") return p.quantity === 0;
+    if (stockFilter === "normal") return p.quantity > p.min_quantity;
+    return true;
+  });
+
   // Sorting hook
   const { sortConfig, handleSort, sortedData: sortedProducts } = useSorting(products, "name", "asc");
+
+  const hasActiveFilters = categoryFilter !== "all" || locationFilter !== "all" || stockFilter !== "all";
+
+  const clearFilters = () => {
+    setCategoryFilter("all");
+    setLocationFilter("all");
+    setStockFilter("all");
+  };
 
   const getStockBadge = (quantity: number, minQuantity: number) => {
     if (quantity === 0) {
@@ -340,18 +408,85 @@ const Products = () => {
           )}
         </div>
 
-        {/* Search Premium */}
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome, SKU ou código de barras..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-11 h-11 bg-card/80 backdrop-blur-sm border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
-            />
-          </div>
-        </div>
+        {/* Search and Filters */}
+        <Card className="border-0 bg-card/80 backdrop-blur-sm shadow-card">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex flex-col gap-4">
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome, SKU ou código de barras..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-11 h-11 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                />
+              </div>
+              
+              {/* Filters Row */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Filter className="h-4 w-4" />
+                  <span className="font-medium">Filtros:</span>
+                </div>
+                
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-[180px] h-10 bg-background/50 border-border/50">
+                    <SelectValue placeholder="Categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as categorias</SelectItem>
+                    {categories?.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={locationFilter} onValueChange={setLocationFilter}>
+                  <SelectTrigger className="w-[180px] h-10 bg-background/50 border-border/50">
+                    <SelectValue placeholder="Localização" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as localizações</SelectItem>
+                    {locations?.map((loc) => (
+                      <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={stockFilter} onValueChange={setStockFilter}>
+                  <SelectTrigger className="w-[160px] h-10 bg-background/50 border-border/50">
+                    <SelectValue placeholder="Status estoque" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="critical">Crítico</SelectItem>
+                    <SelectItem value="out">Sem Estoque</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="h-10 gap-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                    Limpar filtros
+                  </Button>
+                )}
+
+                {hasActiveFilters && (
+                  <Badge variant="secondary" className="ml-auto">
+                    {sortedProducts?.length || 0} resultado(s)
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Desktop Table View Premium */}
         <Card className="border-0 bg-card/80 backdrop-blur-sm shadow-card hidden md:block overflow-hidden">
