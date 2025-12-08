@@ -19,14 +19,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Pencil, Trash2, Package, TrendingDown, AlertCircle, DollarSign, ImageIcon, Filter, X } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Package, TrendingDown, AlertCircle, DollarSign, ImageIcon, Filter, X, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { ProductDialog } from "@/components/products/ProductDialog";
 import { toast } from "sonner";
 import { useOrganization } from "@/hooks/useOrganization";
-import { formatNumber } from "@/lib/formatters";
+import { formatNumber, formatCurrency } from "@/lib/formatters";
 import { SortableTableHead, useSorting } from "@/components/shared/SortableTableHead";
+import * as XLSX from "xlsx";
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -254,6 +261,96 @@ const Products = () => {
     }
   };
 
+  const getStatusText = (quantity: number, minQuantity: number) => {
+    if (quantity === 0) return "Sem Estoque";
+    if (quantity <= minQuantity) return "Crítico";
+    return "Normal";
+  };
+
+  const exportToExcel = () => {
+    if (!sortedProducts || sortedProducts.length === 0) {
+      toast.error("Não há produtos para exportar");
+      return;
+    }
+
+    const dataToExport = sortedProducts.map((p: any) => ({
+      SKU: p.sku || "",
+      Nome: p.name || "",
+      Descrição: p.description || "",
+      Categoria: p.categories?.name || "",
+      Quantidade: Number(p.quantity) || 0,
+      "Qtd. Mínima": Number(p.min_quantity) || 0,
+      Unidade: p.unit || "",
+      Localização: p.locations?.name || "",
+      Fornecedor: p.suppliers?.name || "",
+      "Custo (R$)": Number(p.cost) || 0,
+      "Preço Venda (R$)": Number(p.preco_venda) || 0,
+      "Código de Barras": p.barcode || "",
+      Status: getStatusText(Number(p.quantity), Number(p.min_quantity)),
+      Ativo: p.active ? "Sim" : "Não",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Produtos");
+
+    // Auto-size columns
+    const colWidths = Object.keys(dataToExport[0]).map(key => ({
+      wch: Math.max(key.length, ...dataToExport.map(row => String(row[key as keyof typeof row]).length))
+    }));
+    ws["!cols"] = colWidths;
+
+    XLSX.writeFile(wb, `produtos-${new Date().toISOString().split("T")[0]}.xlsx`);
+    toast.success("Arquivo Excel exportado com sucesso!");
+  };
+
+  const exportToCSV = () => {
+    if (!sortedProducts || sortedProducts.length === 0) {
+      toast.error("Não há produtos para exportar");
+      return;
+    }
+
+    const headers = [
+      "SKU", "Nome", "Descrição", "Categoria", "Quantidade", "Qtd. Mínima",
+      "Unidade", "Localização", "Fornecedor", "Custo (R$)", "Preço Venda (R$)",
+      "Código de Barras", "Status", "Ativo"
+    ];
+
+    const rows = sortedProducts.map((p: any) => [
+      p.sku || "",
+      p.name || "",
+      (p.description || "").replace(/"/g, '""'),
+      p.categories?.name || "",
+      Number(p.quantity) || 0,
+      Number(p.min_quantity) || 0,
+      p.unit || "",
+      p.locations?.name || "",
+      p.suppliers?.name || "",
+      Number(p.cost) || 0,
+      Number(p.preco_venda) || 0,
+      p.barcode || "",
+      getStatusText(Number(p.quantity), Number(p.min_quantity)),
+      p.active ? "Sim" : "Não",
+    ]);
+
+    const csvContent = [
+      headers.join(";"),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(";"))
+    ].join("\n");
+
+    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `produtos-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success("Arquivo CSV exportado com sucesso!");
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este produto?")) return;
 
@@ -325,13 +422,33 @@ const Products = () => {
               </div>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             {selectedIds.length > 0 && userRole === "superadmin" && (
               <Button onClick={handleDeleteMultiple} variant="destructive" className="h-11 gap-2 shadow-lg shadow-destructive/25">
                 <Trash2 className="h-4 w-4" />
                 Excluir ({selectedIds.length})
               </Button>
             )}
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-11 gap-2">
+                  <Download className="h-4 w-4" />
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={exportToExcel} className="gap-2 cursor-pointer">
+                  <FileSpreadsheet className="h-4 w-4 text-success" />
+                  Exportar Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportToCSV} className="gap-2 cursor-pointer">
+                  <FileText className="h-4 w-4 text-primary" />
+                  Exportar CSV (.csv)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
             <Button
               className="h-11 gap-2 bg-gradient-to-r from-primary to-primary/90 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all"
               onClick={() => {
