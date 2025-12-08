@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableTableHead, useSorting } from "@/components/shared/SortableTableHead";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, DollarSign, TrendingUp, TrendingDown, Percent, Pencil, Trash2, FileText, Download, BarChart3, Sparkles, Wallet, PiggyBank, Target } from "lucide-react";
@@ -62,7 +63,7 @@ export default function Financeiro() {
     },
   });
 
-  const { data: movements, isLoading, refetch } = useQuery({
+  const { data: movementsData, isLoading, refetch } = useQuery({
     queryKey: ["financeiro", filterType, filterProduct, startDate, endDate, filterMode],
     queryFn: async () => {
       let query = supabase
@@ -110,6 +111,8 @@ export default function Financeiro() {
       return data;
     },
   });
+
+  const { sortConfig, handleSort, sortedData: movements } = useSorting(movementsData, "data", "desc");
 
   // Calculate metrics
   const totalFaturamento = movements?.reduce((sum, m) => {
@@ -635,13 +638,13 @@ export default function Financeiro() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/30 hover:bg-muted/30">
-                        <TableHead className="font-semibold">Data</TableHead>
-                        <TableHead className="font-semibold">Tipo</TableHead>
-                        <TableHead className="font-semibold">Referência</TableHead>
-                        <TableHead className="text-right font-semibold">Qtd</TableHead>
-                        <TableHead className="text-right font-semibold">Venda</TableHead>
-                        <TableHead className="text-right font-semibold">Custo</TableHead>
-                        <TableHead className="text-right font-semibold">Lucro</TableHead>
+                        <SortableTableHead sortKey="data" currentSort={sortConfig} onSort={handleSort} className="font-semibold">Data</SortableTableHead>
+                        <SortableTableHead sortKey="tipo" currentSort={sortConfig} onSort={handleSort} className="font-semibold">Tipo</SortableTableHead>
+                        <SortableTableHead sortKey="descricao" currentSort={sortConfig} onSort={handleSort} className="font-semibold">Referência</SortableTableHead>
+                        <SortableTableHead sortKey="quantidade" currentSort={sortConfig} onSort={handleSort} className="text-right font-semibold">Qtd</SortableTableHead>
+                        <SortableTableHead sortKey="valor" currentSort={sortConfig} onSort={handleSort} className="text-right font-semibold">Venda</SortableTableHead>
+                        <SortableTableHead sortKey="custo_total" currentSort={sortConfig} onSort={handleSort} className="text-right font-semibold">Custo</SortableTableHead>
+                        <SortableTableHead sortKey="lucro_liquido" currentSort={sortConfig} onSort={handleSort} className="text-right font-semibold">Lucro</SortableTableHead>
                         <TableHead className="text-right font-semibold">Custos Adic.</TableHead>
                         <TableHead className="text-right font-semibold">Ações</TableHead>
                       </TableRow>

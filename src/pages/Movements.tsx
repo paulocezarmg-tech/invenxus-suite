@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SortableTableHead, useSorting } from "@/components/shared/SortableTableHead";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -94,7 +95,7 @@ const Movements = () => {
     enabled: !!organizationId,
   });
 
-  const { data: movements, isLoading } = useQuery({
+  const { data: movementsData, isLoading } = useQuery({
     queryKey: ["movements", dateFrom, dateTo, typeFilter, organizationId],
     queryFn: async () => {
       if (!organizationId) return [];
@@ -128,6 +129,8 @@ const Movements = () => {
     },
     enabled: !!organizationId,
   });
+
+  const { sortConfig, handleSort, sortedData: movements } = useSorting(movementsData, "created_at", "desc");
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -344,13 +347,13 @@ const Movements = () => {
                   />
                 </TableHead>
               )}
-              <TableHead>Data/Hora</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Produto</TableHead>
-              <TableHead>Quantidade</TableHead>
-              <TableHead>Origem</TableHead>
-              <TableHead>Destino</TableHead>
-              <TableHead>Referência</TableHead>
+              <SortableTableHead sortKey="created_at" currentSort={sortConfig} onSort={handleSort}>Data/Hora</SortableTableHead>
+              <SortableTableHead sortKey="type" currentSort={sortConfig} onSort={handleSort}>Tipo</SortableTableHead>
+              <SortableTableHead sortKey="products.name" currentSort={sortConfig} onSort={handleSort}>Produto</SortableTableHead>
+              <SortableTableHead sortKey="quantity" currentSort={sortConfig} onSort={handleSort}>Quantidade</SortableTableHead>
+              <SortableTableHead sortKey="from_location.name" currentSort={sortConfig} onSort={handleSort}>Origem</SortableTableHead>
+              <SortableTableHead sortKey="to_location.name" currentSort={sortConfig} onSort={handleSort}>Destino</SortableTableHead>
+              <SortableTableHead sortKey="reference" currentSort={sortConfig} onSort={handleSort}>Referência</SortableTableHead>
               {(userRole === "superadmin" || userRole === "operador" || userRole === "almoxarife" || userRole === "admin") && <TableHead className="w-[100px]">Ações</TableHead>}
             </TableRow>
           </TableHeader>
