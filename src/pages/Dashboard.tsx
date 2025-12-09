@@ -15,7 +15,6 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
   const [dateTo, setDateTo] = useState<Date | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const {
     data: organizationId
   } = useOrganization();
@@ -49,10 +48,10 @@ const Dashboard = () => {
 
   // Check user role - get highest privilege role
   const {
-    data: currentUser,
+    data: userRole,
     isLoading: isLoadingRole
   } = useQuery({
-    queryKey: ["current-user-dashboard"],
+    queryKey: ["current-user-dashboard-role"],
     queryFn: async () => {
       const {
         data: {
@@ -78,10 +77,11 @@ const Dashboard = () => {
           return currentLevel > highestLevel ? current.role : highest;
         }, rolesData[0].role);
         console.log("Dashboard - User highest role:", highestRole);
-        setUserRole(highestRole);
+        return highestRole;
       }
-      return user;
-    }
+      return null;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   // Listen for realtime changes to user_roles
@@ -99,7 +99,7 @@ const Dashboard = () => {
       }, () => {
         console.log('User roles changed, refetching...');
         queryClient.invalidateQueries({
-          queryKey: ["current-user-dashboard"]
+          queryKey: ["current-user-dashboard-role"]
         });
       }).subscribe();
     });
