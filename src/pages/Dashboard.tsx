@@ -375,6 +375,7 @@ const Dashboard = () => {
             icon={DollarSign} 
             description="Valor total de produtos"
             variant="success"
+            href="/products"
           />
         )}
         <KPICard 
@@ -383,6 +384,7 @@ const Dashboard = () => {
           icon={AlertTriangle} 
           description="Abaixo do estoque mínimo"
           variant="warning"
+          href="/stock"
         />
         <KPICard 
           title="Movimentações Hoje" 
@@ -390,6 +392,7 @@ const Dashboard = () => {
           icon={TrendingUp} 
           description="Entradas e saídas do dia"
           variant="info"
+          href="/movements"
         />
         <KPICard 
           title="Produtos Sem Estoque" 
@@ -397,6 +400,7 @@ const Dashboard = () => {
           icon={Package} 
           description="Produtos com quantidade zero"
           variant="danger"
+          href="/products"
         />
       </div>
 
@@ -409,6 +413,7 @@ const Dashboard = () => {
             icon={DollarSign}
             description="No período selecionado"
             variant={financialStats.saldo >= 0 ? "success" : "danger"}
+            href="/financeiro"
           />
           <KPICard
             title="Total Comprado"
@@ -416,6 +421,7 @@ const Dashboard = () => {
             icon={TrendingUp}
             description="Total de compras"
             variant="info"
+            href="/financeiro"
           />
           <KPICard
             title="Total Vendido"
@@ -423,6 +429,7 @@ const Dashboard = () => {
             icon={TrendingDown}
             description="Total de vendas"
             variant="success"
+            href="/financeiro"
           />
           {contasAVencer && (
             <KPICard
@@ -431,6 +438,7 @@ const Dashboard = () => {
               icon={Clock}
               description="Próximos 7 dias"
               variant="warning"
+              href="/contas"
             />
           )}
         </div>
@@ -445,6 +453,7 @@ const Dashboard = () => {
             icon={Brain}
             description="Menos de 7 dias de estoque (IA)"
             variant="warning"
+            href="/previsao-estoque"
           />
         </div>
       )}

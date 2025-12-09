@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 interface KPICardProps {
   title: string;
@@ -12,6 +13,7 @@ interface KPICardProps {
   };
   description?: string;
   variant?: "default" | "success" | "warning" | "danger" | "info";
+  href?: string;
 }
 
 const variantStyles = {
@@ -53,11 +55,12 @@ export const KPICard = ({
   icon: Icon, 
   trend, 
   description,
-  variant = "default" 
+  variant = "default",
+  href
 }: KPICardProps) => {
   const styles = variantStyles[variant];
   
-  return (
+  const cardContent = (
     <Card className={cn(
       "group relative overflow-hidden border border-border/50 bg-card cursor-pointer",
       "shadow-card hover:shadow-elevated transition-all duration-500 ease-out",
@@ -117,5 +120,10 @@ export const KPICard = ({
       </CardContent>
     </Card>
   );
-};
 
+  if (href) {
+    return <Link to={href} className="block">{cardContent}</Link>;
+  }
+
+  return cardContent;
+};
