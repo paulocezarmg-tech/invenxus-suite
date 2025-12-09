@@ -5,14 +5,18 @@ import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGrou
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { useOrganization } from "@/hooks/useOrganization";
+import { useCallback } from "react";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
   const collapsed = state === "collapsed";
+  const queryClient = useQueryClient();
+  const { data: organizationId } = useOrganization();
 
   const { data: userRole } = useQuery({
     queryKey: ["user-role"],
@@ -44,6 +48,134 @@ export function AppSidebar() {
       return highestRole.role;
     },
   });
+
+  // Prefetch data for pages on hover
+  const prefetchPageData = useCallback((url: string) => {
+    if (!organizationId) return;
+
+    const prefetchMap: Record<string, () => void> = {
+      "/": () => {
+        queryClient.prefetchQuery({
+          queryKey: ["dashboard-stats", null, null, organizationId],
+          queryFn: async () => {
+            const { data } = await supabase
+              .from("products")
+              .select("id, quantity, cost, min_quantity")
+              .eq("organization_id", organizationId);
+            return data;
+          },
+          staleTime: 1000 * 60 * 2,
+        });
+      },
+      "/products": () => {
+        queryClient.prefetchQuery({
+          queryKey: ["products", organizationId],
+          queryFn: async () => {
+            const { data } = await supabase
+              .from("products")
+              .select("*, category:categories(name), location:locations(name), supplier:suppliers(name)")
+              .eq("active", true)
+              .eq("organization_id", organizationId)
+              .order("name", { ascending: true });
+            return data;
+          },
+          staleTime: 1000 * 60 * 2,
+        });
+      },
+      "/movements": () => {
+        queryClient.prefetchQuery({
+          queryKey: ["movements", organizationId],
+          queryFn: async () => {
+            const { data } = await supabase
+              .from("movements")
+              .select("*, products(name, sku), kits(name, sku), from_location:locations!movements_from_location_id_fkey(name), to_location:locations!movements_to_location_id_fkey(name)")
+              .eq("organization_id", organizationId)
+              .order("created_at", { ascending: false })
+              .limit(100);
+            return data;
+          },
+          staleTime: 1000 * 60 * 2,
+        });
+      },
+      "/stock": () => {
+        queryClient.prefetchQuery({
+          queryKey: ["stock-products", organizationId],
+          queryFn: async () => {
+            const { data } = await supabase
+              .from("products")
+              .select("*, category:categories(name), location:locations(name)")
+              .eq("active", true)
+              .eq("organization_id", organizationId)
+              .order("name", { ascending: true });
+            return data;
+          },
+          staleTime: 1000 * 60 * 2,
+        });
+      },
+      "/financeiro": () => {
+        queryClient.prefetchQuery({
+          queryKey: ["financeiro", organizationId],
+          queryFn: async () => {
+            const { data } = await supabase
+              .from("financeiro")
+              .select("*, products(name, sku)")
+              .eq("organization_id", organizationId)
+              .order("data", { ascending: false })
+              .limit(100);
+            return data;
+          },
+          staleTime: 1000 * 60 * 2,
+        });
+      },
+      "/contas": () => {
+        queryClient.prefetchQuery({
+          queryKey: ["contas", organizationId],
+          queryFn: async () => {
+            const { data } = await supabase
+              .from("contas")
+              .select("*")
+              .eq("organization_id", organizationId)
+              .order("data_vencimento", { ascending: true });
+            return data;
+          },
+          staleTime: 1000 * 60 * 2,
+        });
+      },
+      "/previsao-estoque": () => {
+        queryClient.prefetchQuery({
+          queryKey: ["previsoes-estoque", organizationId],
+          queryFn: async () => {
+            const { data } = await supabase
+              .from("previsoes_estoque")
+              .select("*, products:produto_id(name, sku, unit, preco_venda, cost)")
+              .eq("organization_id", organizationId)
+              .order("dias_restantes", { ascending: true, nullsFirst: false });
+            return data;
+          },
+          staleTime: 1000 * 60 * 2,
+        });
+      },
+      "/kits": () => {
+        queryClient.prefetchQuery({
+          queryKey: ["kits", organizationId],
+          queryFn: async () => {
+            const { data } = await supabase
+              .from("kits")
+              .select("*, kit_items(count)")
+              .eq("organization_id", organizationId)
+              .order("name", { ascending: true });
+            return data;
+          },
+          staleTime: 1000 * 60 * 2,
+        });
+      },
+    };
+
+    const prefetchFn = prefetchMap[url];
+    if (prefetchFn) {
+      prefetchFn();
+    }
+  }, [organizationId, queryClient]);
 
   const baseMenuItems = [
     { title: "Dashboard", url: "/", icon: Home },
@@ -126,6 +258,7 @@ export function AppSidebar() {
                       <NavLink
                         to={item.url}
                         end
+                        onMouseEnter={() => prefetchPageData(item.url)}
                         className={cn(
                           "relative flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm",
                           "transition-all duration-200 group",
