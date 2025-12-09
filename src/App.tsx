@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,24 +7,26 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { Layout } from "./components/Layout";
 
-// Lazy load all pages for better initial load time
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Products = lazy(() => import("./pages/Products"));
-const Kits = lazy(() => import("./pages/Kits"));
-const Movements = lazy(() => import("./pages/Movements"));
-const Reports = lazy(() => import("./pages/Reports"));
-const Settings = lazy(() => import("./pages/Settings"));
-const Stock = lazy(() => import("./pages/Stock"));
-const Auth = lazy(() => import("./pages/Auth"));
+// Import main pages directly for instant navigation
+import Dashboard from "./pages/Dashboard";
+import Products from "./pages/Products";
+import Kits from "./pages/Kits";
+import Movements from "./pages/Movements";
+import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
+import Stock from "./pages/Stock";
+import Auth from "./pages/Auth";
+import Admin from "./pages/Admin";
+import Financeiro from "./pages/Financeiro";
+import Contas from "./pages/Contas";
+import PrevisaoEstoque from "./pages/PrevisaoEstoque";
+
+// Lazy load less frequently used pages
 const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
-const Admin = lazy(() => import("./pages/Admin"));
-const Financeiro = lazy(() => import("./pages/Financeiro"));
-const Contas = lazy(() => import("./pages/Contas"));
-const PrevisaoEstoque = lazy(() => import("./pages/PrevisaoEstoque"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 
-// Loading component for Suspense
+// Loading component for Suspense (only for lazy loaded pages)
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
     <div className="flex flex-col items-center gap-4">
