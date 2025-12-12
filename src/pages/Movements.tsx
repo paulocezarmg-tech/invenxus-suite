@@ -36,6 +36,7 @@ const Movements = () => {
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
   const [dateTo, setDateTo] = useState<Date | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [productFilter, setProductFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const { data: organizationId } = useOrganization();
@@ -44,6 +45,40 @@ const Movements = () => {
     setDateFrom(from);
     setDateTo(to);
   };
+
+  // Fetch products for filter
+  const { data: products } = useQuery({
+    queryKey: ["products-filter", organizationId],
+    queryFn: async () => {
+      if (!organizationId) return [];
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, sku")
+        .eq("organization_id", organizationId)
+        .eq("active", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!organizationId,
+  });
+
+  // Fetch kits for filter
+  const { data: kits } = useQuery({
+    queryKey: ["kits-filter", organizationId],
+    queryFn: async () => {
+      if (!organizationId) return [];
+      const { data, error } = await supabase
+        .from("kits")
+        .select("id, name, sku")
+        .eq("organization_id", organizationId)
+        .eq("active", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!organizationId,
+  });
 
   // Check user role
   const { data: currentUser } = useQuery({
@@ -96,7 +131,7 @@ const Movements = () => {
   });
 
   const { data: movementsData, isLoading } = useQuery({
-    queryKey: ["movements", dateFrom, dateTo, typeFilter, organizationId],
+    queryKey: ["movements", dateFrom, dateTo, typeFilter, productFilter, organizationId],
     queryFn: async () => {
       if (!organizationId) return [];
       
@@ -121,6 +156,15 @@ const Movements = () => {
 
       if (typeFilter !== "all") {
         query = query.eq("type", typeFilter as "IN" | "OUT" | "TRANSFER");
+      }
+
+      // Product/Kit filter
+      if (productFilter !== "all") {
+        if (productFilter.startsWith("product_")) {
+          query = query.eq("product_id", productFilter.replace("product_", ""));
+        } else if (productFilter.startsWith("kit_")) {
+          query = query.eq("kit_id", productFilter.replace("kit_", ""));
+        }
       }
 
       const { data, error } = await query;
@@ -240,10 +284,10 @@ const Movements = () => {
               </p>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto flex-wrap">
             <DateRangeFilter onDateChange={handleDateChange} />
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full sm:w-[180px] h-11 bg-card/80 backdrop-blur-sm border-border/50">
+              <SelectTrigger className="w-full sm:w-[160px] h-11 bg-card/80 backdrop-blur-sm border-border/50">
                 <SelectValue placeholder="Tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -251,6 +295,38 @@ const Movements = () => {
                 <SelectItem value="IN">Entradas</SelectItem>
                 <SelectItem value="OUT">Saídas</SelectItem>
                 <SelectItem value="TRANSFER">Transferências</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={productFilter} onValueChange={setProductFilter}>
+              <SelectTrigger className="w-full sm:w-[200px] h-11 bg-card/80 backdrop-blur-sm border-border/50">
+                <SelectValue placeholder="Produto/Kit" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os itens</SelectItem>
+                {products && products.length > 0 && (
+                  <>
+                    <SelectItem value="__products_header" disabled className="font-semibold text-xs text-muted-foreground uppercase">
+                      Produtos
+                    </SelectItem>
+                    {products.map((product) => (
+                      <SelectItem key={product.id} value={`product_${product.id}`}>
+                        {product.name} ({product.sku})
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
+                {kits && kits.length > 0 && (
+                  <>
+                    <SelectItem value="__kits_header" disabled className="font-semibold text-xs text-muted-foreground uppercase mt-2">
+                      Kits
+                    </SelectItem>
+                    {kits.map((kit) => (
+                      <SelectItem key={kit.id} value={`kit_${kit.id}`}>
+                        {kit.name} ({kit.sku})
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
               </SelectContent>
             </Select>
             {selectedIds.length > 0 && userRole === "superadmin" && (
