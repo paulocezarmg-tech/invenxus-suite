@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { KPICard } from "@/components/dashboard/KPICard";
+import { KPICardSkeleton } from "@/components/dashboard/KPICardSkeleton";
 import { RecentMovements } from "@/components/dashboard/RecentMovements";
 import { StockChart } from "@/components/dashboard/StockChart";
 import { SalesVsPurchasesChart } from "@/components/dashboard/SalesVsPurchasesChart";
@@ -115,7 +116,8 @@ const Dashboard = () => {
   };
 
   // Fetch financial stats based on movements and product prices
-  const { data: financialStats } = useQuery({
+  const { data: financialStats, isLoading: isLoadingFinancial } = useQuery({
+  
     queryKey: ['financial-stats', dateFrom, dateTo, organizationId],
     queryFn: async () => {
       if (!organizationId) return { saldo: 0, entradas: 0, saidas: 0 };
@@ -204,7 +206,8 @@ const Dashboard = () => {
   });
 
   const {
-    data: stats
+    data: stats,
+    isLoading: isLoadingStats
   } = useQuery({
     queryKey: ["dashboard-stats", dateFrom, dateTo, organizationId],
     queryFn: async () => {
@@ -368,78 +371,100 @@ const Dashboard = () => {
 
       {/* Main KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {(userRole === "admin" || userRole === "superadmin") && (
-          <KPICard 
-            title="Valor Total em Estoque" 
-            value={formatCurrency(stats?.totalValue || 0)} 
-            icon={DollarSign} 
-            description="Valor total de produtos"
-            variant="success"
-            href="/products"
-          />
+        {isLoadingStats ? (
+          <>
+            {(userRole === "admin" || userRole === "superadmin") && <KPICardSkeleton />}
+            <KPICardSkeleton />
+            <KPICardSkeleton />
+            <KPICardSkeleton />
+          </>
+        ) : (
+          <>
+            {(userRole === "admin" || userRole === "superadmin") && (
+              <KPICard 
+                title="Valor Total em Estoque" 
+                value={formatCurrency(stats?.totalValue || 0)} 
+                icon={DollarSign} 
+                description="Valor total de produtos"
+                variant="success"
+                href="/products"
+              />
+            )}
+            <KPICard 
+              title="Itens Críticos" 
+              value={stats?.criticalItems || 0} 
+              icon={AlertTriangle} 
+              description="Abaixo do estoque mínimo"
+              variant="warning"
+              href="/stock"
+            />
+            <KPICard 
+              title="Movimentações Hoje" 
+              value={stats?.todayMovements || 0} 
+              icon={TrendingUp} 
+              description="Entradas e saídas do dia"
+              variant="info"
+              href="/movements"
+            />
+            <KPICard 
+              title="Produtos Sem Estoque" 
+              value={stats?.zeroStock || 0} 
+              icon={Package} 
+              description="Produtos com quantidade zero"
+              variant="danger"
+              href="/products"
+            />
+          </>
         )}
-        <KPICard 
-          title="Itens Críticos" 
-          value={stats?.criticalItems || 0} 
-          icon={AlertTriangle} 
-          description="Abaixo do estoque mínimo"
-          variant="warning"
-          href="/stock"
-        />
-        <KPICard 
-          title="Movimentações Hoje" 
-          value={stats?.todayMovements || 0} 
-          icon={TrendingUp} 
-          description="Entradas e saídas do dia"
-          variant="info"
-          href="/movements"
-        />
-        <KPICard 
-          title="Produtos Sem Estoque" 
-          value={stats?.zeroStock || 0} 
-          icon={Package} 
-          description="Produtos com quantidade zero"
-          variant="danger"
-          href="/products"
-        />
       </div>
 
       {/* Financial KPI Cards - Only for admin and superadmin */}
-      {userRole && ['admin', 'superadmin'].includes(userRole) && financialStats && (
+      {userRole && ['admin', 'superadmin'].includes(userRole) && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KPICard
-            title="Saldo Total"
-            value={formatCurrency(financialStats.saldo)}
-            icon={DollarSign}
-            description="No período selecionado"
-            variant={financialStats.saldo >= 0 ? "success" : "danger"}
-            href="/financeiro"
-          />
-          <KPICard
-            title="Total Comprado"
-            value={formatCurrency(financialStats.entradas)}
-            icon={TrendingUp}
-            description="Total de compras"
-            variant="info"
-            href="/financeiro"
-          />
-          <KPICard
-            title="Total Vendido"
-            value={formatCurrency(financialStats.saidas)}
-            icon={TrendingDown}
-            description="Total de vendas"
-            variant="success"
-            href="/financeiro"
-          />
-          {contasAVencer && (
-            <KPICard
-              title="Contas a Vencer (7 dias)"
-              value={`${contasAVencer.count} - ${formatCurrency(contasAVencer.total)}`}
-              icon={Clock}
-              description="Próximos 7 dias"
-              variant="warning"
-              href="/contas"
-            />
+          {isLoadingFinancial ? (
+            <>
+              <KPICardSkeleton />
+              <KPICardSkeleton />
+              <KPICardSkeleton />
+              <KPICardSkeleton />
+            </>
+          ) : financialStats && (
+            <>
+              <KPICard
+                title="Saldo Total"
+                value={formatCurrency(financialStats.saldo)}
+                icon={DollarSign}
+                description="No período selecionado"
+                variant={financialStats.saldo >= 0 ? "success" : "danger"}
+                href="/financeiro"
+              />
+              <KPICard
+                title="Total Comprado"
+                value={formatCurrency(financialStats.entradas)}
+                icon={TrendingUp}
+                description="Total de compras"
+                variant="info"
+                href="/financeiro"
+              />
+              <KPICard
+                title="Total Vendido"
+                value={formatCurrency(financialStats.saidas)}
+                icon={TrendingDown}
+                description="Total de vendas"
+                variant="success"
+                href="/financeiro"
+              />
+              {contasAVencer && (
+                <KPICard
+                  title="Contas a Vencer (7 dias)"
+                  value={`${contasAVencer.count} - ${formatCurrency(contasAVencer.total)}`}
+                  icon={Clock}
+                  description="Próximos 7 dias"
+                  variant="warning"
+                  href="/contas"
+                />
+              )}
+            </>
           )}
         </div>
       )}
