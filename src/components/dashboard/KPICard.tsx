@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
 interface KPICardProps {
   title: string;
@@ -61,64 +62,71 @@ export const KPICard = ({
   const styles = variantStyles[variant];
   
   const cardContent = (
-    <Card className={cn(
-      "group relative overflow-hidden border border-border/50 bg-card cursor-pointer",
-      "shadow-card hover:shadow-elevated transition-all duration-500 ease-out",
-      "hover:-translate-y-2 hover:scale-[1.02]",
-      styles.border,
-      styles.glow
-    )}>
-      {/* Animated gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary/[0.03] pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-0" />
-      <div className="absolute inset-0 bg-gradient-to-tr from-primary/[0.02] via-transparent to-transparent pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-0" />
-      
-      {/* Shine effect on hover */}
-      <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
-      
-      <CardContent className="p-6 relative">
-        <div className="flex items-start justify-between">
-          <div className="space-y-3 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors duration-300 group-hover:text-foreground/70">
-              {title}
-            </p>
-            <div className="space-y-1">
-              <p className="text-3xl font-bold tracking-tight text-foreground transition-transform duration-300 group-hover:scale-105 origin-left">
-                {value}
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+    >
+      <Card className={cn(
+        "group relative overflow-hidden border border-border/50 bg-card cursor-pointer",
+        "shadow-card hover:shadow-elevated transition-all duration-500 ease-out",
+        "hover:-translate-y-2 hover:scale-[1.02]",
+        styles.border,
+        styles.glow
+      )}>
+        {/* Animated gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary/[0.03] pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-0" />
+        <div className="absolute inset-0 bg-gradient-to-tr from-primary/[0.02] via-transparent to-transparent pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-0" />
+        
+        {/* Shine effect on hover */}
+        <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
+        
+        <CardContent className="p-6 relative">
+          <div className="flex items-start justify-between">
+            <div className="space-y-3 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors duration-300 group-hover:text-foreground/70">
+                {title}
               </p>
-              {trend && (
-                <div className={cn(
-                  "inline-flex items-center gap-1 text-sm font-medium px-2 py-0.5 rounded-full transition-all duration-300",
-                  trend.isPositive 
-                    ? "text-success bg-success/10 group-hover:bg-success/20" 
-                    : "text-destructive bg-destructive/10 group-hover:bg-destructive/20"
-                )}>
-                  <span className="transition-transform duration-300 group-hover:scale-125">{trend.isPositive ? '↑' : '↓'}</span>
-                  <span>{Math.abs(trend.value)}%</span>
-                </div>
-              )}
-              {description && (
-                <p className="text-sm text-muted-foreground mt-1 transition-colors duration-300 group-hover:text-muted-foreground/80">
-                  {description}
+              <div className="space-y-1">
+                <p className="text-3xl font-bold tracking-tight text-foreground transition-transform duration-300 group-hover:scale-105 origin-left">
+                  {value}
                 </p>
-              )}
+                {trend && (
+                  <div className={cn(
+                    "inline-flex items-center gap-1 text-sm font-medium px-2 py-0.5 rounded-full transition-all duration-300",
+                    trend.isPositive 
+                      ? "text-success bg-success/10 group-hover:bg-success/20" 
+                      : "text-destructive bg-destructive/10 group-hover:bg-destructive/20"
+                  )}>
+                    <span className="transition-transform duration-300 group-hover:scale-125">{trend.isPositive ? '↑' : '↓'}</span>
+                    <span>{Math.abs(trend.value)}%</span>
+                  </div>
+                )}
+                {description && (
+                  <p className="text-sm text-muted-foreground mt-1 transition-colors duration-300 group-hover:text-muted-foreground/80">
+                    {description}
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <div className={cn(
+              "h-12 w-12 rounded-xl flex items-center justify-center shrink-0",
+              "transition-all duration-500 ease-out",
+              "group-hover:scale-110 group-hover:rotate-3",
+              styles.iconBg
+            )}>
+              <Icon className={cn(
+                "h-6 w-6 transition-all duration-500",
+                "group-hover:scale-110",
+                styles.iconColor
+              )} />
             </div>
           </div>
-          
-          <div className={cn(
-            "h-12 w-12 rounded-xl flex items-center justify-center shrink-0",
-            "transition-all duration-500 ease-out",
-            "group-hover:scale-110 group-hover:rotate-3",
-            styles.iconBg
-          )}>
-            <Icon className={cn(
-              "h-6 w-6 transition-all duration-500",
-              "group-hover:scale-110",
-              styles.iconColor
-            )} />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 
   if (href) {
