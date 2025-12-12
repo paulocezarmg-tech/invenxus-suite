@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AnimatePresence } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { KPICard } from "@/components/dashboard/KPICard";
@@ -371,101 +372,113 @@ const Dashboard = () => {
 
       {/* Main KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {isLoadingStats ? (
-          <>
-            {(userRole === "admin" || userRole === "superadmin") && <KPICardSkeleton />}
-            <KPICardSkeleton />
-            <KPICardSkeleton />
-            <KPICardSkeleton />
-          </>
-        ) : (
-          <>
-            {(userRole === "admin" || userRole === "superadmin") && (
+        <AnimatePresence mode="wait">
+          {isLoadingStats ? (
+            <>
+              {(userRole === "admin" || userRole === "superadmin") && <KPICardSkeleton key="skel-1" />}
+              <KPICardSkeleton key="skel-2" />
+              <KPICardSkeleton key="skel-3" />
+              <KPICardSkeleton key="skel-4" />
+            </>
+          ) : (
+            <>
+              {(userRole === "admin" || userRole === "superadmin") && (
+                <KPICard 
+                  key="card-1"
+                  title="Valor Total em Estoque" 
+                  value={formatCurrency(stats?.totalValue || 0)} 
+                  icon={DollarSign} 
+                  description="Valor total de produtos"
+                  variant="success"
+                  href="/products"
+                />
+              )}
               <KPICard 
-                title="Valor Total em Estoque" 
-                value={formatCurrency(stats?.totalValue || 0)} 
-                icon={DollarSign} 
-                description="Valor total de produtos"
-                variant="success"
+                key="card-2"
+                title="Itens Críticos" 
+                value={stats?.criticalItems || 0} 
+                icon={AlertTriangle} 
+                description="Abaixo do estoque mínimo"
+                variant="warning"
+                href="/stock"
+              />
+              <KPICard 
+                key="card-3"
+                title="Movimentações Hoje" 
+                value={stats?.todayMovements || 0} 
+                icon={TrendingUp} 
+                description="Entradas e saídas do dia"
+                variant="info"
+                href="/movements"
+              />
+              <KPICard 
+                key="card-4"
+                title="Produtos Sem Estoque" 
+                value={stats?.zeroStock || 0} 
+                icon={Package} 
+                description="Produtos com quantidade zero"
+                variant="danger"
                 href="/products"
               />
-            )}
-            <KPICard 
-              title="Itens Críticos" 
-              value={stats?.criticalItems || 0} 
-              icon={AlertTriangle} 
-              description="Abaixo do estoque mínimo"
-              variant="warning"
-              href="/stock"
-            />
-            <KPICard 
-              title="Movimentações Hoje" 
-              value={stats?.todayMovements || 0} 
-              icon={TrendingUp} 
-              description="Entradas e saídas do dia"
-              variant="info"
-              href="/movements"
-            />
-            <KPICard 
-              title="Produtos Sem Estoque" 
-              value={stats?.zeroStock || 0} 
-              icon={Package} 
-              description="Produtos com quantidade zero"
-              variant="danger"
-              href="/products"
-            />
-          </>
-        )}
+            </>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Financial KPI Cards - Only for admin and superadmin */}
       {userRole && ['admin', 'superadmin'].includes(userRole) && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {isLoadingFinancial ? (
-            <>
-              <KPICardSkeleton />
-              <KPICardSkeleton />
-              <KPICardSkeleton />
-              <KPICardSkeleton />
-            </>
-          ) : financialStats && (
-            <>
-              <KPICard
-                title="Saldo Total"
-                value={formatCurrency(financialStats.saldo)}
-                icon={DollarSign}
-                description="No período selecionado"
-                variant={financialStats.saldo >= 0 ? "success" : "danger"}
-                href="/financeiro"
-              />
-              <KPICard
-                title="Total Comprado"
-                value={formatCurrency(financialStats.entradas)}
-                icon={TrendingUp}
-                description="Total de compras"
-                variant="info"
-                href="/financeiro"
-              />
-              <KPICard
-                title="Total Vendido"
-                value={formatCurrency(financialStats.saidas)}
-                icon={TrendingDown}
-                description="Total de vendas"
-                variant="success"
-                href="/financeiro"
-              />
-              {contasAVencer && (
+          <AnimatePresence mode="wait">
+            {isLoadingFinancial ? (
+              <>
+                <KPICardSkeleton key="fin-skel-1" />
+                <KPICardSkeleton key="fin-skel-2" />
+                <KPICardSkeleton key="fin-skel-3" />
+                <KPICardSkeleton key="fin-skel-4" />
+              </>
+            ) : financialStats && (
+              <>
                 <KPICard
-                  title="Contas a Vencer (7 dias)"
-                  value={`${contasAVencer.count} - ${formatCurrency(contasAVencer.total)}`}
-                  icon={Clock}
-                  description="Próximos 7 dias"
-                  variant="warning"
-                  href="/contas"
+                  key="fin-card-1"
+                  title="Saldo Total"
+                  value={formatCurrency(financialStats.saldo)}
+                  icon={DollarSign}
+                  description="No período selecionado"
+                  variant={financialStats.saldo >= 0 ? "success" : "danger"}
+                  href="/financeiro"
                 />
-              )}
-            </>
-          )}
+                <KPICard
+                  key="fin-card-2"
+                  title="Total Comprado"
+                  value={formatCurrency(financialStats.entradas)}
+                  icon={TrendingUp}
+                  description="Total de compras"
+                  variant="info"
+                  href="/financeiro"
+                />
+                <KPICard
+                  key="fin-card-3"
+                  title="Total Vendido"
+                  value={formatCurrency(financialStats.saidas)}
+                  icon={TrendingDown}
+                  description="Total de vendas"
+                  variant="success"
+                  href="/financeiro"
+                />
+                {contasAVencer && (
+                  <KPICard
+                    key="fin-card-4"
+                    title="Contas a Vencer (7 dias)"
+                    value={`${contasAVencer.count} - ${formatCurrency(contasAVencer.total)}`}
+                    icon={Clock}
+                    description="Próximos 7 dias"
+                    variant="warning"
+                    href="/contas"
+                  />
+                )}
+              </>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
