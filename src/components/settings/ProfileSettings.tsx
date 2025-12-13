@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload, User, Mail, Phone, Lock, Camera, Save, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import { TwoFactorAuth } from "./TwoFactorAuth";
 
 const profileSchema = z.object({
   name: z.string().trim().min(1, "Nome é obrigatório").max(200, "Nome deve ter no máximo 200 caracteres"),
@@ -339,6 +340,9 @@ export function ProfileSettings() {
             </p>
           </div>
         </div>
+
+        {/* Two-Factor Authentication */}
+        <TwoFactorAuth />
 
         {/* Submit Button */}
         <Button
