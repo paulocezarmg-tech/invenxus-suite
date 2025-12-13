@@ -3,8 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Shield, Loader2 } from "lucide-react";
+import { Shield, Loader2, HelpCircle } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 
 interface MFAVerificationProps {
   factorId: string;
@@ -15,6 +20,7 @@ interface MFAVerificationProps {
 export function MFAVerification({ factorId, onSuccess, onCancel }: MFAVerificationProps) {
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const handleVerify = async () => {
     if (code.length !== 6) {
@@ -103,6 +109,32 @@ export function MFAVerification({ factorId, onSuccess, onCancel }: MFAVerificati
             Voltar
           </Button>
         </div>
+
+        <div className="pt-2">
+          <Button
+            variant="link"
+            onClick={() => setShowHelp(!showHelp)}
+            className="w-full text-muted-foreground hover:text-foreground"
+          >
+            <HelpCircle className="h-4 w-4 mr-2" />
+            Perdeu acesso ao autenticador?
+          </Button>
+        </div>
+
+        {showHelp && (
+          <Alert>
+            <HelpCircle className="h-4 w-4" />
+            <AlertTitle>Recuperação de Acesso</AlertTitle>
+            <AlertDescription className="space-y-2 text-sm">
+              <p>
+                Se você perdeu acesso ao seu aplicativo autenticador, entre em contato com um administrador do sistema.
+              </p>
+              <p>
+                O administrador pode desativar a autenticação de dois fatores da sua conta, permitindo que você faça login novamente e configure um novo autenticador.
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <p className="text-xs text-muted-foreground text-center">
           Abra seu aplicativo autenticador (Google Authenticator, Authy, etc.) para obter o código.

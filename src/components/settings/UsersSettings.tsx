@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, MoreVertical, Pencil, UserX, Trash2, Search, Upload, Shield } from "lucide-react";
+import { Plus, MoreVertical, Pencil, UserX, Trash2, Search, Upload, Shield, ShieldOff } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -323,6 +323,23 @@ export function UsersSettings() {
     }
   };
 
+  const handleResetMFA = async (userId: string, userName: string) => {
+    if (!confirm(`Tem certeza que deseja resetar a autenticação 2FA de ${userName}? O usuário poderá fazer login sem o código do autenticador.`)) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-user-mfa', {
+        body: { targetUserId: userId },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(`2FA resetado para ${userName}`);
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao resetar 2FA");
+    }
+  };
+
   useEffect(() => {
     if (selectedUser && editDialogOpen) {
       editForm.reset({
@@ -549,6 +566,13 @@ export function UsersSettings() {
                         >
                           <Shield className="mr-2 h-4 w-4" />
                           Gerenciar Funções
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleResetMFA(user.user_id, user.name)}
+                          className="cursor-pointer"
+                        >
+                          <ShieldOff className="mr-2 h-4 w-4" />
+                          Resetar 2FA
                         </DropdownMenuItem>
                         <DropdownMenuItem className="cursor-pointer">
                           <UserX className="mr-2 h-4 w-4" />
