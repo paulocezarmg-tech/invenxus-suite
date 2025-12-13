@@ -17,6 +17,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { MFAVerification } from "@/components/auth/MFAVerification";
 import logo from "@/assets/stockmaster-logo.png";
 import warehouseBg from "@/assets/warehouse-background.avif";
 
@@ -30,6 +31,8 @@ type LoginFormData = z.infer<typeof loginSchema>;
 const Auth = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showMFA, setShowMFA] = useState(false);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -43,12 +46,25 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
 
       if (error) throw error;
+
+      // Check if MFA is required
+      if (authData.session?.user) {
+        const { data: factorsData } = await supabase.auth.mfa.listFactors();
+        const verifiedFactor = factorsData?.totp.find(f => f.status === 'verified');
+        
+        if (verifiedFactor) {
+          setMfaFactorId(verifiedFactor.id);
+          setShowMFA(true);
+          setLoading(false);
+          return;
+        }
+      }
 
       toast.success("Login realizado com sucesso!");
       navigate("/");
@@ -59,6 +75,41 @@ const Auth = () => {
     }
   };
 
+  const handleMFASuccess = () => {
+    toast.success("Login realizado com sucesso!");
+    navigate("/");
+  };
+
+  const handleMFACancel = async () => {
+    await supabase.auth.signOut();
+    setShowMFA(false);
+    setMfaFactorId(null);
+  };
+
+  if (showMFA && mfaFactorId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 relative">
+        <div 
+          className="absolute inset-0 z-0"
+          style={{
+            backgroundImage: `url(${warehouseBg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
+        >
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+        </div>
+        <div className="relative z-10">
+          <MFAVerification
+            factorId={mfaFactorId}
+            onSuccess={handleMFASuccess}
+            onCancel={handleMFACancel}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
