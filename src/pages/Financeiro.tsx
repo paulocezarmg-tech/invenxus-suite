@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { SortableTableHead, useSorting } from "@/components/shared/SortableTableHead";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, DollarSign, TrendingUp, TrendingDown, Percent, Pencil, Trash2, FileText, Download, BarChart3, Sparkles, Wallet, PiggyBank, Target } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, TrendingDown, Percent, Pencil, Trash2, FileText, Download, BarChart3, Sparkles, Wallet, PiggyBank, Target, FileSpreadsheet } from "lucide-react";
 import { FinanceiroDialog } from "@/components/financeiro/FinanceiroDialog";
 import { MigrateButton } from "@/components/financeiro/MigrateButton";
 import { DashboardFinanceiro } from "@/components/financeiro/DashboardFinanceiro";
@@ -23,6 +23,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { exportToExcel, exportToCSV, ExportColumn } from "@/lib/export-utils";
 
 export default function Financeiro() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -357,6 +359,84 @@ export default function Financeiro() {
     }
   };
 
+  // Export columns configuration
+  const financeiroExportColumns: ExportColumn[] = [
+    { 
+      header: "Data", 
+      key: "data",
+      transform: (value) => format(new Date(value), "dd/MM/yyyy", { locale: ptBR })
+    },
+    { 
+      header: "Tipo", 
+      key: "tipo",
+      transform: (value) => value === "entrada" ? "Entrada" : "Saída"
+    },
+    { header: "Descrição", key: "descricao" },
+    { 
+      header: "Produto", 
+      key: "products.name",
+      transform: (value, row) => row.products?.name || "-"
+    },
+    { header: "Quantidade", key: "quantidade", transform: (value) => value || "-" },
+    { 
+      header: "Valor", 
+      key: "valor",
+      transform: (value) => formatCurrency(parseFloat(value || "0"))
+    },
+    { 
+      header: "Custo Total", 
+      key: "custo_total",
+      transform: (value) => formatCurrency(parseFloat(value || "0"))
+    },
+    { 
+      header: "Preço Venda", 
+      key: "preco_venda",
+      transform: (value) => formatCurrency(parseFloat(value || "0"))
+    },
+    { 
+      header: "Lucro Líquido", 
+      key: "lucro_liquido",
+      transform: (value) => formatCurrency(parseFloat(value || "0"))
+    },
+    { 
+      header: "Margem %", 
+      key: "margem_percentual",
+      transform: (value) => `${parseFloat(value || "0").toFixed(1)}%`
+    },
+  ];
+
+  const handleExportExcel = () => {
+    if (!movements || movements.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Não há dados para exportar",
+        variant: "destructive",
+      });
+      return;
+    }
+    exportToExcel(movements, financeiroExportColumns, "financeiro");
+    toast({
+      title: "Exportação concluída",
+      description: "Arquivo Excel exportado com sucesso!",
+    });
+  };
+
+  const handleExportCSV = () => {
+    if (!movements || movements.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Não há dados para exportar",
+        variant: "destructive",
+      });
+      return;
+    }
+    exportToCSV(movements, financeiroExportColumns, "financeiro");
+    toast({
+      title: "Exportação concluída",
+      description: "Arquivo CSV exportado com sucesso!",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="container mx-auto p-8 space-y-8 animate-fade-in">
@@ -381,6 +461,28 @@ export default function Financeiro() {
             </div>
             <div className="flex gap-3 flex-wrap">
               <MigrateButton />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="h-12 gap-2 rounded-xl border-border/50">
+                    <Download className="h-4 w-4" />
+                    Exportar
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportExcel} className="gap-2">
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Exportar Excel (.xlsx)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportCSV} className="gap-2">
+                    <Download className="h-4 w-4" />
+                    Exportar CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportPDF} className="gap-2">
+                    <FileText className="h-4 w-4" />
+                    Exportar PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button 
                 onClick={() => setIsIADialogOpen(true)} 
                 variant="outline" 
