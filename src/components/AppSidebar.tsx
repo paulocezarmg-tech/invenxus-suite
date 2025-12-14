@@ -1,4 +1,4 @@
-import { Home, Package, TrendingUp, FileText, Settings, LogOut, Boxes, Warehouse, Shield, DollarSign, Receipt, Brain, ChevronRight } from "lucide-react";
+import { Home, Package, TrendingUp, FileText, Settings, LogOut, Boxes, Warehouse, Shield, DollarSign, Receipt, Brain, ChevronRight, AlertTriangle } from "lucide-react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import stockmasterLogo from "@/assets/stockmaster-logo.png";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
@@ -190,6 +190,7 @@ export function AppSidebar() {
     { title: "Financeiro", url: "/financeiro", icon: DollarSign },
     { title: "Contas a Pagar/Receber", url: "/contas", icon: Receipt },
     { title: "Previsão de Estoque", url: "/previsao-estoque", icon: Brain },
+    { title: "Estoque Crítico", url: "/estoque-critico", icon: AlertTriangle },
     { title: "Relatórios", url: "/reports", icon: FileText },
   ];
 
