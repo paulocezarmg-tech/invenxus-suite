@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, Pencil, Trash2, Activity, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, Pencil, Trash2, Activity, TrendingUp, TrendingDown, Download, FileSpreadsheet } from "lucide-react";
 import { MovementDialog } from "@/components/movements/MovementDialog";
 import { DateRangeFilter } from "@/components/shared/DateRangeFilter";
 import { toast } from "sonner";
@@ -28,6 +28,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { exportToExcel, exportToCSV, ExportColumn } from "@/lib/export-utils";
 
 const Movements = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -268,6 +275,69 @@ const Movements = () => {
     };
   }, [organizationId, queryClient]);
 
+  // Export columns configuration
+  const exportColumns: ExportColumn[] = [
+    { 
+      header: "Data", 
+      key: "created_at",
+      transform: (value) => format(new Date(value), "dd/MM/yyyy HH:mm", { locale: ptBR })
+    },
+    { 
+      header: "Tipo", 
+      key: "type",
+      transform: (value) => value === "IN" ? "Entrada" : value === "OUT" ? "Saída" : "Transferência"
+    },
+    { 
+      header: "Produto/Kit", 
+      key: "products.name",
+      transform: (value, row) => row.products?.name || row.kits?.name || "-"
+    },
+    { 
+      header: "SKU", 
+      key: "products.sku",
+      transform: (value, row) => row.products?.sku || row.kits?.sku || "-"
+    },
+    { header: "Quantidade", key: "quantity" },
+    { 
+      header: "Origem", 
+      key: "from_location.name",
+      transform: (value) => value || "-"
+    },
+    { 
+      header: "Destino", 
+      key: "to_location.name",
+      transform: (value) => value || "-"
+    },
+    { 
+      header: "Referência", 
+      key: "reference",
+      transform: (value) => value || "-"
+    },
+    { 
+      header: "Observação", 
+      key: "note",
+      transform: (value) => value || "-"
+    },
+  ];
+
+  const handleExportExcel = () => {
+    if (!movements || movements.length === 0) {
+      toast.error("Não há dados para exportar");
+      return;
+    }
+    exportToExcel(movements, exportColumns, "movimentacoes");
+    toast.success("Arquivo Excel exportado com sucesso!");
+  };
+
+  const handleExportCSV = () => {
+    if (!movements || movements.length === 0) {
+      toast.error("Não há dados para exportar");
+      return;
+    }
+    exportToCSV(movements, exportColumns, "movimentacoes");
+    toast.success("Arquivo CSV exportado com sucesso!");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
       <div className="p-4 md:p-8 space-y-6 md:space-y-8 overflow-x-hidden animate-fade-in">
@@ -335,6 +405,24 @@ const Movements = () => {
                 Excluir ({selectedIds.length})
               </Button>
             )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2 w-full sm:w-auto h-11 bg-card/80 backdrop-blur-sm border-border/50">
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">Exportar</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportExcel} className="gap-2">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Exportar Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCSV} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Exportar CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               className="gap-2 w-full sm:w-auto h-11 bg-gradient-to-r from-primary to-primary/90 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all"
               onClick={() => {
