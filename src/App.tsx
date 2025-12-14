@@ -20,6 +20,7 @@ import Admin from "./pages/Admin";
 import Financeiro from "./pages/Financeiro";
 import Contas from "./pages/Contas";
 import PrevisaoEstoque from "./pages/PrevisaoEstoque";
+import CriticalStockReport from "./pages/CriticalStockReport";
 
 // Lazy load less frequently used pages
 const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
@@ -129,6 +130,14 @@ const App = () => (
                 element={
                   <Layout>
                     <PrevisaoEstoque />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/estoque-critico"
+                element={
+                  <Layout>
+                    <CriticalStockReport />
                   </Layout>
                 }
               />
