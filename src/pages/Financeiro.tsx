@@ -1063,6 +1063,26 @@ export default function Financeiro() {
               </Card>
             </div>
           </TabsContent>
+
+          {/* Gráficos Avançados Tab */}
+          <TabsContent value="graficos" className="space-y-6">
+            <GraficosAvancados data={movements || []} />
+          </TabsContent>
+
+          {/* Metas Tab */}
+          <TabsContent value="metas" className="space-y-6">
+            <MetasFinanceiras 
+              faturamentoAtual={totalFaturamento}
+              lucroAtual={lucroLiquido}
+              margemAtual={margemLucro}
+              vendasAtual={movements?.filter(m => m.tipo === "saida").length || 0}
+            />
+          </TabsContent>
+
+          {/* Comparativo Tab */}
+          <TabsContent value="comparativo" className="space-y-6">
+            <ComparativoPeriodos />
+          </TabsContent>
         </Tabs>
 
         <FinanceiroDialog
