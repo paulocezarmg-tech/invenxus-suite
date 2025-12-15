@@ -129,6 +129,7 @@ export type Database = {
       }
       financeiro: {
         Row: {
+          categoria: string | null
           created_at: string
           custo_total: number | null
           custos_adicionais: Json | null
@@ -147,6 +148,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          categoria?: string | null
           created_at?: string
           custo_total?: number | null
           custos_adicionais?: Json | null
@@ -165,6 +167,7 @@ export type Database = {
           valor: number
         }
         Update: {
+          categoria?: string | null
           created_at?: string
           custo_total?: number | null
           custos_adicionais?: Json | null
@@ -368,6 +371,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      metas_financeiras: {
+        Row: {
+          ano: number
+          ativo: boolean
+          created_at: string
+          id: string
+          mes: number | null
+          organization_id: string
+          periodo: string
+          tipo: string
+          updated_at: string
+          user_id: string
+          valor_meta: number
+        }
+        Insert: {
+          ano: number
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          mes?: number | null
+          organization_id: string
+          periodo: string
+          tipo: string
+          updated_at?: string
+          user_id: string
+          valor_meta: number
+        }
+        Update: {
+          ano?: number
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          mes?: number | null
+          organization_id?: string
+          periodo?: string
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          valor_meta?: number
+        }
+        Relationships: []
       }
       movements: {
         Row: {
