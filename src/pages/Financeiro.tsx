@@ -9,12 +9,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { SortableTableHead, useSorting } from "@/components/shared/SortableTableHead";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, DollarSign, TrendingUp, TrendingDown, Percent, Pencil, Trash2, FileText, Download, BarChart3, Sparkles, Wallet, PiggyBank, Target, FileSpreadsheet } from "lucide-react";
+import { Plus, DollarSign, TrendingUp, TrendingDown, Percent, Pencil, Trash2, FileText, Download, BarChart3, Sparkles, Wallet, PiggyBank, Target, FileSpreadsheet, PieChart, ArrowUpDown } from "lucide-react";
 import { FinanceiroDialog } from "@/components/financeiro/FinanceiroDialog";
 import { MigrateButton } from "@/components/financeiro/MigrateButton";
 import { DashboardFinanceiro } from "@/components/financeiro/DashboardFinanceiro";
 import { IAFinanceiraDialog } from "@/components/financeiro/IAFinanceiraDialog";
 import { MapaLucro } from "@/components/financeiro/MapaLucro";
+import { GraficosAvancados, CATEGORIAS } from "@/components/financeiro/GraficosAvancados";
+import { MetasFinanceiras } from "@/components/financeiro/MetasFinanceiras";
+import { ComparativoPeriodos } from "@/components/financeiro/ComparativoPeriodos";
 import { formatCurrency } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -504,34 +507,48 @@ export default function Financeiro() {
 
         {/* Tabs Premium */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="inline-flex h-14 items-center justify-center rounded-2xl bg-muted/50 p-1.5 backdrop-blur-sm border border-border/50">
+          <TabsList className="inline-flex h-14 items-center justify-center rounded-2xl bg-muted/50 p-1.5 backdrop-blur-sm border border-border/50 flex-wrap gap-1">
             <TabsTrigger 
               value="dashboard" 
-              className="rounded-xl px-6 py-3 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+              className="rounded-xl px-4 py-3 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
             >
               <BarChart3 className="h-4 w-4 mr-2" />
               Dashboard
             </TabsTrigger>
             <TabsTrigger 
               value="movimentacoes" 
-              className="rounded-xl px-6 py-3 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+              className="rounded-xl px-4 py-3 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
             >
               <FileText className="h-4 w-4 mr-2" />
               Movimentações
             </TabsTrigger>
             <TabsTrigger 
-              value="mapa" 
-              className="rounded-xl px-6 py-3 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+              value="graficos" 
+              className="rounded-xl px-4 py-3 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
             >
-              <Target className="h-4 w-4 mr-2" />
-              Mapa de Lucro
+              <PieChart className="h-4 w-4 mr-2" />
+              Gráficos
             </TabsTrigger>
             <TabsTrigger 
-              value="relatorios" 
-              className="rounded-xl px-6 py-3 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+              value="metas" 
+              className="rounded-xl px-4 py-3 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+            >
+              <Target className="h-4 w-4 mr-2" />
+              Metas
+            </TabsTrigger>
+            <TabsTrigger 
+              value="comparativo" 
+              className="rounded-xl px-4 py-3 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+            >
+              <ArrowUpDown className="h-4 w-4 mr-2" />
+              Comparativo
+            </TabsTrigger>
+            <TabsTrigger 
+              value="mapa" 
+              className="rounded-xl px-4 py-3 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
             >
               <PiggyBank className="h-4 w-4 mr-2" />
-              Relatórios
+              Mapa de Lucro
             </TabsTrigger>
           </TabsList>
 
