@@ -32,6 +32,17 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 
+const CATEGORIAS = [
+  "Operacional",
+  "Marketing", 
+  "RH",
+  "Logística",
+  "Infraestrutura",
+  "Vendas",
+  "Compras",
+  "Outros"
+];
+
 const formSchema = z.object({
   tipo: z.enum(["entrada", "saida"]),
   descricao: z.string().optional(),
@@ -41,6 +52,7 @@ const formSchema = z.object({
   quantidade: z.string().optional(),
   custo_unitario: z.string().optional(),
   preco_venda: z.string().optional(),
+  categoria: z.string().default("Operacional"),
 });
 
 interface CustoAdicional {
@@ -84,6 +96,7 @@ export function FinanceiroDialog({
       quantidade: "",
       custo_unitario: "",
       preco_venda: "",
+      categoria: "Operacional",
     },
   });
 
@@ -162,6 +175,7 @@ export function FinanceiroDialog({
         quantidade: movement.quantidade?.toString() || "",
         custo_unitario: custoUnitarioCalculado,
         preco_venda: movement.preco_venda?.toString() || "",
+        categoria: movement.categoria || "Operacional",
       });
       setCustosAdicionais(movement.custos_adicionais || []);
     } else {
@@ -174,6 +188,7 @@ export function FinanceiroDialog({
         quantidade: "",
         custo_unitario: "",
         preco_venda: "",
+        categoria: "Operacional",
       });
       setCustosAdicionais([]);
     }
@@ -267,6 +282,7 @@ export function FinanceiroDialog({
         lucro_liquido: lucroLiquido,
         margem_percentual: margemPercentual,
         custos_adicionais: custosAdicionais as any,
+        categoria: values.categoria,
       };
 
       if (movement) {
@@ -398,22 +414,49 @@ export function FinanceiroDialog({
                 )}
               />
 
-            <FormField
-              control={form.control}
-              name="descricao"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Descrição</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Descreva a movimentação... (opcional)"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="categoria"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoria</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a categoria" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {CATEGORIAS.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="descricao"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descrição</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Descreva a movimentação..."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-3 gap-4">
               <FormField
