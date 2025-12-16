@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { 
   Package, 
@@ -103,6 +104,7 @@ const LandingPage = () => {
   const [typedText, setTypedText] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
   const fullText = "Controle, rapidez e precisão";
   const { scrollYProgress } = useScroll();
   const heroOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0]);
@@ -565,8 +567,77 @@ const LandingPage = () => {
               </AnimatedSection>
             ))}
           </div>
+
+          {/* Video Demo Section */}
+          <AnimatedSection className="mt-20">
+            <div className="relative max-w-4xl mx-auto">
+              <div 
+                className="relative rounded-2xl overflow-hidden cursor-pointer group"
+                onClick={() => setVideoModalOpen(true)}
+              >
+                {/* Video Thumbnail */}
+                <div className="aspect-video bg-gradient-to-br from-[#141414] to-[#1a1a1a] border border-white/10 relative">
+                  <img 
+                    src={gestaoEstoqueImg}
+                    alt="Demo do StockMaster"
+                    className="w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity"
+                  />
+                  
+                  {/* Overlay gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  
+                  {/* Play Button */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <motion.div 
+                      className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-2xl shadow-emerald-500/40 group-hover:scale-110 transition-transform"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Play className="w-10 h-10 text-white ml-1" fill="white" />
+                    </motion.div>
+                  </div>
+                  
+                  {/* Video Info */}
+                  <div className="absolute bottom-6 left-6 right-6">
+                    <div className="flex items-center gap-4">
+                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                        <Play className="w-3 h-3 mr-1" />
+                        2:30 min
+                      </Badge>
+                      <span className="text-white/80 font-medium">Veja o StockMaster em ação</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Decorative elements */}
+                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl opacity-20 blur-xl group-hover:opacity-30 transition-opacity -z-10" />
+              </div>
+              
+              <p className="text-center text-white/50 mt-6 text-sm">
+                Clique para assistir a demonstração completa do sistema
+              </p>
+            </div>
+          </AnimatedSection>
         </div>
       </section>
+
+      {/* Video Modal */}
+      <Dialog open={videoModalOpen} onOpenChange={setVideoModalOpen}>
+        <DialogContent className="max-w-5xl w-full p-0 bg-black border-white/10 overflow-hidden">
+          <div className="aspect-video w-full">
+            <iframe
+              width="100%"
+              height="100%"
+              src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
+              title="Demo StockMaster"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Segments Section */}
       <section id="segmentos" className="py-24 px-4">
