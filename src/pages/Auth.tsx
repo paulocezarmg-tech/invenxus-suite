@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff, Mail, Lock, ArrowLeft } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -17,9 +17,20 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { MFAVerification } from "@/components/auth/MFAVerification";
 import logo from "@/assets/stockmaster-logo.png";
 import warehouseBg from "@/assets/warehouse-background.avif";
+
+const recoverySchema = z.object({
+  email: z.string().trim().email("Email inválido"),
+});
 
 const loginSchema = z.object({
   email: z.string().trim().email("Email inválido"),
@@ -27,12 +38,16 @@ const loginSchema = z.object({
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
+type RecoveryFormData = z.infer<typeof recoverySchema>;
 
 const Auth = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [showMFA, setShowMFA] = useState(false);
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -41,6 +56,32 @@ const Auth = () => {
       password: "",
     },
   });
+
+  const recoveryForm = useForm<RecoveryFormData>({
+    resolver: zodResolver(recoverySchema),
+    defaultValues: {
+      email: "",
+    },
+  });
+
+  const handlePasswordRecovery = async (data: RecoveryFormData) => {
+    setRecoveryLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Email de recuperação enviado! Verifique sua caixa de entrada.");
+      setShowRecoveryDialog(false);
+      recoveryForm.reset();
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao enviar email de recuperação");
+    } finally {
+      setRecoveryLoading(false);
+    }
+  };
 
   const handleLogin = async (data: LoginFormData) => {
     setLoading(true);
@@ -143,7 +184,16 @@ const Auth = () => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="seu@email.com" disabled={loading} {...field} />
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          type="email" 
+                          placeholder="seu@email.com" 
+                          disabled={loading} 
+                          className="pl-10"
+                          {...field} 
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -154,9 +204,38 @@ const Auth = () => {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Senha</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Senha</FormLabel>
+                      <button
+                        type="button"
+                        onClick={() => setShowRecoveryDialog(true)}
+                        className="text-sm text-primary hover:underline"
+                      >
+                        Esqueceu a senha?
+                      </button>
+                    </div>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" disabled={loading} {...field} />
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          type={showPassword ? "text" : "password"} 
+                          placeholder="••••••••" 
+                          disabled={loading} 
+                          className="pl-10 pr-10"
+                          {...field} 
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -178,6 +257,70 @@ const Auth = () => {
           </form>
         </Form>
       </Card>
+
+      {/* Password Recovery Dialog */}
+      <Dialog open={showRecoveryDialog} onOpenChange={setShowRecoveryDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-primary" />
+              Recuperar Senha
+            </DialogTitle>
+            <DialogDescription>
+              Digite seu email e enviaremos um link para redefinir sua senha.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...recoveryForm}>
+            <form onSubmit={recoveryForm.handleSubmit(handlePasswordRecovery)} className="space-y-4">
+              <FormField
+                control={recoveryForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          type="email" 
+                          placeholder="seu@email.com" 
+                          disabled={recoveryLoading}
+                          className="pl-10"
+                          {...field} 
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowRecoveryDialog(false)}
+                  disabled={recoveryLoading}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={recoveryLoading} className="flex-1">
+                  {recoveryLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    "Enviar Link"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
