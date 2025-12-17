@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -174,11 +175,28 @@ const Auth = () => {
 
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative z-10 flex-col justify-center items-center p-12">
-        <div className="max-w-md space-y-8">
-          <div className="flex items-center gap-4">
+        <motion.div 
+          className="max-w-md space-y-8"
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
+          <motion.div 
+            className="flex items-center gap-4"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
             <div className="relative">
               <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-              <img src={logo} alt="StockMaster Logo" className="h-24 w-24 object-contain relative z-10" />
+              <motion.img 
+                src={logo} 
+                alt="StockMaster Logo" 
+                className="h-24 w-24 object-contain relative z-10"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ duration: 0.6, delay: 0.3, type: "spring", stiffness: 200 }}
+              />
             </div>
             <div>
               <h1 className="text-4xl font-bold text-foreground">
@@ -186,164 +204,217 @@ const Auth = () => {
               </h1>
               <p className="text-primary font-medium">CMS Premium</p>
             </div>
-          </div>
+          </motion.div>
           
-          <p className="text-xl text-muted-foreground leading-relaxed">
+          <motion.p 
+            className="text-xl text-muted-foreground leading-relaxed"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
             Sistema completo de controle de estoque para empresas que buscam excelência na gestão.
-          </p>
+          </motion.p>
 
           <div className="space-y-4">
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50">
-              <div className="p-3 rounded-lg bg-primary/10">
-                <Package className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground">Gestão Inteligente</h3>
-                <p className="text-sm text-muted-foreground">Controle total do seu inventário</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50">
-              <div className="p-3 rounded-lg bg-accent/10">
-                <Sparkles className="h-6 w-6 text-accent" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground">Relatórios Avançados</h3>
-                <p className="text-sm text-muted-foreground">Análises e previsões com IA</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50">
-              <div className="p-3 rounded-lg bg-success/10">
-                <Shield className="h-6 w-6 text-success" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground">Segurança Total</h3>
-                <p className="text-sm text-muted-foreground">Proteção com autenticação 2FA</p>
-              </div>
-            </div>
+            {[
+              { icon: Package, title: "Gestão Inteligente", desc: "Controle total do seu inventário", color: "primary" },
+              { icon: Sparkles, title: "Relatórios Avançados", desc: "Análises e previsões com IA", color: "accent" },
+              { icon: Shield, title: "Segurança Total", desc: "Proteção com autenticação 2FA", color: "success" },
+            ].map((item, index) => (
+              <motion.div 
+                key={item.title}
+                className="flex items-center gap-4 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50"
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: 0.5 + index * 0.15 }}
+                whileHover={{ scale: 1.02, x: 10 }}
+              >
+                <div className={`p-3 rounded-lg bg-${item.color}/10`}>
+                  <item.icon className={`h-6 w-6 text-${item.color}`} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground">{item.desc}</p>
+                </div>
+              </motion.div>
+            ))}
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Right side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative z-10">
-        <div className="w-full max-w-md">
+        <motion.div 
+          className="w-full max-w-md"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
           {/* Mobile logo */}
-          <div className="lg:hidden flex flex-col items-center mb-8">
+          <motion.div 
+            className="lg:hidden flex flex-col items-center mb-8"
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
             <div className="relative mb-4">
               <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-              <img src={logo} alt="StockMaster Logo" className="h-20 w-20 object-contain relative z-10" />
+              <motion.img 
+                src={logo} 
+                alt="StockMaster Logo" 
+                className="h-20 w-20 object-contain relative z-10"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ duration: 0.6, delay: 0.3, type: "spring", stiffness: 200 }}
+              />
             </div>
             <h1 className="text-2xl font-bold text-foreground">StockMaster CMS</h1>
-          </div>
+          </motion.div>
 
           {/* Login Card */}
-          <div className="relative">
+          <motion.div 
+            className="relative"
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
             {/* Glow effect */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-2xl blur-lg opacity-75" />
+            <motion.div 
+              className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-2xl blur-lg"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.75 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+            />
             
             <div className="relative bg-card/80 backdrop-blur-xl rounded-2xl border border-border/50 shadow-2xl p-8">
-              <div className="text-center mb-8">
+              <motion.div 
+                className="text-center mb-8"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.5 }}
+              >
                 <h2 className="text-2xl font-bold text-foreground mb-2">Bem-vindo de volta</h2>
                 <p className="text-muted-foreground">Entre com suas credenciais para acessar</p>
-              </div>
+              </motion.div>
 
               <Form {...loginForm}>
                 <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-5">
-                  <FormField
-                    control={loginForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground font-medium">Email</FormLabel>
-                        <FormControl>
-                          <div className="relative group">
-                            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg blur opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                            <div className="relative">
-                              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                              <Input 
-                                type="email" 
-                                placeholder="seu@email.com" 
-                                disabled={loading} 
-                                className="pl-12 h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all rounded-lg"
-                                {...field} 
-                              />
-                            </div>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={loginForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <FormLabel className="text-foreground font-medium">Senha</FormLabel>
-                          <button
-                            type="button"
-                            onClick={() => setShowRecoveryDialog(true)}
-                            className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
-                          >
-                            Esqueceu a senha?
-                          </button>
-                        </div>
-                        <FormControl>
-                          <div className="relative group">
-                            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg blur opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                            <div className="relative">
-                              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                              <Input 
-                                type={showPassword ? "text" : "password"} 
-                                placeholder="••••••••" 
-                                disabled={loading} 
-                                className="pl-12 pr-12 h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all rounded-lg"
-                                {...field} 
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                              >
-                                {showPassword ? (
-                                  <EyeOff className="h-5 w-5" />
-                                ) : (
-                                  <Eye className="h-5 w-5" />
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25 transition-all duration-300 rounded-lg mt-2" 
-                    disabled={loading}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.4, delay: 0.6 }}
                   >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Entrando...
-                      </>
-                    ) : (
-                      <>
-                        <Shield className="mr-2 h-5 w-5" />
-                        Acessar Sistema
-                      </>
-                    )}
-                  </Button>
+                    <FormField
+                      control={loginForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground font-medium">Email</FormLabel>
+                          <FormControl>
+                            <div className="relative group">
+                              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg blur opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                              <div className="relative">
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <Input 
+                                  type="email" 
+                                  placeholder="seu@email.com" 
+                                  disabled={loading} 
+                                  className="pl-12 h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all rounded-lg"
+                                  {...field} 
+                                />
+                              </div>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.4, delay: 0.7 }}
+                  >
+                    <FormField
+                      control={loginForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center justify-between">
+                            <FormLabel className="text-foreground font-medium">Senha</FormLabel>
+                            <button
+                              type="button"
+                              onClick={() => setShowRecoveryDialog(true)}
+                              className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
+                            >
+                              Esqueceu a senha?
+                            </button>
+                          </div>
+                          <FormControl>
+                            <div className="relative group">
+                              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-lg blur opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                              <div className="relative">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <Input 
+                                  type={showPassword ? "text" : "password"} 
+                                  placeholder="••••••••" 
+                                  disabled={loading} 
+                                  className="pl-12 pr-12 h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all rounded-lg"
+                                  {...field} 
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  {showPassword ? (
+                                    <EyeOff className="h-5 w-5" />
+                                  ) : (
+                                    <Eye className="h-5 w-5" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.8 }}
+                  >
+                    <Button 
+                      type="submit" 
+                      className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25 transition-all duration-300 rounded-lg mt-2" 
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Entrando...
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="mr-2 h-5 w-5" />
+                          Acessar Sistema
+                        </>
+                      )}
+                    </Button>
+                  </motion.div>
                 </form>
               </Form>
 
-              <div className="mt-8 pt-6 border-t border-border/50">
+              <motion.div 
+                className="mt-8 pt-6 border-t border-border/50"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.9 }}
+              >
                 <p className="text-center text-sm text-muted-foreground">
                   Protegido por autenticação segura
                 </p>
@@ -351,14 +422,19 @@ const Auth = () => {
                   <Shield className="h-4 w-4 text-success" />
                   <span className="text-xs text-muted-foreground">Conexão criptografada</span>
                 </div>
-              </div>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
 
-          <p className="text-center text-xs text-muted-foreground mt-6">
+          <motion.p 
+            className="text-center text-xs text-muted-foreground mt-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 1 }}
+          >
             © 2024 StockMaster CMS. Todos os direitos reservados.
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
       </div>
 
       {/* Password Recovery Dialog */}
